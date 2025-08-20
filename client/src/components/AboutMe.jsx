@@ -148,7 +148,7 @@ export default function AboutMe() {
   };
 
   const getStatusText = () => {
-    if (submitStatus === 'success') return 'Profile updated';
+    if (submitStatus === 'success') return 'Tell us about yourself';
     if (submitStatus === 'error') return 'Error occurred';
     if (isSubmitting) return 'Submitting...';
     return 'Tell us about yourself';
