@@ -151,13 +151,7 @@ export default function AboutMe() {
     if (submitStatus === 'success') return 'Profile updated';
     if (submitStatus === 'error') return 'Error occurred';
     if (isSubmitting) return 'Submitting...';
-    const completedFields = [
-      formData.email_id,
-      formData.bio,
-      formData.interests.length > 0,
-      formData.skills.length > 0
-    ].filter(Boolean).length;
-    return `${completedFields}/4 sections completed`;
+    return 'Tell us about yourself';
   };
 
   return (
