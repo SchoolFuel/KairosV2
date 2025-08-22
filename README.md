@@ -72,19 +72,6 @@ Create a `.clasp.json` file in the root directory of the project with the follow
 4. Replace `<scriptId>` with your actual script ID
 5. Replace `<repoRoot>` with the path to your repository root (usually just `"."`)
 
-**Clasp Template:**
-```json
-{
-    "scriptId": "<scriptId>",
-    "rootDir": "<repoRoot>",
-    "scriptExtensions": [".js", ".gs"],
-    "htmlExtensions": [".html"],
-    "jsonExtensions": [".json"],
-    "filePushOrder": [],
-    "skipSubdirectories": false
-}
-```
-
 4. **Create a Feature Branch**
 ```bash
 git checkout -b your-feature-name
@@ -183,6 +170,7 @@ Use Case:       Develop   Test/QA   Deploy
    clasp login
    
    # Modify .clasp.json scriptId to the production document script Id
+   In .clasp.json - make sure you have production document script id
    # Push to Apps Script
    clasp push
    
