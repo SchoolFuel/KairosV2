@@ -49,23 +49,59 @@ git clone https://github.com/venkatasai7/KairosV2.git
 cd KairosV2
 ```
 
-3. **Create a Feature Branch**
+3. **Set Up .clasp.json Configuration**
+
+Create a `.clasp.json` file in the root directory of the project with the following template:
+
+```json
+{
+    "scriptId": "<scriptId>",
+    "rootDir": "<repoRoot>",
+    "scriptExtensions": [".js", ".gs"],
+    "htmlExtensions": [".html"],
+    "jsonExtensions": [".json"],
+    "filePushOrder": [],
+    "skipSubdirectories": false
+}
+```
+
+**To get your script ID:**
+1. Create a personal Google Doc in your Google Drive
+2. Go to **Extensions** → **Apps Script** in the document
+3. Go to Settings->Script Id (copy)
+4. Replace `<scriptId>` with your actual script ID
+5. Replace `<repoRoot>` with the path to your repository root (usually just `"."`)
+
+**Clasp Template:**
+```json
+{
+    "scriptId": "<scriptId>",
+    "rootDir": "<repoRoot>",
+    "scriptExtensions": [".js", ".gs"],
+    "htmlExtensions": [".html"],
+    "jsonExtensions": [".json"],
+    "filePushOrder": [],
+    "skipSubdirectories": false
+}
+```
+
+4. **Create a Feature Branch**
 ```bash
 git checkout -b your-feature-name
 ```
 
-4. **Make Your Changes Locally**
+5. **Make Your Changes Locally**
 
 Edit using your preferred IDE or the Google Apps Script online editor.
 
-5. **Stage, Commit, and Push Changes**
+6. **Stage, Commit, and Push Changes**
 ```bash
 git add .
 git commit -m "Add: your change summary"
 git push origin your-feature-name
 ```
 
-6. **Open a Pull Request** on GitHub for review and merge.
+7. **Open a Pull Request** on GitHub for review and merge.
 
 ---
 
@@ -146,6 +182,7 @@ Use Case:       Develop   Test/QA   Deploy
    # Login to clasp
    clasp login
    
+   # Modify .clasp.json scriptId to the production document script Id
    # Push to Apps Script
    clasp push
    
