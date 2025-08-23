@@ -169,8 +169,11 @@ Use Case:       Develop   Test/QA   Deploy
    # Login to clasp
    clasp login
    
-   # Modify .clasp.json scriptId to the production document script Id
-   In .clasp.json - make sure you have production document script id
+   # Build app - this generates a new KairosV2/Sidebar.html file
+   cd client && npm run build
+
+   # Modify .clasp.json scriptId to the staging/production document script Id
+   In .clasp.json - make sure you have staging/production document script id
    # Push to Apps Script
    clasp push
    
@@ -188,7 +191,8 @@ Use Case:       Develop   Test/QA   Deploy
    ```bash
    git checkout main
    git pull origin main
-   clasp push
+   cd client && npm run build # this generates a new KairosV2/Sidebar.html file
+   clasp push  # In .clasp.json- make sure you have production document script id
    clasp deploy
    ```
 ---
