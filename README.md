@@ -161,7 +161,12 @@ Use Case:       Develop   Test/QA   Deploy
    git push origin staging
    ```
 
-4. **Deploy to staging environment**
+4. **Build app - this generates a new KairosV2/Sidebar.html file**
+   ```
+   cd client && npm run build
+   ```
+
+5. **Deploy to staging environment**
    ```bash
    # Install clasp globally
    npm install -g @google/clasp
@@ -188,9 +193,11 @@ Use Case:       Develop   Test/QA   Deploy
    ```bash
    git checkout main
    git pull origin main
-   clasp push
+   cd client && npm run build # this generates a new KairosV2/Sidebar.html file
+   clasp push  # In .clasp.json- make sure you have production document script id
    clasp deploy
    ```
+---
 ---
 
 Happy coding! 🎉
