@@ -1,0 +1,279 @@
+/* ---------- Reset-ish ---------- */
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; }
+button { font: inherit; }
+input, select, textarea { font: inherit; }
+
+/* ---------- Design tokens ---------- */
+:root{
+  --bg:#ffffff;
+  --ink:#111827;           /* near slate-900 */
+  --ink-2:#374151;         /* slate-700 */
+  --ink-3:#6b7280;         /* slate-500 */
+  --muted:#f3f4f6;         /* slate-100 */
+  --border:#e5e7eb;        /* slate-200 */
+  --shadow:0 1px 2px rgba(0,0,0,.04);
+
+  --indigo-50:#eef2ff;
+  --indigo-100:#e0e7ff;
+  --indigo-200:#c7d2fe;
+  --indigo-700:#4338ca;
+  --indigo-900:#1e1b4b;
+
+  --green-700:#047857;
+  --blue-700:#1d4ed8;
+
+  --danger-bg:#fee2e2;
+  --danger-border:#fecaca;
+  --danger-ink:#b91c1c;
+}
+
+/* ---------- Wrapper & headings ---------- */
+.td-wrapper{ padding:12px; }
+
+.td-heading{
+  font-size:20px; line-height:1.2;
+  font-weight:700; color:var(--ink);
+  margin:8px 0 14px;
+}
+
+/* ---------- Feedback blocks ---------- */
+.td-loading, .td-error, .td-empty{
+  padding:12px; font-size:14px; border-radius:10px;
+}
+.td-loading{ color:var(--ink-3); display:flex; gap:8px; align-items:center; }
+.td-error{ color:var(--danger-ink); background:var(--indigo-50); border:1px solid var(--indigo-200); }
+.td-empty{ color:var(--ink-3); }
+
+/* ---------- Cards (list rows) ---------- */
+.td-card{
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  padding:12px; margin-bottom:12px;
+}
+
+.td-card-header{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px;
+}
+
+.td-title{
+  font-weight:700; color:var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.td-status{ font-size:12px; color:var(--ink-3); }
+.td-subject{ margin-top:4px; font-size:12px; color:var(--ink-2); }
+
+.td-review-btn{
+  margin-top:8px;
+  color:var(--green-700); font-size:14px;
+  text-decoration:underline;
+  background:none; border:1px solid transparent; border-radius:8px;
+  padding:4px 8px; cursor:pointer;
+}
+.td-review-btn:hover{ background:var(--muted); }
+.td-review-btn:disabled{ opacity:.5; cursor:not-allowed; }
+.td-review-btn:focus{ outline:2px solid var(--indigo-200); outline-offset:2px; }
+
+/* ---------- Details panel ---------- */
+.td-details{
+  background:var(--indigo-50);
+  border:1px solid var(--indigo-200);
+  border-radius:12px;
+  padding:12px; margin-top:12px;
+}
+
+.td-details-header{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px;
+}
+.td-details-title{ font-weight:800; color:var(--indigo-900); font-size:22px; }
+.td-chip{ font-size:12px; color:var(--ink-3); }
+.td-desc{
+  margin-top:8px; font-size:15px; color:var(--ink-2);
+  white-space:pre-wrap; line-height:1.6;
+}
+
+/* ---------- Stage accordion ---------- */
+.td-stage{
+  border:1px solid var(--indigo-200); background:#fff;
+  border-radius:10px; margin-top:8px;
+}
+.td-stage-toggle{
+  width:100%; background:none; border:0;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px; cursor:pointer;
+}
+.td-stage-toggle:hover{ background:var(--muted); }
+.td-stage-left{ display:flex; gap:8px; align-items:center; }
+.td-stage-title{ font-size:14px; font-weight:700; color:var(--ink); }
+.td-stage-status{ font-size:12px; color:var(--ink-3); }
+.td-stage-body{ padding:10px 10px 12px; }
+
+/* ---------- Tasks ---------- */
+.td-task{
+  font-size:12px; background:#f8fafc;
+  border:1px solid var(--border); border-radius:8px;
+  padding:8px; margin-top:6px;
+}
+.td-task + .td-task{ margin-top:8px; }
+
+.td-task-title{ font-weight:600; color:var(--ink); }
+.td-task-desc{ color:var(--ink-2); margin-top:2px; line-height:1.5; }
+.td-link{
+  margin-top:4px; display:inline-block;
+  color:var(--blue-700); text-decoration:underline;
+}
+.td-link:hover{ filter:brightness(0.9); }
+
+/* ---------- Gate / Stage feedback ---------- */
+.td-gate{
+  margin-top:10px; font-size:12px;
+  background:var(--indigo-50);
+  border:1px solid var(--indigo-200);
+  border-radius:8px; padding:8px;
+}
+.td-gate-title{ font-weight:700; color:var(--ink); margin-bottom:6px; }
+
+/* ---------- Page actions ---------- */
+.td-panel-actions{
+  margin-top:12px; display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;
+}
+.td-actions-left{ display:flex; gap:8px; }
+.td-actions-right{ flex:1; min-width:220px; }
+
+/* ---------- Inputs / selects / buttons ---------- */
+.td-label{ font-size:12px; color:var(--ink-3); }
+
+.td-input, .td-textarea, .td-select{
+  width:100%;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:#fff;
+  font-size:13px;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+.td-input{ padding:8px; }
+.td-input-md{ max-width:380px; }
+.td-textarea{ padding:8px; resize:vertical; }
+.td-select{ padding:6px 8px; width:auto; }
+
+.td-input:focus, .td-textarea:focus, .td-select:focus{
+  outline: none; border-color: var(--indigo-200);
+  box-shadow: 0 0 0 3px var(--indigo-100);
+}
+
+.td-btn{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 10px; border:1px solid var(--border); border-radius:8px;
+  background:#fff; font-size:13px; cursor:pointer;
+}
+.td-btn:hover{ background:var(--muted); }
+.td-btn:disabled{ opacity:.6; cursor:not-allowed; }
+.td-btn-sm{ padding:4px 8px; font-size:12px; }
+.td-btn-primary{
+  background:var(--indigo-50);
+  border-color:var(--indigo-200);
+}
+.td-btn-danger{
+  border-color:var(--danger-border);
+  background:var(--danger-bg);
+  color:var(--danger-ink);
+}
+
+/* ---------- Close link ---------- */
+.td-close{
+  margin-top:12px; background:none; border:0;
+  color:var(--indigo-700); text-decoration:underline; cursor:pointer;
+  font-size:14px;
+}
+.td-close:hover{ filter:brightness(0.9); }
+
+/* ---------- Utility ---------- */
+.spin{ animation:spin 1s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* ---------- Nice scroll in the details panel (optional) ---------- */
+.td-details ::-webkit-scrollbar{ width:10px; height:10px; }
+.td-details ::-webkit-scrollbar-thumb{
+  background:#d1d5db; border-radius:8px; border:3px solid transparent; background-clip:content-box;
+}
+.td-details ::-webkit-scrollbar-track{ background:transparent; }
+
+/* ---------- Small screens (very narrow sidebar) ---------- */
+@media (max-width: 420px){
+  .td-details-title{ font-size:18px; }
+  .td-heading{ font-size:18px; }
+  .td-input-md{ max-width:100%; }
+}
+
+/* Compact task card */
+.td-task--compact{ background:#fff; border:1px solid var(--border); padding:10px; }
+.td-task-toolbar{ display:flex; align-items:center; gap:8px; }
+.td-input-title{ flex:1; font-weight:600; }
+.td-icon-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; border:1px solid var(--border);
+  border-radius:8px; background:#fff; cursor:pointer;
+}
+.td-icon-btn:hover{ background:var(--muted); }
+
+/* Status as a pill */
+.td-pill-select{
+  appearance:none; background:var(--indigo-50); border:1px solid var(--indigo-200);
+  border-radius:999px; padding:6px 22px 6px 10px; font-size:12px;
+}
+
+/* Auto-resize textarea */
+.td-textarea-auto{ overflow:hidden; resize:none; margin-top:6px; }
+
+/* Feedback disclosure */
+.td-disclosure{ margin-top:6px; }
+.td-disclosure > summary{ cursor:pointer; color:var(--ink-3); font-size:12px; }
+.td-disclosure[open] > summary{ color:var(--ink-2); }
+
+/* Stage body less boxy, subtle timeline */
+.td-stage-body{ padding:8px 10px 12px; border-left:3px solid var(--indigo-100); margin-left:6px; }
+
+
+.actions-section{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:10px 0 4px;
+}
+
+/* shared button look */
+.actions-section button{
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  transition: transform .06s ease, filter .12s ease;
+}
+.actions-section button:hover{ filter: brightness(0.97); }
+.actions-section button:active{ transform: translateY(1px); }
+.actions-section button:disabled{ opacity:.6; cursor:not-allowed; }
+
+/* variants to mirror student dashboard vibe */
+.approve-btn{
+  background: #ecfdf5;              /* green-50 */
+  border-color: #a7f3d0;            /* green-200 */
+  color: #065f46;                   /* green-900 */
+}
+.revision-btn{
+  background: #fffbeb;              /* amber-50 */
+  border-color: #fde68a;            /* amber-300 */
+  color: #92400e;                   /* amber-900 */
+}
+.reject-btn{
+  background: #fee2e2;              /* red-100 */
+  border-color: #fecaca;            /* red-200 */
+  color: #991b1b;                   /* red-900 */
+}
