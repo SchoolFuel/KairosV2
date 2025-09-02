@@ -2,14 +2,10 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   Loader2,
   MessageSquareText,
-  ChevronDown,
-  ChevronRight,
-  Save,
-  Link as LinkIcon,
 } from "lucide-react";
 import "../styles/Teacher.css";
 
-// ---------- helpers ----------
+/* ---------- helpers ---------- */
 const parseMaybeJSON = (v) => {
   if (typeof v !== "string") return v;
   try {
@@ -30,26 +26,19 @@ const deepClone = (obj) =>
     ? structuredClone(obj)
     : JSON.parse(JSON.stringify(obj));
 
-const autoGrow = (e) => {
-  const el = e.target;
-  el.style.height = "auto";
-  el.style.height = Math.min(el.scrollHeight, 220) + "px";
-};
-
 export default function TeacherDashboard() {
   // List
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // Details
+  // Sidebar details (summary only)
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsErr, setDetailsErr] = useState("");
   const [saveMsg, setSaveMsg] = useState("");
-  const [project, setProject] = useState(null); // not strictly needed but kept for clarity
-  const [draft, setDraft] = useState(null); // editable copy
-  const [expandedStages, setExpandedStages] = useState({});
+  const [project, setProject] = useState(null);
+  const [draft, setDraft] = useState(null); // full project object for actions
   const [overallComment, setOverallComment] = useState("");
 
   // ---- Load list ----
@@ -74,22 +63,18 @@ export default function TeacherDashboard() {
           setLoading(false);
         }
       })
-      .withFailureHandler(() => {
-        setErr("Failed to load");
+      .withFailureHandler((e) => {
+        setErr(e?.message || "Failed to load");
         setLoading(false);
       })
       .getTeacherProjectsAll();
   }, []);
 
   // ---- helpers ----
-  const toggleStage = useCallback(
-    (id) => setExpandedStages((p) => ({ ...p, [id]: !p[id] })),
-    []
-  );
-
   const extractProject = (data) => {
     const obj = parseMaybeJSON(data);
     const body = parseMaybeJSON(obj?.body);
+    // Prefer body.project; fall back to first
     return (
       body?.project ||
       (Array.isArray(body?.projects) ? body.projects[0] : null) ||
@@ -102,20 +87,21 @@ export default function TeacherDashboard() {
     setTimeout(() => setSaveMsg(""), 1500);
   };
 
-  // ---- Open details (all stages collapsed by default) ----
+  // ---- Review flow: open sheet + sidebar summary (no tasks in sidebar) ----
   const review = (projectId) => {
     const run = window?.google?.script?.run;
     if (!run || !projectId) return;
 
+    // Open summary panel
     setDetailsOpen(true);
     setDetailsLoading(true);
     setDetailsErr("");
     setSaveMsg("");
     setProject(null);
     setDraft(null);
-    setExpandedStages({});
     setOverallComment("");
 
+    // Fetch details for sidebar summary
     run
       .withSuccessHandler((data) => {
         try {
@@ -127,107 +113,37 @@ export default function TeacherDashboard() {
           }
           setProject(proj || null);
           setDraft(proj ? deepClone(proj) : null);
-          // Keep ALL stages collapsed on open:
-          setExpandedStages({});
 
-          window.google.script.run
-          .withSuccessHandler((msg) => setFlash(msg || 'Written to sheet'))
-          .withFailureHandler((e) => setDetailsErr(e?.message || 'Failed to write to sheet'))
-          .writeProjectToSheet(proj);
+          // Write the exact project to the sheet (prevents shape issues)
+          if (proj) {
+            window.google.script.run
+              .withSuccessHandler((msg) =>
+                setFlash(msg || "Opened review sheet")
+              )
+              .withFailureHandler((e) =>
+                setDetailsErr(e?.message || "Failed to write to sheet")
+              )
+              .writeProjectToSheet(proj);
+          }
         } catch {
           setDetailsErr("Could not parse details response.");
         } finally {
           setDetailsLoading(false);
         }
       })
-
       .withFailureHandler((e) => {
         setDetailsErr(e?.message || "Request failed.");
         setDetailsLoading(false);
       })
-      .getTeacherProjectDetails(projectId); // GAS alias exists
+      .getTeacherProjectDetails(projectId);
   };
 
-  // ---------- Per-task editing + save ----------
-  const updateTaskField = (stageId, taskId, key, value) => {
-    setDraft((d) => ({
-      ...d,
-      stages: d.stages.map((s) =>
-        s.stage_id === stageId
-          ? {
-              ...s,
-              tasks: s.tasks.map((t) =>
-                t.task_id === taskId ? { ...t, [key]: value } : t
-              ),
-            }
-          : s
-      ),
-    }));
-  };
-
-  const updateTaskReviewLocal = (stageId, taskId, field, value) => {
-    setDraft((d) => ({
-      ...d,
-      stages: d.stages.map((s) =>
-        s.stage_id === stageId
-          ? {
-              ...s,
-              tasks: s.tasks.map((t) =>
-                t.task_id === taskId ? { ...t, [field]: value } : t
-              ),
-            }
-          : s
-      ),
-    }));
-  };
-
-  const saveTask = (task) => {
-    const run = window?.google?.script?.run;
-    if (!run || !draft?.project_id) return;
-    setDetailsErr("");
-    setSaveMsg("");
-    run
-      .withSuccessHandler(() => setFlash("Saved"))
-      .withFailureHandler((e) => setDetailsErr(e?.message || "Save failed"))
-      .updateTaskReview(
-        draft.project_id,
-        task.task_id,
-        task.review_status || task.status || "Pending Approval",
-        task.reviewer_feedback || ""
-      );
-  };
-
-  // ---------- Stage feedback ----------
-  const saveStageFeedback = (stage) => {
-    const run = window?.google?.script?.run;
-    if (!run || !draft?.project_id) return;
-    setDetailsErr("");
-    setSaveMsg("");
-    run
-      .withSuccessHandler(() => setFlash("Feedback saved"))
-      .withFailureHandler((e) => setDetailsErr(e?.message || "Save failed"))
-      .saveStageFeedback(
-        draft.project_id,
-        stage.stage_id,
-        stage.reviewer_feedback || ""
-      );
-  };
-
-  // ---------- Page actions ----------
+  // ---------- Page actions (operate on the project as a whole) ----------
   const approveAll = () => {
     const run = window?.google?.script?.run;
     if (!run || !draft?.project_id) return;
 
-    // optimistic UI
-    setDraft((d) => ({
-      ...d,
-      stages: d.stages.map((s) => ({
-        ...s,
-        tasks: s.tasks.map((t) => ({ ...t, review_status: "Approved" })),
-      })),
-    }));
-
-    setDetailsErr("");
+    // optimistic UI: show a chip + (optionally) mark statuses in local state if needed
     setSaveMsg("");
     run
       .withSuccessHandler(() => setFlash("Approved all"))
@@ -269,7 +185,9 @@ export default function TeacherDashboard() {
         rows.map((p) => (
           <div key={p.project_id} className="td-card">
             <div className="td-card-header">
-              <div className="td-title">{p.title || "Untitled"}</div>
+              <div className="td-title">
+                {p.title || p.project_title || "Untitled"}
+              </div>
               <span className="td-status">{p.status || "—"}</span>
             </div>
             <div className="td-subject">{p.subject_domain || "—"}</div>
@@ -295,11 +213,12 @@ export default function TeacherDashboard() {
         ))
       )}
 
+      {/* Sidebar summary (no tasks) */}
       {detailsOpen && (
         <div className="td-details">
           {detailsLoading && (
             <div className="td-loading">
-              <Loader2 className="spin" size={16} /> Loading project details…
+              <Loader2 className="spin" size={16} /> Loading project…
             </div>
           )}
 
@@ -311,7 +230,7 @@ export default function TeacherDashboard() {
             <>
               <div className="td-details-header">
                 <div className="td-details-title">
-                  {draft.project_title || draft.title || "Project Details"}
+                  {draft.project_title || draft.title || "Project"}
                 </div>
                 <div className="td-chip">
                   {draft.subject_domain || "—"} • {draft.status || "—"}
@@ -324,30 +243,39 @@ export default function TeacherDashboard() {
                 </div>
               )}
 
-              {draft.description && (
-                <div className="td-desc">{draft.description}</div>
-              )}
-
-              <div className="td-subject" style={{ marginTop: 8 }}>
-                Stages: {Array.isArray(draft.stages) ? draft.stages.length : 0}
+              {/* Student name */}
+              <div className="td-chip" style={{ marginTop: 6 }}>
+                Student:{" "}
+                {draft.owner_name ||
+                  draft.owner_email ||
+                  draft.student_name ||
+                  "—"}
               </div>
 
-              {/* STAGES */}
-              <div style={{ marginTop: 8 }}>
-                {(draft.stages || []).map((st) => {
-                  const open = !!expandedStages[st.stage_id];
-                  return (
-                    <div key={st.stage_id} className="td-stage">
-                      <button
+              {/* Description */}
+              {draft.description && (
+                <div className="td-desc" style={{ marginTop: 8 }}>
+                  {draft.description}
+                </div>
+              )}
+
+              {/* Stages list only (no tasks) */}
+              <div className="td-subject" style={{ marginTop: 12 }}>
+                Stages
+              </div>
+              <div className="td-stage-list">
+                {(draft.stages || [])
+                  .slice()
+                  .sort(
+                    (a, b) => (a.stage_order || 0) - (b.stage_order || 0)
+                  )
+                  .map((st) => (
+                    <div key={st.stage_id} className="td-stage td-stage--list">
+                      <div
                         className="td-stage-toggle"
-                        onClick={() => toggleStage(st.stage_id)}
+                        style={{ cursor: "default" }}
                       >
                         <div className="td-stage-left">
-                          {open ? (
-                            <ChevronDown size={16} />
-                          ) : (
-                            <ChevronRight size={16} />
-                          )}
                           <span className="td-stage-title">
                             {st.title || "Stage"}
                           </span>
@@ -355,177 +283,49 @@ export default function TeacherDashboard() {
                         <span className="td-stage-status">
                           {st.status || "—"}
                         </span>
-                      </button>
-
-                      {open && (
-                        <div className="td-stage-body">
-                          {/* TASKS */}
-                          {(st.tasks || []).map((t) => (
-                            <div
-                              key={t.task_id}
-                              className="td-task td-task--compact"
-                            >
-                              {/* Toolbar: title · evidence · status · save */}
-                              <div className="td-task-toolbar">
-                                <input
-                                  className="td-input td-input-title"
-                                  value={t.title || ""}
-                                  onChange={(e) =>
-                                    updateTaskField(
-                                      st.stage_id,
-                                      t.task_id,
-                                      "title",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="Task title"
-                                />
-
-                                {t.evidence_link && (
-                                  <a
-                                    className="td-icon-btn"
-                                    href={t.evidence_link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title="Evidence"
-                                  >
-                                    <LinkIcon size={16} />
-                                  </a>
-                                )}
-
-                                <select
-                                  className="td-pill-select"
-                                  value={
-                                    t.review_status ||
-                                    t.status ||
-                                    "Pending Approval"
-                                  }
-                                  onChange={(e) =>
-                                    updateTaskReviewLocal(
-                                      st.stage_id,
-                                      t.task_id,
-                                      "review_status",
-                                      e.target.value
-                                    )
-                                  }
-                                  title="Status"
-                                >
-                                  <option>Pending Approval</option>
-                                  <option>Approved</option>
-                                  <option>Needs Revision</option>
-                                </select>
-
-                                <button
-                                  className="td-icon-btn"
-                                  onClick={() => saveTask(t)}
-                                  title="Save"
-                                >
-                                  <Save size={16} />
-                                </button>
-                              </div>
-
-                              {/* Description (auto-resize) */}
-                              <textarea
-                                className="td-textarea td-textarea-auto"
-                                rows={1}
-                                onInput={autoGrow}
-                                value={t.description || ""}
-                                onChange={(e) =>
-                                  updateTaskField(
-                                    st.stage_id,
-                                    t.task_id,
-                                    "description",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Task description"
-                              />
-
-                              {/* Feedback collapsible */}
-                              <details className="td-disclosure">
-                                <summary>Feedback</summary>
-                                <input
-                                  className="td-input"
-                                  value={t.reviewer_feedback || ""}
-                                  onChange={(e) =>
-                                    updateTaskReviewLocal(
-                                      st.stage_id,
-                                      t.task_id,
-                                      "reviewer_feedback",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="Optional feedback to student"
-                                />
-                              </details>
-                            </div>
-                          ))}
-
-                          {/* STAGE FEEDBACK SAVE */}
-                          <div className="td-gate">
-                            <div className="td-gate-title">Stage Feedback</div>
-                            <textarea
-                              className="td-textarea"
-                              rows={2}
-                              value={st.reviewer_feedback || ""}
-                              onChange={(e) =>
-                                setDraft((d) => ({
-                                  ...d,
-                                  stages: d.stages.map((s) =>
-                                    s.stage_id === st.stage_id
-                                      ? {
-                                          ...s,
-                                          reviewer_feedback: e.target.value,
-                                        }
-                                      : s
-                                  ),
-                                }))
-                              }
-                              placeholder="Notes for this stage"
-                            />
-                            <div style={{ marginTop: 6 }}>
-                              <button
-                                className="td-btn td-btn-sm"
-                                onClick={() => saveStageFeedback(st)}
-                              >
-                                Save Stage Feedback
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </div>
-                  );
-                })}
+                  ))}
               </div>
 
-              {/* PAGE ACTIONS */}
-              {/* Student-style actions */}
+              {/* Actions in the SIDEBAR */}
               <div className="actions-section">
-                <button className="approve-btn" onClick={approveAll}>
+                <button
+                  className="approve-btn"
+                  onClick={approveAll}
+                  disabled={!draft?.project_id || detailsLoading}
+                  title="Mark all tasks Approved"
+                >
                   ✅ Approve All
                 </button>
+
                 <button
                   className="revision-btn"
                   onClick={() => submitDecision("return")}
+                  disabled={!draft?.project_id || detailsLoading}
+                  title="Send project back for revision"
                 >
                   📝 Send for Revision
                 </button>
+
                 <button
                   className="reject-btn"
                   onClick={() => submitDecision("reject")}
+                  disabled={!draft?.project_id || detailsLoading}
+                  title="Reject project"
                 >
                   🛑 Reject Project
                 </button>
               </div>
 
-              {/* (Optional) general comments stays below */}
+              {/* Optional general comments */}
               <textarea
                 className="td-textarea"
                 rows={2}
                 value={overallComment}
                 onChange={(e) => setOverallComment(e.target.value)}
                 placeholder="General comments for this project decision"
+                style={{ marginTop: 6 }}
               />
 
               <button
@@ -535,6 +335,8 @@ export default function TeacherDashboard() {
                   setProject(null);
                   setDraft(null);
                   setDetailsErr("");
+                  setSaveMsg("");
+                  setOverallComment("");
                 }}
               >
                 Close
