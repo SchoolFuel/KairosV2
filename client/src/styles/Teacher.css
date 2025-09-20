@@ -45,7 +45,7 @@ input, select, textarea { font: inherit; }
 .td-error{ color:var(--danger-ink); background:var(--indigo-50); border:1px solid var(--indigo-200); }
 .td-empty{ color:var(--ink-3); }
 
-/* ---------- Cards (list rows) ---------- */
+/* ---------- Cards (legacy base) ---------- */
 .td-card{
   background:var(--bg);
   border:1px solid var(--border);
@@ -53,12 +53,10 @@ input, select, textarea { font: inherit; }
   box-shadow:var(--shadow);
   padding:12px; margin-bottom:12px;
 }
-
 .td-card-header{
   display:flex; align-items:center; justify-content:space-between;
   gap:8px;
 }
-
 .td-title{
   font-weight:700; color:var(--ink);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -66,6 +64,68 @@ input, select, textarea { font: inherit; }
 .td-status{ font-size:12px; color:var(--ink-3); }
 .td-subject{ margin-top:4px; font-size:12px; color:var(--ink-2); }
 
+/* ---------- New card layout ---------- */
+.td-card--elevated{
+  padding:14px 14px 10px;
+  border-radius:14px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 16px -10px rgba(0,0,0,.18);
+}
+.td-card-row{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+}
+.td-card-main{ min-width:0; }
+.td-card-title{
+  font-weight:700; color:var(--ink);
+  font-size:16px;
+  line-height:1.4;
+  white-space:normal;      /* allow wrapping */
+  overflow:visible;        /* don’t cut off */
+  text-overflow:unset;     /* disable ellipsis */
+}
+.td-card-meta{
+  margin-top:4px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  color:var(--ink-3); font-size:12px;
+}
+.td-card-chip{
+  background:#f9fafb; border:1px solid var(--border);
+  padding:2px 8px; border-radius:999px; font-size:12px; color:var(--ink-2);
+}
+.td-card-owner{ color:var(--ink-3); }
+.td-card-sep{ color:var(--ink-3); }
+
+/* Status pill */
+.td-status-pill{
+  white-space:nowrap;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:12px; font-weight:600;
+  border:1px solid var(--border);
+  color:var(--ink-3); background:#fff;
+}
+.td-status-pill.is-approve{ background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }
+.td-status-pill.is-reject{ background:#fee2e2; border-color:#fecaca; color:#991b1b; }
+.td-status-pill.is-pending{ background:#fff7ed; border-color:#fde68a; color:#92400e; }
+/* Removed empty ruleset for .td-status-pill.is-neutral */
+
+/* Review CTA */
+.td-review-cta{
+  margin-top:10px;
+  display:inline-block;     /* shrink to content */
+  border-radius:8px;
+  border:1px solid var(--indigo-200);
+  background:var(--indigo-50);
+  color:var(--indigo-700);
+  padding:6px 14px;         /* tighter padding */
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition: transform .06s ease, filter .12s ease;
+}
+.td-review-cta:hover{ filter:brightness(0.97); }
+.td-review-cta:active{ transform: translateY(1px); }
+.td-review-cta:disabled{ opacity:.6; cursor:not-allowed; }
+
+/* (old review link kept for backwards compatibility) */
 .td-review-btn{
   margin-top:8px;
   color:var(--green-700); font-size:14px;
@@ -84,7 +144,6 @@ input, select, textarea { font: inherit; }
   border-radius:12px;
   padding:12px; margin-top:12px;
 }
-
 .td-details-header{
   display:flex; align-items:center; justify-content:space-between;
   gap:8px;
@@ -202,7 +261,7 @@ input, select, textarea { font: inherit; }
 }
 .td-details ::-webkit-scrollbar-track{ background:transparent; }
 
-/* ---------- Small screens (very narrow sidebar) ---------- */
+/* ---------- Small screens ---------- */
 @media (max-width: 420px){
   .td-details-title{ font-size:18px; }
   .td-heading{ font-size:18px; }
@@ -220,7 +279,7 @@ input, select, textarea { font: inherit; }
 }
 .td-icon-btn:hover{ background:var(--muted); }
 
-/* Status as a pill */
+/* Status as a pill (inputs) */
 .td-pill-select{
   appearance:none; background:var(--indigo-50); border:1px solid var(--indigo-200);
   border-radius:999px; padding:6px 22px 6px 10px; font-size:12px;
@@ -237,7 +296,7 @@ input, select, textarea { font: inherit; }
 /* Stage body less boxy, subtle timeline */
 .td-stage-body{ padding:8px 10px 12px; border-left:3px solid var(--indigo-100); margin-left:6px; }
 
-
+/* ---------- Actions section (sidebar) ---------- */
 .actions-section{
   display:flex;
   gap:10px;
@@ -245,8 +304,6 @@ input, select, textarea { font: inherit; }
   align-items:center;
   margin:10px 0 4px;
 }
-
-/* shared button look */
 .actions-section button{
   font: inherit;
   font-size: 14px;
@@ -260,22 +317,20 @@ input, select, textarea { font: inherit; }
 .actions-section button:hover{ filter: brightness(0.97); }
 .actions-section button:active{ transform: translateY(1px); }
 .actions-section button:disabled{ opacity:.6; cursor:not-allowed; }
-
-/* variants to mirror student dashboard vibe */
 .approve-btn{
-  background: #ecfdf5;              /* green-50 */
-  border-color: #a7f3d0;            /* green-200 */
-  color: #065f46;                   /* green-900 */
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
 }
 .revision-btn{
-  background: #fffbeb;              /* amber-50 */
-  border-color: #fde68a;            /* amber-300 */
-  color: #92400e;                   /* amber-900 */
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
 }
 .reject-btn{
-  background: #fee2e2;              /* red-100 */
-  border-color: #fecaca;            /* red-200 */
-  color: #991b1b;                   /* red-900 */
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
 }
 
 /* Sidebar summary polish */

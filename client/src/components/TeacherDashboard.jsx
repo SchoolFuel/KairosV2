@@ -1,11 +1,7 @@
-import React, { useEffect, useState, useCallback } from "react";
-import {
-  Loader2,
-  MessageSquareText,
-} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import "../styles/Teacher.css";
 
-/* ---------- helpers ---------- */
 const parseMaybeJSON = (v) => {
   if (typeof v !== "string") return v;
   try {
@@ -25,6 +21,52 @@ const deepClone = (obj) =>
   typeof structuredClone === "function"
     ? structuredClone(obj)
     : JSON.parse(JSON.stringify(obj));
+
+/* ---------- status pill helper ---------- */
+function pillClass(status) {
+  const s = (status || "").toLowerCase();
+  if (s.includes("approve")) return "is-approve";
+  if (s.includes("reject") || s.includes("revision")) return "is-reject";
+  if (s.includes("pending")) return "is-pending";
+  return "is-neutral";
+}
+
+/* ---------- Card component ---------- */
+function ProjectCard({ p, onReview }) {
+  const title = p.title || p.project_title || "Untitled";
+  const subject = p.subject_domain || "—";
+  const status = (p.status || "—").trim();
+  const owner = p.owner_name || p.owner_email || "";
+
+  return (
+    <div className="td-card td-card--elevated">
+      <div className="td-card-row">
+        <div className="td-card-main">
+          <div className="td-card-title" title={title}>
+            {title}
+          </div>
+          <div className="td-card-meta">
+            <span className="td-card-chip td-card-chip--subject">
+              {subject}
+            </span>
+            {owner ? <span className="td-card-sep">•</span> : null}
+            {owner ? <span className="td-card-owner">{owner}</span> : null}
+          </div>
+        </div>
+        <span className={`td-status-pill ${pillClass(status)}`}>{status}</span>
+      </div>
+
+      <button
+        className="td-review-cta"
+        onClick={onReview}
+        disabled={!p.project_id}
+        title={p.project_id ? "Open review" : "Missing id"}
+      >
+        Review
+      </button>
+    </div>
+  );
+}
 
 export default function TeacherDashboard() {
   // List
@@ -49,7 +91,6 @@ export default function TeacherDashboard() {
       setLoading(false);
       return;
     }
-
     run
       .withSuccessHandler((data) => {
         try {
@@ -74,7 +115,6 @@ export default function TeacherDashboard() {
   const extractProject = (data) => {
     const obj = parseMaybeJSON(data);
     const body = parseMaybeJSON(obj?.body);
-    // Prefer body.project; fall back to first
     return (
       body?.project ||
       (Array.isArray(body?.projects) ? body.projects[0] : null) ||
@@ -87,12 +127,14 @@ export default function TeacherDashboard() {
     setTimeout(() => setSaveMsg(""), 1500);
   };
 
-  // ---- Review flow: open sheet + sidebar summary (no tasks in sidebar) ----
-  const review = (projectId) => {
+  // ---- Review flow: open sheet + sidebar summary ----
+  const review = (projectId, userId) => {
     const run = window?.google?.script?.run;
-    if (!run || !projectId) return;
+    if (!run || !projectId || !userId) {
+      setDetailsErr("Missing project id or user id");
+      return;
+    }
 
-    // Open summary panel
     setDetailsOpen(true);
     setDetailsLoading(true);
     setDetailsErr("");
@@ -101,7 +143,6 @@ export default function TeacherDashboard() {
     setDraft(null);
     setOverallComment("");
 
-    // Fetch details for sidebar summary
     run
       .withSuccessHandler((data) => {
         try {
@@ -114,7 +155,6 @@ export default function TeacherDashboard() {
           setProject(proj || null);
           setDraft(proj ? deepClone(proj) : null);
 
-          // Write the exact project to the sheet (prevents shape issues)
           if (proj) {
             window.google.script.run
               .withSuccessHandler((msg) =>
@@ -135,33 +175,34 @@ export default function TeacherDashboard() {
         setDetailsErr(e?.message || "Request failed.");
         setDetailsLoading(false);
       })
-      .getTeacherProjectDetails(projectId);
+      .getTeacherProjectDetails(projectId ,userId);
   };
 
   // ---------- Page actions (operate on the project as a whole) ----------
-  const approveAll = () => {
-    const run = window?.google?.script?.run;
-    if (!run || !draft?.project_id) return;
-
-    // optimistic UI: show a chip + (optionally) mark statuses in local state if needed
-    setSaveMsg("");
-    run
-      .withSuccessHandler(() => setFlash("Approved all"))
-      .withFailureHandler((e) =>
-        setDetailsErr(e?.message || "Approve-all failed")
-      )
-      .approveAllTasks(draft.project_id);
-  };
-
   const submitDecision = (decision) => {
     const run = window?.google?.script?.run;
     if (!run || !draft?.project_id) return;
+    const uid = (draft.user_id || "").trim(); 
+
     setDetailsErr("");
-    setSaveMsg("");
+    setSaveMsg("Sending ...");
+
     run
-      .withSuccessHandler(() => setFlash(`Submitted: ${decision}`))
-      .withFailureHandler((e) => setDetailsErr(e?.message || "Submit failed"))
-      .submitProjectDecision(draft.project_id, decision, overallComment || "");
+      .withSuccessHandler((result) => {
+        if (result.success) {
+          setSaveMsg("Sent ✅");
+          setTimeout(() => setSaveMsg(""), 2500);
+        } else {
+          setDetailsErr(`Failed: ${result.error}`);
+          setSaveMsg("");
+        }
+      })
+      .withFailureHandler((e) => {
+        setDetailsErr(`Error: ${e.message}`);
+        setSaveMsg("");
+      })
+      // NOTE: Apps Script function should have 3 args (projectId, decision, overallComment)
+      .submitProjectDecision(draft.project_id, uid, decision, overallComment);
   };
 
   // ---------- UI ----------
@@ -177,39 +218,17 @@ export default function TeacherDashboard() {
 
   return (
     <div className="td-wrapper">
-      <h2 className="td-heading">All Projects</h2>
+      <h1 className="td-heading">Project Workflow</h1>
 
       {rows.length === 0 ? (
         <div className="td-empty">No projects yet.</div>
       ) : (
         rows.map((p) => (
-          <div key={p.project_id} className="td-card">
-            <div className="td-card-header">
-              <div className="td-title">
-                {p.title || p.project_title || "Untitled"}
-              </div>
-              <span className="td-status">{p.status || "—"}</span>
-            </div>
-            <div className="td-subject">{p.subject_domain || "—"}</div>
-            <div style={{ marginTop: 8 }}>
-              <button
-                className="td-review-btn"
-                onClick={() => review(p.project_id)}
-                disabled={!p.project_id}
-                title={p.project_id ? "Open review" : "Missing id"}
-              >
-                <span
-                  style={{
-                    display: "inline-flex",
-                    gap: 6,
-                    alignItems: "center",
-                  }}
-                >
-                  <MessageSquareText size={16} /> Review
-                </span>
-              </button>
-            </div>
-          </div>
+          <ProjectCard
+            key={p.project_id}
+            p={p}
+            onReview={() => review(p.project_id,p.user_id)}
+          />
         ))
       )}
 
@@ -243,7 +262,6 @@ export default function TeacherDashboard() {
                 </div>
               )}
 
-              {/* Student name */}
               <div className="td-chip" style={{ marginTop: 6 }}>
                 Student:{" "}
                 {draft.owner_name ||
@@ -252,23 +270,19 @@ export default function TeacherDashboard() {
                   "—"}
               </div>
 
-              {/* Description */}
               {draft.description && (
                 <div className="td-desc" style={{ marginTop: 8 }}>
                   {draft.description}
                 </div>
               )}
 
-              {/* Stages list only (no tasks) */}
               <div className="td-subject" style={{ marginTop: 12 }}>
                 Stages
               </div>
               <div className="td-stage-list">
                 {(draft.stages || [])
                   .slice()
-                  .sort(
-                    (a, b) => (a.stage_order || 0) - (b.stage_order || 0)
-                  )
+                  .sort((a, b) => (a.stage_order || 0) - (b.stage_order || 0))
                   .map((st) => (
                     <div key={st.stage_id} className="td-stage td-stage--list">
                       <div
@@ -288,37 +302,36 @@ export default function TeacherDashboard() {
                   ))}
               </div>
 
-              {/* Actions in the SIDEBAR */}
+              {saveMsg && <div className="flash-message">{saveMsg}</div>}
+
               <div className="actions-section">
                 <button
                   className="approve-btn"
-                  onClick={approveAll}
-                  disabled={!draft?.project_id || detailsLoading}
-                  title="Mark all tasks Approved"
+                  onClick={() => submitDecision("Approved")}
+                  disabled={
+                    !draft?.project_id ||
+                    detailsLoading ||
+                    (saveMsg || "").startsWith("Sending")
+                  }
+                  title="Approve this project"
                 >
-                  ✅ Approve All
+                  ✅ Process Approved
                 </button>
 
                 <button
                   className="revision-btn"
-                  onClick={() => submitDecision("return")}
-                  disabled={!draft?.project_id || detailsLoading}
+                  onClick={() => submitDecision("Revision")}
+                  disabled={
+                    !draft?.project_id ||
+                    detailsLoading ||
+                    (saveMsg || "").startsWith("Sending")
+                  }
                   title="Send project back for revision"
                 >
                   📝 Send for Revision
                 </button>
-
-                <button
-                  className="reject-btn"
-                  onClick={() => submitDecision("reject")}
-                  disabled={!draft?.project_id || detailsLoading}
-                  title="Reject project"
-                >
-                  🛑 Reject Project
-                </button>
               </div>
 
-              {/* Optional general comments */}
               <textarea
                 className="td-textarea"
                 rows={2}
