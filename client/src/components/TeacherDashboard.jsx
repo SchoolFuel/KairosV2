@@ -164,6 +164,15 @@ export default function TeacherDashboard() {
                 setDetailsErr(e?.message || "Failed to write to sheet")
               )
               .writeProjectToSheet(proj);
+
+            window.google.script.run
+              .withSuccessHandler(() => setFlash("Opened Gate Standard sheet"))
+              .withFailureHandler((e) =>
+                setDetailsErr(
+                  e?.message || "Failed to open Gate Standard sheet"
+                )
+              )
+              .openGateStandardSheetFromProject(proj);
           }
         } catch {
           setDetailsErr("Could not parse details response.");
@@ -175,14 +184,14 @@ export default function TeacherDashboard() {
         setDetailsErr(e?.message || "Request failed.");
         setDetailsLoading(false);
       })
-      .getTeacherProjectDetails(projectId ,userId);
+      .getTeacherProjectDetails(projectId, userId);
   };
 
   // ---------- Page actions (operate on the project as a whole) ----------
   const submitDecision = (decision) => {
     const run = window?.google?.script?.run;
     if (!run || !draft?.project_id) return;
-    const uid = (draft.user_id || "").trim(); 
+    const uid = (draft.user_id || "").trim();
 
     setDetailsErr("");
     setSaveMsg("Sending ...");
@@ -227,7 +236,7 @@ export default function TeacherDashboard() {
           <ProjectCard
             key={p.project_id}
             p={p}
-            onReview={() => review(p.project_id,p.user_id)}
+            onReview={() => review(p.project_id, p.user_id)}
           />
         ))
       )}
@@ -251,9 +260,24 @@ export default function TeacherDashboard() {
                 <div className="td-details-title">
                   {draft.project_title || draft.title || "Project"}
                 </div>
-                <div className="td-chip">
-                  {draft.subject_domain || "—"} • {draft.status || "—"}
-                </div>
+                <span className={`td-status-pill ${pillClass(draft.status)}`}>
+                  {draft.status || "—"}
+                </span>
+              </div>
+
+              <div className="td-card-meta" style={{ marginTop: 6 }}>
+                <span className="td-card-chip td-card-chip--subject">
+                  {draft.subject_domain || "—"}
+                </span>
+                {/** optional owner, like the card */}
+                {(draft.owner_name || draft.owner_email) && (
+                  <>
+                    <span className="td-card-sep">•</span>
+                    <span className="td-card-owner">
+                      {draft.owner_name || draft.owner_email}
+                    </span>
+                  </>
+                )}
               </div>
 
               {saveMsg && (
@@ -261,14 +285,6 @@ export default function TeacherDashboard() {
                   ✓ {saveMsg}
                 </div>
               )}
-
-              <div className="td-chip" style={{ marginTop: 6 }}>
-                Student:{" "}
-                {draft.owner_name ||
-                  draft.owner_email ||
-                  draft.student_name ||
-                  "—"}
-              </div>
 
               {draft.description && (
                 <div className="td-desc" style={{ marginTop: 8 }}>
@@ -329,6 +345,22 @@ export default function TeacherDashboard() {
                   title="Send project back for revision"
                 >
                   📝 Send for Revision
+                </button>
+
+                {/* NEW: Send Gate standards button (no wiring yet) */}
+                <button
+                  className="td-btn td-btn-primary"
+                  onClick={() => {
+                    /* wire up later */
+                  }}
+                  disabled={
+                    !draft?.project_id ||
+                    detailsLoading ||
+                    (saveMsg || "").startsWith("Sending")
+                  }
+                  title="Send Gate Standard sheet for this project"
+                >
+                  📤 Send Gate standards
                 </button>
               </div>
 
