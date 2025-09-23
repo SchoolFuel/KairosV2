@@ -81,7 +81,7 @@ function processDailyCheckin(payload) {
  *********************************/
 function getTeacherProjectsAll() {
   const url = "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
-  const body = { action: "myprojects", payload: { request: "teacher_view_all", subject_domain: "Science" } };
+  const body = { action: "myprojects", payload: { request: "teacher_view_all", subject_domain: "History" } };
 
   const res = UrlFetchApp.fetch(url, {
     method: "post",

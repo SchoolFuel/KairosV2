@@ -36,7 +36,7 @@
       Tip: click a <b>Gate Title</b> row in the “Gate Standard” sheet first.
     </div>
 
-    <div id="msg">Select any Gate first</div>
+    <div id="msg">Select any Checklist first</div>
 
     <div class="row">
       <label>Subject: <select id="subject"></select></label>
@@ -89,7 +89,7 @@
       sel.appendChild(opt);
       (values||[]).forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
     }
-    function showGateError(){ const m=$('msg'); m.textContent='Select any Gate first'; m.classList.remove('ok'); m.style.display='block'; }
+    function showGateError(){ const m=$('msg'); m.textContent='Select any Checklist first'; m.classList.remove('ok'); m.style.display='block'; }
     function showOk(text){ const m=$('msg'); m.textContent=text; m.classList.add('ok'); m.style.display='block'; }
     function clearMsg(){ $('msg').style.display='none'; $('msg').classList.remove('ok'); }
 
