@@ -4,23 +4,14 @@ import "../styles/Teacher.css";
 
 const parseMaybeJSON = (v) => {
   if (typeof v !== "string") return v;
-  try {
-    return JSON.parse(v);
-  } catch {
-    return v;
-  }
+  try { return JSON.parse(v); } catch { return v; }
 };
 const safePreview = (v, n = 240) => {
-  try {
-    return JSON.stringify(parseMaybeJSON(v)).slice(0, n);
-  } catch {
-    return String(v).slice(0, n);
-  }
+  try { return JSON.stringify(parseMaybeJSON(v)).slice(0, n); }
+  catch { return String(v).slice(0, n); }
 };
 const deepClone = (obj) =>
-  typeof structuredClone === "function"
-    ? structuredClone(obj)
-    : JSON.parse(JSON.stringify(obj));
+  typeof structuredClone === "function" ? structuredClone(obj) : JSON.parse(JSON.stringify(obj));
 
 /* ---------- status pill helper ---------- */
 function pillClass(status) {
@@ -30,6 +21,113 @@ function pillClass(status) {
   if (s.includes("pending")) return "is-pending";
   return "is-neutral";
 }
+
+/* ---------- Gate helpers & UI ---------- */
+function findStageWithGate(draft, stageId) {
+  if (!draft || !Array.isArray(draft.stages)) return null;
+
+  // Normal case: stage contains its gate
+  const stage = draft.stages.find((s) => s && s.stage_id === stageId);
+  if (stage && stage.gate) return stage;
+
+  // Fallback for payloads that put { gate: {...} } in separate array items:
+  // attach the first found gate to the selected stage if none is present.
+  const gateEntry = draft.stages.find((s) => s && s.gate);
+  if (stage && gateEntry && gateEntry.gate) {
+    return { ...stage, gate: gateEntry.gate };
+  }
+  return stage || null;
+}
+
+function GatePanel({ stage }) {
+  const g = stage?.gate || {};
+  const checklist = Array.isArray(g.checklist) ? g.checklist : [];
+
+  const [idx, setIdx] = React.useState(0);
+  React.useEffect(() => { setIdx(0); }, [stage?.stage_id]);
+
+  const total = checklist.length;
+  const goPrev = () => setIdx((i) => Math.max(0, i - 1));
+  const goNext = () => setIdx((i) => Math.min(total - 1, i + 1));
+
+  const itemText = total ? String(checklist[idx] || "") : "";
+
+  return (
+    <div className="td-gate clean">
+      <div className="td-gate-header">
+        <div className="td-gate-title">
+          {g.title || `Gate • ${stage?.title || "Stage"}`}
+          {total > 0 && <span className="td-gate-step-inline"> · {idx + 1}/{total}</span>}
+        </div>
+        <div className="td-gate-meta">
+          {g.status ? (
+            <span className={`td-status-pill ${pillClass(g.status)}`}>{g.status}</span>
+          ) : null}
+          {g.review_date ? <span className="td-gate-date">Review: {g.review_date}</span> : null}
+        </div>
+      </div>
+
+      {total === 0 ? (
+        <div className="td-empty">No checklist items for this gate.</div>
+      ) : (
+        <div className="td-gate-detail one">
+          {/* Selected checklist item */}
+          <div className="td-gd-title">
+            <span className="td-gd-no">{idx + 1}</span>
+            <span className="td-gd-text">{itemText}</span>
+            <div className="td-gd-spacer" />
+            <button className="td-btn td-btn-primary" onClick={() => {/* no-op */}}>
+              Add
+            </button>
+          </div>
+
+          {/* Fields (description removed) */}
+          <div className="td-gd-grid one">
+            <div className="td-gd-field">
+              <label>Status</label>
+              <select defaultValue="">
+                <option value="">—</option>
+                <option>Pending Approval</option>
+                <option>Approved</option>
+                <option>Rejected</option>
+              </select>
+            </div>
+
+            <div className="td-gd-field">
+              <label>Assigned To</label>
+              <input type="text" placeholder="Name / email" />
+            </div>
+
+            <div className="td-gd-field">
+              <label>Due Date</label>
+              <input type="date" />
+            </div>
+
+            <div className="td-gd-field" style={{ gridColumn: "1 / -1" }}>
+              <label>Feedback</label>
+              <textarea rows={2} placeholder="Notes or feedback…" />
+            </div>
+          </div>
+
+          {/* Navigation + dots */}
+          <div className="td-gd-actions two">
+            <button className="td-btn" onClick={goPrev} disabled={idx === 0}>◀ Prev</button>
+            <div className="td-gate-dots">
+              {Array.from({ length: total }).map((_, i) => (
+                <span key={i} className={`dot ${i === idx ? "is-on" : ""}`} />
+              ))}
+            </div>
+            <button className="td-btn td-btn-primary" onClick={goNext} disabled={idx === total - 1}>
+              Next ▶
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 
 /* ---------- Card component ---------- */
 function ProjectCard({ p, onReview }) {
@@ -42,13 +140,9 @@ function ProjectCard({ p, onReview }) {
     <div className="td-card td-card--elevated">
       <div className="td-card-row">
         <div className="td-card-main">
-          <div className="td-card-title" title={title}>
-            {title}
-          </div>
+          <div className="td-card-title" title={title}>{title}</div>
           <div className="td-card-meta">
-            <span className="td-card-chip td-card-chip--subject">
-              {subject}
-            </span>
+            <span className="td-card-chip td-card-chip--subject">{subject}</span>
             {owner ? <span className="td-card-sep">•</span> : null}
             {owner ? <span className="td-card-owner">{owner}</span> : null}
           </div>
@@ -82,6 +176,7 @@ export default function TeacherDashboard() {
   const [project, setProject] = useState(null);
   const [draft, setDraft] = useState(null); // full project object for actions
   const [overallComment, setOverallComment] = useState("");
+  const [selectedStageId, setSelectedStageId] = useState(null);
 
   // ---- Load list ----
   useEffect(() => {
@@ -115,11 +210,7 @@ export default function TeacherDashboard() {
   const extractProject = (data) => {
     const obj = parseMaybeJSON(data);
     const body = parseMaybeJSON(obj?.body);
-    return (
-      body?.project ||
-      (Array.isArray(body?.projects) ? body.projects[0] : null) ||
-      null
-    );
+    return body?.project || (Array.isArray(body?.projects) ? body.projects[0] : null) || null;
   };
 
   const setFlash = (msg) => {
@@ -142,37 +233,34 @@ export default function TeacherDashboard() {
     setProject(null);
     setDraft(null);
     setOverallComment("");
+    setSelectedStageId(null);
 
     run
       .withSuccessHandler((data) => {
         try {
           const proj = extractProject(data);
           if (!proj) {
-            setDetailsErr(
-              `No "project" in response (preview: ${safePreview(data)}…)`
-            );
+            setDetailsErr(`No "project" in response (preview: ${safePreview(data)}…)`);
           }
           setProject(proj || null);
           setDraft(proj ? deepClone(proj) : null);
 
           if (proj) {
+            // Open/write the project sheet only (keep your sheet flow)
             window.google.script.run
-              .withSuccessHandler((msg) =>
-                setFlash(msg || "Opened review sheet")
-              )
-              .withFailureHandler((e) =>
-                setDetailsErr(e?.message || "Failed to write to sheet")
-              )
+              .withSuccessHandler((msg) => setFlash(msg || "Opened review sheet"))
+              .withFailureHandler((e) => setDetailsErr(e?.message || "Failed to write to sheet"))
               .writeProjectToSheet(proj);
 
-            window.google.script.run
-              .withSuccessHandler(() => setFlash("Opened Gate Standard sheet"))
-              .withFailureHandler((e) =>
-                setDetailsErr(
-                  e?.message || "Failed to open Gate Standard sheet"
-                )
-              )
-              .openGateStandardSheetFromProject(proj);
+            // auto-select first stage for Gate view
+            const firstStage =
+              (proj.stages || [])
+                .slice()
+                .sort((a, b) => (a.stage_order || 0) - (b.stage_order || 0))
+                .find((s) => s && s.stage_id);
+            setSelectedStageId(firstStage ? firstStage.stage_id : null);
+
+            // NOTE: Gate Standard sheet is no longer opened.
           }
         } catch {
           setDetailsErr("Could not parse details response.");
@@ -187,32 +275,13 @@ export default function TeacherDashboard() {
       .getTeacherProjectDetails(projectId, userId);
   };
 
-  // ---------- Page actions (operate on the project as a whole) ----------
+  // ---- Decision buttons: no-ops for now ----
   const submitDecision = (decision) => {
-    const run = window?.google?.script?.run;
-    if (!run || !draft?.project_id) return;
-    const uid = (draft.user_id || "").trim();
-
-    setDetailsErr("");
-    setSaveMsg("Sending ...");
-
-    run
-      .withSuccessHandler((result) => {
-        if (result.success) {
-          setSaveMsg("Sent ✅");
-          setTimeout(() => setSaveMsg(""), 2500);
-        } else {
-          setDetailsErr(`Failed: ${result.error}`);
-          setSaveMsg("");
-        }
-      })
-      .withFailureHandler((e) => {
-        setDetailsErr(`Error: ${e.message}`);
-        setSaveMsg("");
-      })
-      // NOTE: Apps Script function should have 3 args (projectId, decision, overallComment)
-      .submitProjectDecision(draft.project_id, uid, decision, overallComment);
+    setSaveMsg(decision === "Approved" ? "Approved (no-op)" : "Sent for revision (no-op)");
+    setTimeout(() => setSaveMsg(""), 2000);
   };
+
+  
 
   // ---------- UI ----------
   if (loading) {
@@ -233,15 +302,11 @@ export default function TeacherDashboard() {
         <div className="td-empty">No projects yet.</div>
       ) : (
         rows.map((p) => (
-          <ProjectCard
-            key={p.project_id}
-            p={p}
-            onReview={() => review(p.project_id, p.user_id)}
-          />
+          <ProjectCard key={p.project_id} p={p} onReview={() => review(p.project_id, p.user_id)} />
         ))
       )}
 
-      {/* Sidebar summary (no tasks) */}
+      {/* Sidebar summary */}
       {detailsOpen && (
         <div className="td-details">
           {detailsLoading && (
@@ -250,9 +315,7 @@ export default function TeacherDashboard() {
             </div>
           )}
 
-          {!detailsLoading && detailsErr && (
-            <div className="td-error">{detailsErr}</div>
-          )}
+          {!detailsLoading && detailsErr && <div className="td-error">{detailsErr}</div>}
 
           {!detailsLoading && draft && (
             <>
@@ -269,54 +332,48 @@ export default function TeacherDashboard() {
                 <span className="td-card-chip td-card-chip--subject">
                   {draft.subject_domain || "—"}
                 </span>
-                {/** optional owner, like the card */}
                 {(draft.owner_name || draft.owner_email) && (
                   <>
                     <span className="td-card-sep">•</span>
-                    <span className="td-card-owner">
-                      {draft.owner_name || draft.owner_email}
-                    </span>
+                    <span className="td-card-owner">{draft.owner_name || draft.owner_email}</span>
                   </>
                 )}
               </div>
 
-              {saveMsg && (
-                <div className="td-chip" style={{ marginTop: 6 }}>
-                  ✓ {saveMsg}
-                </div>
-              )}
+              {saveMsg && <div className="td-chip" style={{ marginTop: 6 }}>✓ {saveMsg}</div>}
 
-              {draft.description && (
-                <div className="td-desc" style={{ marginTop: 8 }}>
-                  {draft.description}
-                </div>
-              )}
+              {draft.description && <div className="td-desc" style={{ marginTop: 8 }}>{draft.description}</div>}
 
-              <div className="td-subject" style={{ marginTop: 12 }}>
-                Stages
-              </div>
+              <div className="td-subject" style={{ marginTop: 12 }}>Stages</div>
               <div className="td-stage-list">
                 {(draft.stages || [])
                   .slice()
                   .sort((a, b) => (a.stage_order || 0) - (b.stage_order || 0))
+                  .filter((st) => st && st.stage_id) // skip detached gate-only entries if any
                   .map((st) => (
-                    <div key={st.stage_id} className="td-stage td-stage--list">
-                      <div
-                        className="td-stage-toggle"
-                        style={{ cursor: "default" }}
-                      >
+                    <div
+                      key={st.stage_id}
+                      className={`td-stage td-stage--list ${selectedStageId === st.stage_id ? "is-active" : ""}`}
+                      onClick={() => setSelectedStageId(st.stage_id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setSelectedStageId(st.stage_id)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <div className="td-stage-toggle">
                         <div className="td-stage-left">
-                          <span className="td-stage-title">
-                            {st.title || "Stage"}
-                          </span>
+                          <span className="td-stage-title">{st.title || "Stage"}</span>
                         </div>
-                        <span className="td-stage-status">
-                          {st.status || "—"}
-                        </span>
+                        <span className="td-stage-status">{st.status || "—"}</span>
                       </div>
                     </div>
                   ))}
               </div>
+
+              {/* Gate panel under the stage list */}
+              {selectedStageId && (
+                <GatePanel stage={findStageWithGate(draft, selectedStageId)} />
+              )}
 
               {saveMsg && <div className="flash-message">{saveMsg}</div>}
 
@@ -324,11 +381,7 @@ export default function TeacherDashboard() {
                 <button
                   className="approve-btn"
                   onClick={() => submitDecision("Approved")}
-                  disabled={
-                    !draft?.project_id ||
-                    detailsLoading ||
-                    (saveMsg || "").startsWith("Sending")
-                  }
+                  disabled={!draft?.project_id || detailsLoading}
                   title="Approve this project"
                 >
                   ✅ Process Approved
@@ -337,30 +390,20 @@ export default function TeacherDashboard() {
                 <button
                   className="revision-btn"
                   onClick={() => submitDecision("Revision")}
-                  disabled={
-                    !draft?.project_id ||
-                    detailsLoading ||
-                    (saveMsg || "").startsWith("Sending")
-                  }
+                  disabled={!draft?.project_id || detailsLoading}
                   title="Send project back for revision"
                 >
                   📝 Send for Revision
                 </button>
 
-                {/* NEW: Send Gate standards button (no wiring yet) */}
+                {/* You can keep or remove this extra button; it no longer opens any sheet */}
                 <button
                   className="td-btn td-btn-primary"
-                  onClick={() => {
-                    /* wire up later */
-                  }}
-                  disabled={
-                    !draft?.project_id ||
-                    detailsLoading ||
-                    (saveMsg || "").startsWith("Sending")
-                  }
-                  title="Send Gate Standard sheet for this project"
+                  onClick={() => {}}
+                  disabled={!draft?.project_id || detailsLoading}
+                  title="Add Gate standards"
                 >
-                  📤 Send Gate standards
+                  📤 Add Gate standards
                 </button>
               </div>
 
@@ -382,6 +425,7 @@ export default function TeacherDashboard() {
                   setDetailsErr("");
                   setSaveMsg("");
                   setOverallComment("");
+                  setSelectedStageId(null);
                 }}
               >
                 Close

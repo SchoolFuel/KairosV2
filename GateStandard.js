@@ -1,16 +1,5 @@
 /**
  * Build/activate "Gate Standard" sheet from a project payload.
- * Layout per gate:
- *   Row 1: Project name (A:G merged)
- *   Gate title row (A:G merged): "Gate N: <title>"
- *   Optional gate description row (A:G merged)
- *   Subheader: "# | Checklist | Description | Status | Assigned To | Due Date | Feedback"
- *   Numbered checklist rows (A=1..n per gate)
- *
- * Hidden IDs (J..M):
- *   Row 1:              J="_project_id", K=project_id, L="_user_id", M=user_id
- *   Gate title row:     J="_stage_id",   K=stage_id,   L="_gate_id", M=gate_id
- *   Checklist row:      J="_parent_stage_id", K=stage_id, L="_parent_gate_id", M=gate_id
  */
 function openGateStandardSheetFromProject(project) {
   if (!project) throw new Error("openGateStandardSheetFromProject: missing project");
@@ -45,12 +34,12 @@ function openGateStandardSheetFromProject(project) {
     // Header / layout
     const projectName = String(project.project_title || project.title || "Project").trim();
     sh.getRange(1, 1, 1, 7).merge()
-      .setValue(projectName) // Project name in row 1
+      .setValue(projectName)
       .setFontWeight("bold").setFontSize(14).setBackground("#eef2ff");
     sh.getRange(2, 1, 1, 7).setBackground("#ffffff");
 
     // Column widths (A..G)
-    sh.setColumnWidths(1, 1, 60);    // # (numbering)
+    sh.setColumnWidths(1, 1, 60);    // #
     sh.setColumnWidths(2, 1, 260);   // Checklist
     sh.setColumnWidths(3, 1, 360);   // Description
     sh.setColumnWidths(4, 1, 140);   // Status
@@ -109,24 +98,22 @@ function openGateStandardSheetFromProject(project) {
       // Checklist rows (numbered per gate)
       const checklist = Array.isArray(g.checklist) ? g.checklist : [];
       if (!checklist.length) {
-        writeRow(r, ["", "(no checklist items)", "", "", "", "", ""]);
-        // Hidden parent IDs on the (empty) row
+        writeRow(r, ["", "(no checklist items)", "", "Pending", "", "", ""]);
         sh.getRange(r, COL_J).setValue("_parent_stage_id");
         sh.getRange(r, COL_K).setValue(stageId);
         sh.getRange(r, COL_L).setValue("_parent_gate_id");
         sh.getRange(r, COL_M).setValue(gateId);
         r++;
       } else {
-        let num = 1; // numbering starts at 1 for each gate
+        let num = 1;
         checklist.forEach(item => {
-          // Accept object or string; parse [CODE] prefix if present
           let code = "", text = "";
           if (item && typeof item === "object") {
             code = String(item.code || "").trim();
             text = String(item.title || item.description || item.text || "").trim();
           } else {
             const s = String(item || "").trim();
-            const m = s.match(/^\s*\[([^\]]+)\]\s*(.*)$/); // "[CODE] text"
+            const m = s.match(/^\s*\[([^\]]+)\]\s*(.*)$/);
             if (m) { code = m[1].trim(); text = (m[2] || "").trim(); }
             else { text = s; }
           }
@@ -134,7 +121,6 @@ function openGateStandardSheetFromProject(project) {
 
           writeRow(r, [num, checklistCell, "", "Pending", "", "", ""]);
 
-          // Hidden parent IDs on checklist row
           sh.getRange(r, COL_J).setValue("_parent_stage_id");
           sh.getRange(r, COL_K).setValue(stageId);
           sh.getRange(r, COL_L).setValue("_parent_gate_id");
@@ -148,6 +134,29 @@ function openGateStandardSheetFromProject(project) {
       // Spacer row between gates
       r++;
     });
+
+    // === Status dropdown ONLY on checklist rows ===
+    const lastRow = sh.getLastRow();
+    if (lastRow >= 3) {
+      const statusRule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(["Pending", "Approved", "Reject"], true)
+        .setAllowInvalid(false)
+        .build();
+
+      for (let row = 3; row <= lastRow; row++) {
+        const a = sh.getRange(row, 1).getDisplayValue().trim();              // "#"/num/blank
+        const b = sh.getRange(row, 2).getDisplayValue().trim().toLowerCase(); // header text or item text
+        const isChecklistRow = /^\d+$/.test(a) || b === "(no checklist items)";
+        const cell = sh.getRange(row, 4); // Status
+
+        if (isChecklistRow) {
+          cell.setDataValidation(statusRule);
+          if (!cell.getDisplayValue()) cell.setValue("Pending");
+        } else {
+          cell.clearDataValidations();
+        }
+      }
+    }
 
     // Hide hidden columns J..M
     sh.hideColumns(COL_J, 4);
@@ -168,32 +177,6 @@ function openGateStandardSheetFromProject(project) {
 
 
 
-//button
-
-function onSelectionChange(e) {
-  if (!e || !e.range || !e.source) return;
-
-  const ss = e.source;               // Spreadsheet
-  const r = e.range;                // Current selection
-  const sh = r.getSheet();           // Sheet of the selection
-  if (!sh || sh.getName() !== "Gate Standard") return;
-
-  // The “button” we created as a named range
-  const btn = ss.getRangeByName("BTN_ADD_STANDARD");
-  if (!btn) return;                  // Named range not set yet
-
-  // Hit-test: does the selection intersect the button range?
-  const hit =
-    r.getRow() <= btn.getLastRow() &&
-    r.getLastRow() >= btn.getRow() &&
-    r.getColumn() <= btn.getLastColumn() &&
-    r.getLastColumn() >= btn.getColumn();
-
-  if (hit) {
-    GS_openAddStandardDialog();      // your existing dialog opener
-    sh.setActiveSelection("A4");     // move focus off the button
-  }
-}
 
 
 
@@ -202,14 +185,7 @@ function onSelectionChange(e) {
 
  */
 /**
- * Read "Gate Standard" (new layout) -> JSON.
- * Layout per gate:
- *   - Gate title row: A:G merged text "Gate N: <title>"
- *     Hidden IDs on same row: J="_stage_id", K=stage_id, L="_gate_id", M=gate_id
- *   - Optional description row (A:G merged)
- *   - Subheader row: "# | Checklist | Description | Status | Assigned To | Due Date | Feedback"
- *   - Checklist rows: A=1..n, B=title, C..G fields; hidden parents in J..M
- *   - Spacer row, then next gate
+
  */
 function readGateStandardFromSheet(projectId, userId) {
   const SHEET_NAME = "Gate Standard";
