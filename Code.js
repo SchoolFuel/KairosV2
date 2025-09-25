@@ -15,11 +15,10 @@ function showSidebar() {
 function getUserEmail() {
   var user_email = "teacher1@gmail.com"; // Session.getActiveUser().getEmail()
   const identity_url =
-    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/dev/identity-fetch";
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/identity-fetch";
 
   const payload = {
     email_id: user_email,
-    request_file: "Learning_Standards.csv",
   };
   const options = {
     method: "post",
@@ -41,18 +40,7 @@ function getUserEmail() {
   }
 
   const responseJson = JSON.parse(response.getContentText());
-  Logger.log(responseJson);
 
-  // accept a few possible field names for the signed URL
-  const signedUrl =
-    responseJson.url || responseJson.signed_url || responseJson.file_url;
-  if (!signedUrl) {
-    throw new Error(
-      "Signed CSV URL missing in response (expected 'url' or 'signed_url')."
-    );
-  }
-
-  importCsvToSheet(signedUrl, "Learning_Standards");
 
   return {
     statusCode: status,
@@ -61,45 +49,8 @@ function getUserEmail() {
   };
 }
 
-function importCsvToSheet(signedUrl, sheetName) {
-  const csvResp = UrlFetchApp.fetch(signedUrl, {
-    muteHttpExceptions: true,
-    followRedirects: true,
-  });
-  const csvStatus = csvResp.getResponseCode();
-  if (csvStatus < 200 || csvStatus >= 300) {
-    throw new Error(
-      "CSV download failed: HTTP " +
-        csvStatus +
-        " — " +
-        csvResp.getContentText()
-    );
-  }
 
-  // Parse CSV (handles quoted commas)
-  const csvText = csvResp.getContentText(); // UTF-8 by default
-  const data = Utilities.parseCsv(csvText);
-  if (!data || data.length === 0)
-    throw new Error("CSV parsed but returned no rows.");
 
-  const ss = SpreadsheetApp.getActive();
-  let sh = ss.getSheetByName(sheetName);
-  if (!sh) sh = ss.insertSheet(sheetName);
-
-  sh.clearContents();
-  sh.clearFormats();
-
-  const maxRowsPerBatch = 2000;
-  const numCols = data[0].length;
-
-  for (let start = 0; start < data.length; start += maxRowsPerBatch) {
-    const end = Math.min(start + maxRowsPerBatch, data.length);
-    const rows = data.slice(start, end);
-    sh.getRange(1 + start, 1, rows.length, numCols).setValues(rows);
-  }
-
-  sh.autoResizeColumns(1, numCols);
-}
 
 function callOpenAI(prompt) {
   const baseUrl =
@@ -159,7 +110,7 @@ function getTeacherProjectsAll() {
     payload: {
       request: "teacher_view_all",
       email_id: "teacher1@gmail.com",
-      subject_domain: "History",
+      subject_domain: "Science",
     },
   };
 
@@ -281,6 +232,14 @@ function normStatus(s) {
   // includes "", null, "pending", "pending approval", etc.
   return "Pending Approval";
 }
+
+
+// Date picker (any date) + display format
+const DATE_FMT = "mm/dd/yyyy";
+const dateValidation = SpreadsheetApp.newDataValidation()
+  .requireDate()           // or .requireDateOnOrAfter(new Date(2000,0,1))
+  .setAllowInvalid(false)
+  .build();
 
 /*********************************
  * Write project -> Sheet
@@ -452,6 +411,11 @@ function writeProjectToSheet(project) {
       const startRow = r;
       sh.getRange(startRow, 1, rows.length, 7).setValues(rows).setWrap(true);
 
+      // Add calendar + format to Due Date (col 7) for all task rows
+      const dueRange = sh.getRange(startRow, 7, rows.length, 1);
+      dueRange.setDataValidation(dateValidation);
+      dueRange.setNumberFormat(DATE_FMT);
+
       // Apply validation ONLY to task Status cells (column D)
       sh.getRange(startRow, 4, rows.length, 1).setDataValidation(
         statusValidation
@@ -485,11 +449,16 @@ function writeProjectToSheet(project) {
   // Gate meta
 const g = st.gate || {};
 const gateMeta = [
-  ["Gate Status", g.status || ""],
   ["Feedback", g.feedback || ""],
   ["Review Date", g.review_date || ""],
 ];
 sh.getRange(r, 1, gateMeta.length, 2).setValues(gateMeta);
+
+const reviewDateRow = r + 1;        // second row in gateMeta block
+sh.getRange(reviewDateRow, 2)       // column B
+  .setDataValidation(dateValidation)
+  .setNumberFormat(DATE_FMT);
+
 r += gateMeta.length;
 
 // Gate checklist
@@ -694,7 +663,6 @@ function readProjectFromSheet(projectId, userId) {
         gate_id: "",
         title: "Gate",
         description: "",
-        status: "",
         feedback: "",
         review_date: "",
         checklist: []
@@ -720,7 +688,6 @@ function readProjectFromSheet(projectId, userId) {
           // Meta keys in col A
           const key = la.toLowerCase();
           if (key === "gate status") {
-            gate.status = vb;
           } else if (key === "feedback") {
             gate.feedback = vb;
           } else if (key === "review date") {

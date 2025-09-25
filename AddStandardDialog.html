@@ -24,7 +24,6 @@
     .col-pick{ width:56px; }
     .col-code{ width:160px; }
     .empty{ text-align:center; color:var(--muted); padding:24px 0; }
-    /* inline message bar */
     #msg{ display:none; margin:8px 0 0; border:1px solid #fecaca; background:#fef2f2; color:#991b1b; padding:8px 10px; border-radius:10px; }
     .ok{ border-color:#a7f3d0 !important; background:#ecfdf5 !important; color:#065f46 !important; }
   </style>
@@ -67,11 +66,16 @@
     <div class="row" style="justify-content:space-between; margin-top:12px;">
       <div><b id="selCount">0</b> selected</div>
       <div>
-        <button id="insertBtn" disabled>Insert under selected Gate</button>
+        <button id="insertBtn" disabled>Insert under selected Checklist</button>
         <button class="secondary" onclick="google.script.host.close()">Close</button>
       </div>
     </div>
   </div>
+
+  <!-- Context from Apps Script template (must come before main JS) -->
+
+
+
 
   <script>
     // ---- state ----
@@ -83,12 +87,27 @@
     const deb = (fn,ms)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms);} };
     const $ = id => document.getElementById(id);
 
+
+
     function setOptions(sel, values){
-      sel.innerHTML = '';
-      const opt = document.createElement('option'); opt.value=''; opt.textContent='All';
-      sel.appendChild(opt);
-      (values||[]).forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
-    }
+  sel.innerHTML = '';
+  const opt = document.createElement('option');
+  opt.value = '';              // empty => All
+  opt.textContent = 'All';
+  sel.appendChild(opt);
+
+  (values || []).forEach(v => {
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = v;
+    sel.appendChild(o);
+  });
+
+  sel.value = '';              // select “All” by default
+}
+
+
+
     function showGateError(){ const m=$('msg'); m.textContent='Select any Checklist first'; m.classList.remove('ok'); m.style.display='block'; }
     function showOk(text){ const m=$('msg'); m.textContent=text; m.classList.add('ok'); m.style.display='block'; }
     function clearMsg(){ $('msg').style.display='none'; $('msg').classList.remove('ok'); }
@@ -121,6 +140,8 @@
       const chips=$('chips'); chips.innerHTML='';
       [...selected.values()].slice(0,10).forEach(s=>{ const c=document.createElement('span'); c.className='chip'; c.textContent=s.code; chips.appendChild(c); });
       if (selected.size>10){ const more=document.createElement('span'); more.className='chip'; more.textContent=`+${selected.size-10} more`; chips.appendChild(more); }
+
+
     }
 
     // ---- actions ----
@@ -136,8 +157,18 @@
     }
     const debouncedSearch = deb(search,300);
 
-    function selectAllShown(){ selected.clear(); lastResults.forEach((r,i)=>selected.set(i,{code:r.code,id:r.id})); renderRows(lastResults); }
-    function clearAll(){ selected.clear(); renderRows(lastResults); }
+    function selectAllShown(){
+      selected.clear();
+      lastResults.forEach((r,i)=>selected.set(i,{code:r.code,id:r.id}));
+      renderRows(lastResults);
+
+    }
+
+    function clearAll(){
+      selected.clear();
+      renderRows(lastResults);
+
+    }
 
     function refreshGate(){
       google.script.run
@@ -159,22 +190,53 @@
         .GSD_getActiveGateInfo();
     }
 
-    function handleServerError(err){
-      const msg = (err && err.message) ? String(err.message) : String(err);
-      if (/Gate Title/.test(msg)) showGateError();
-      else { const m=$('msg'); m.textContent = msg.replace(/^Error:\s*/,''); m.classList.remove('ok'); m.style.display='block'; }
-    }
+  function handleServerError(err){
+    const msg = (err && err.message) ? String(err.message) : String(err);
+    if (/Gate Title/.test(msg)) showGateError();
+    else { const m=$('msg'); m.textContent = msg.replace(/^Error:\s*/,''); m.classList.remove('ok'); m.style.display='block'; }
+  }
+</script>
 
-    function insert(){
-      if (!activeGateOK) { showGateError(); return; }
-      const arr = [...selected.values()].map(x => ({ code:x.code, id:x.id, percent: Number(x.percent||0) }));
-      clearMsg();
-      google.script.run
-        .withSuccessHandler(res => { showOk(`Inserted ${res.inserted} standard(s) under Gate ${res.gateNum}: ${res.gateTitle}`); setTimeout(()=>google.script.host.close(), 500); })
-        .withFailureHandler(handleServerError)
-        .GSD_applyStandardsToActiveGate(arr);
-    }
+<!-- Context injection: FIRST script block -->
+<script>
+  window.context = <?!= JSON.stringify(context || {}) ?>;
+  window.ctx = {
+    gateId: String((window.context.gateId || "")).trim(),
+    checklistTitle: String((window.context.checklistTitle || "")).trim(),
+  };
+</script>
 
+<!-- Main logic: SEPARATE script block -->
+<script>
+  const ctx = window.ctx || { gateId: "", checklistTitle: "" };
+
+   function insert(){
+    if (selected.size === 0) { alert('Pick at least one standard.'); return; }
+    if (!ctx.gateId || !ctx.checklistTitle) { alert('Missing gate/checklist'); return; }
+
+    const arr = [...selected.values()].map(x => ({
+      code: x.code,
+      id: x.id,
+      percent: Number(x.percent || 0),
+    }));
+
+    google.script.run
+      .withSuccessHandler(() => {
+        // server has saved to cache; close dialog
+        google.script.host.close();
+      })
+      .withFailureHandler(err => alert((err && err.message) || String(err)))
+      .STD_pushSelectionToSidebar(ctx, arr);  // returns {ok,count,key,ts}
+  }
+
+  // Wire after DOM is ready (or set onclick="insert()" on the button)
+  window.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("insertBtn");
+    if (btn) btn.onclick = insert;
+  });
+</script>
+
+<script>
     // ---- wire ----
     $('searchBtn').onclick=search;
     $('selectAllBtn').onclick=selectAllShown;
@@ -185,10 +247,22 @@
     $('q').addEventListener('keydown',e=>{ if(e.key==='Enter') search(); });
 
     // ---- bootstrap ----
-    google.script.run.withSuccessHandler(vals=>setOptions($('subject'), vals)).GSD_getSubjects();
-    google.script.run.withSuccessHandler(vals=>setOptions($('grade'), vals)).GSD_getGrades();
-    refreshGate();
-    search();
+    // ---- bootstrap ----
+let _loaded = 0;
+const _kick = () => { if (++_loaded === 2) search(); };
+
+google.script.run
+  .withSuccessHandler(vals => { setOptions($('subject'), vals); _kick(); })
+  .GSD_getSubjects();
+
+google.script.run
+  .withSuccessHandler(vals => { setOptions($('grade'), vals); _kick(); })
+  .GSD_getGrades();
+
+// Optional: if you want an immediate “Searching…” state, you can set it here,
+// but initial search will run automatically once both lists are ready.
+refreshGate();
+
   </script>
 </body>
 </html>

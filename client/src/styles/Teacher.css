@@ -422,3 +422,169 @@ input, select, textarea { font: inherit; }
 .td-gd-title { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
 .td-gd-spacer { flex:1; }
 
+.td-checklist-title{
+  margin:2px 0 10px;
+}
+.td-checklist-title > strong{
+  display:block;
+  font-weight:700;
+  font-size:16px;
+  margin-bottom:4px;
+}
+.td-checklist-quote{
+  font-weight:600;
+  font-size:16px;
+  line-height:1.3;
+  white-space:normal;      /* allow wrapping */
+  overflow-wrap:anywhere;  /* break long words if needed */
+}
+
+
+/* Gate title, compact */
+.td-gate-title-inline{
+  display:flex;
+  align-items:baseline;
+  gap:.25rem;
+  margin:0 0 6px;
+  font-size:14px;         /* ↓ was 16px */
+  font-weight:600;
+  line-height:1.2;        /* tighter lines */
+}
+.td-gate-title-inline > strong{
+  font-weight:600;        /* a bit lighter than 700 */
+}
+.td-gate-title-inline-text{
+  font-weight:500;
+  overflow-wrap:anywhere; /* wrap long titles */
+}
+
+/* Optional: make the meta row smaller too */
+.td-gate-meta-row{
+  font-size:12px;
+  gap:6px;
+  margin-bottom:6px;
+}
+
+
+/* Gate header styled like checklist */
+.td-gate-title-stack{
+  margin: 2px 0 8px;
+}
+.td-gate-title-stack > strong{
+  display:block;
+  font-weight:700;     /* same as Checklist label */
+  font-size:16px;      /* tweak to 14px if you want smaller */
+  margin-bottom:4px;
+}
+.td-gate-title-text{
+  font-weight:600;     /* same weight as checklist title */
+  font-size:16px;      /* 14–16 depending on your preference */
+  line-height:1.3;
+  white-space:normal;  /* allow full wrap */
+  overflow-wrap:anywhere;
+}
+
+/* Meta row under the title */
+.td-gate-meta-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin-bottom:6px;
+}
+
+/* small chip reused */
+.td-mini-chip{
+  display:inline-block;
+  font-size:12px;
+  padding:2px 8px;
+  border:1px solid #e5e7eb;
+  border-radius:999px;
+  color:#374151;
+  background:#fff;
+}
+
+
+/* Gate header styled exactly like Checklist header */
+.td-gate-title-stack{
+  margin: 2px 0 8px;
+}
+.td-gate-title-stack > strong{
+  display:block;
+  font-weight:700;   /* same as Checklist label */
+  font-size:14px;    /* set to your Checklist label size */
+  margin-bottom:4px;
+}
+.td-gate-title-text{
+  font-weight:600;   /* same as Checklist title text */
+  font-size:12px;    /* set to your Checklist title size */
+  line-height:1.3;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+
+
+
+.std-row{
+  display:flex;
+  align-items:center;
+  padding:4px 0;
+  gap:8px;
+}
+
+.std-code{
+  flex:1 1 auto;        /* code takes the left space */
+  min-width:0;
+  font-weight:600;
+  color:#b91c1c;
+}
+
+.std-actions{
+  flex:0 0 auto;        /* actions stay compact on the right */
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.std-pct{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  border:1px solid #e5e7eb;
+  border-radius:8px;
+  padding:2px 6px;
+  background:#fff;
+}
+
+.std-pct input{
+  width:56px;           /* adjust to taste (48–64) */
+  border:0;
+  outline:none;
+  text-align:right;
+  font:inherit;
+}
+
+.std-pct-suffix{ opacity:.7; }
+
+.std-remove{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:24px;
+  height:24px;
+  border:1px solid #e5e7eb;
+  background:#fff;
+  color:#6b7280;
+  border-radius:6px;
+  font-size:16px;
+  line-height:1;
+  cursor:pointer;
+}
+.std-remove:hover{ background:#f8fafc; color:#111827; }
+
+.td-chip.ok{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 8px;border-radius:999px;font-weight:600;
+  color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;
+}
+.td-chip.ok .tick{ font-weight:700; }
