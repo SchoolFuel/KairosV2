@@ -557,7 +557,7 @@ input, select, textarea { font: inherit; }
 }
 
 .std-pct input{
-  width:56px;           /* adjust to taste (48–64) */
+  width:36px;           /* adjust to taste (48–64) */
   border:0;
   outline:none;
   text-align:right;

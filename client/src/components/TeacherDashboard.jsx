@@ -198,10 +198,14 @@ function GatePanel({ stage }) {
   
   // debounced save of updated percents back to cache (re-uses your push API)
 const savePercentsDebounced = React.useMemo(
-  () => deb(async (key, ctx, arr) => {
-    try { await gsRun("STD_pushSelectionToSidebar", ctx, arr); }
-    catch (e) { console.warn("save percents failed:", e); }
-  }, 250),
+  () =>
+    deb(async (key, ctx, arr, mode = "merge") => {
+      try {
+        await gsRun("STD_pushSelectionToSidebar", ctx, arr, mode);
+      } catch (e) {
+        console.warn("save percents failed:", e);
+      }
+    }, 250),
   []
 );
 
@@ -224,21 +228,26 @@ const savePercentsDebounced = React.useMemo(
 
   // ...render list using setItemPercent on the <input>...
 
+  const percentInputValue = (v) => {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "string") return v;
+  if (Number.isFinite(v)) return String(v);
+  return "";
+};
 
-
-  const removeItem = React.useCallback((index) => {
+const removeItem = React.useCallback((index) => {
   if (!cacheKey) return;
   setPickedByKey(prev => {
     const curr = prev[cacheKey] || [];
     const next = curr.filter((_, i) => i !== index);
 
-    // push to cache so it persists / sidebar updates
     const ctx = { gateId, checklistTitle };
-    savePercentsDebounced(cacheKey, ctx, next);
+    savePercentsDebounced(cacheKey, ctx, next, "replace"); // 👈 overwrite on server
 
     return { ...prev, [cacheKey]: next };
   });
 }, [cacheKey, gateId, checklistTitle, savePercentsDebounced]);
+
 
 
 
@@ -323,16 +332,27 @@ const savePercentsDebounced = React.useMemo(
 
   <div className="std-actions">
     <div className="std-pct">
-      <input
-        type="number"
-        min={0}
-        max={100}
-        step={1}
-        value={Number.isFinite(it.percent) ? it.percent : 0}
-        onChange={(e) => setItemPercent(i, e.target.value)}
-        onBlur={(e) => setItemPercent(i, e.target.value)}
-        aria-label={`Percent for ${it.code}`}
-      />
+     <input
+  type="number"
+  min={0}
+  max={100}
+  step={1}
+  value={percentInputValue(it.percent)}
+  onChange={(e) => {
+    const val = e.target.value; // keep as string while typing
+    setPickedByKey((prev) => {
+      const curr = prev[cacheKey] || [];
+      const next = curr.map((row, j) => (j === i ? { ...row, percent: val } : row));
+      return { ...prev, [cacheKey]: next };
+    });
+  }}
+  onBlur={(e) => setItemPercent(i, e.target.value)}  // sanitize & persist
+  onKeyDown={(e) => {
+    if (e.key === "Enter") e.currentTarget.blur();   // commit on Enter
+  }}
+  aria-label={`Percent for ${it.code}`}
+/>
+
       <span className="std-pct-suffix">%</span>
     </div>
 

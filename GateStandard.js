@@ -36,7 +36,7 @@ function GS_openAddStandardDialog() {
 function _norm(s){ return String(s || "").trim(); }
 
 
- function STD_pushSelectionToSidebar(ctx, items) {
+function STD_pushSelectionToSidebar(ctx, items, mode) {
   if (!ctx || !_norm(ctx.gateId) || !_norm(ctx.checklistTitle)) {
     throw new Error("Missing context (gateId, checklistTitle).");
   }
@@ -44,35 +44,49 @@ function _norm(s){ return String(s || "").trim(); }
   var checklistTitle = _norm(ctx.checklistTitle);
   var key = 'STD:' + gateId + ':' + checklistTitle;
 
-  var cache = CacheService.getUserCache();
-  var prevRaw = cache.get(key);
-  var prev = [];
-  if (prevRaw) {
-    try { prev = JSON.parse(prevRaw).items || []; } catch (e) {}
-  }
-
   var incoming = Array.isArray(items) ? items : [];
 
-  // Merge by (id|code) – keeps existing, updates percent if provided
-  var map = new Map();
-  prev.forEach(function(o){
-    var k = (o.id || '') + '|' + (o.code || '');
-    map.set(k, o);
+  // normalize/clamp percent
+  var clean = incoming.map(function (o) {
+    var copy = Object.assign({}, o);
+    if (copy.percent !== undefined && copy.percent !== null) {
+      var n = Number(copy.percent);
+      if (!isFinite(n)) n = 0;
+      if (n < 0) n = 0;
+      if (n > 100) n = 100;
+      copy.percent = n;
+    }
+    return copy;
   });
-  incoming.forEach(function(o){
-    var k = (o.id || '') + '|' + (o.code || '');
-    var exist = map.get(k) || {};
-    map.set(k, Object.assign({}, exist, o)); // prefer incoming fields (e.g., percent)
-  });
 
-  var merged = Array.from(map.values());
+  var cache = CacheService.getUserCache();
+  var final;
 
-  var payload = { ctx: { gateId: gateId, checklistTitle: checklistTitle },
-                  items: merged,
-                  ts: Date.now() };
+  mode = String(mode || 'merge');
+  if (mode === 'replace') {
+    // ✅ overwrite with exactly what client sent (used for Remove)
+    final = clean;
+  } else {
+    // ➕ merge (used for Insert / percent edits)
+    var prevRaw = cache.get(key);
+    var prev = [];
+    if (prevRaw) {
+      try { prev = JSON.parse(prevRaw).items || []; } catch (e) {}
+    }
+    var map = new Map();
+    prev.forEach(function (o) {
+      var k = (o.id || '') + '|' + (o.code || '');
+      map.set(k, o);
+    });
+    clean.forEach(function (o) {
+      var k = (o.id || '') + '|' + (o.code || '');
+      map.set(k, o);
+    });
+    final = Array.from(map.values());
+  }
 
-  cache.put(key, JSON.stringify(payload), 60 * 60);
-  return { ok:true, count: merged.length, key: key, ts: payload.ts };
+  cache.put(key, JSON.stringify({ ts: Date.now(), items: final }), 21600);
+  return { ok: true, count: final.length };
 }
 
 
