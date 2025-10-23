@@ -1,0 +1,20 @@
+{
+  "name": "kairosv2",
+  "version": "1.0.0",
+  "description": "Welcome to **Kairos V2** – a collaborative Google Apps Script project now managed via **Git**. This guide helps you get started with setting up the project, contributing, and collaborating with the team.",
+  "main": "Code.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SchoolFuel/KairosV2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SchoolFuel/KairosV2/issues"
+  },
+  "homepage": "https://github.com/SchoolFuel/KairosV2#readme"
+}

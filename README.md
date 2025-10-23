@@ -49,23 +49,46 @@ git clone https://github.com/venkatasai7/KairosV2.git
 cd KairosV2
 ```
 
-3. **Create a Feature Branch**
+3. **Set Up .clasp.json Configuration**
+
+Create a `.clasp.json` file in the root directory of the project with the following template:
+
+```json
+{
+    "scriptId": "<scriptId>",
+    "rootDir": "<repoRoot>",
+    "scriptExtensions": [".js", ".gs"],
+    "htmlExtensions": [".html"],
+    "jsonExtensions": [".json"],
+    "filePushOrder": [],
+    "skipSubdirectories": false
+}
+```
+
+**To get your script ID:**
+1. Create a personal Google Doc in your Google Drive
+2. Go to **Extensions** → **Apps Script** in the document
+3. Go to Settings->Script Id (copy)
+4. Replace `<scriptId>` with your actual script ID
+5. Replace `<repoRoot>` with the path to your repository root (usually just `"."`)
+
+4. **Create a Feature Branch**
 ```bash
 git checkout -b your-feature-name
 ```
 
-4. **Make Your Changes Locally**
+5. **Make Your Changes Locally**
 
 Edit using your preferred IDE or the Google Apps Script online editor.
 
-5. **Stage, Commit, and Push Changes**
+6. **Stage, Commit, and Push Changes**
 ```bash
 git add .
 git commit -m "Add: your change summary"
 git push origin your-feature-name
 ```
 
-6. **Open a Pull Request** on GitHub for review and merge.
+7. **Open a Pull Request** on GitHub for review and merge.
 
 ---
 
@@ -138,7 +161,12 @@ Use Case:       Develop   Test/QA   Deploy
    git push origin staging
    ```
 
-4. **Deploy to staging environment**
+4. **Build app - this generates a new KairosV2/Sidebar.html file**
+   ```
+   cd client && npm run build
+   ```
+
+5. **Deploy to staging environment**
    ```bash
    # Install clasp globally
    npm install -g @google/clasp
@@ -146,6 +174,8 @@ Use Case:       Develop   Test/QA   Deploy
    # Login to clasp
    clasp login
    
+   # Modify .clasp.json scriptId to the production document script Id
+   In .clasp.json - make sure you have production document script id
    # Push to Apps Script
    clasp push
    
@@ -163,9 +193,11 @@ Use Case:       Develop   Test/QA   Deploy
    ```bash
    git checkout main
    git pull origin main
-   clasp push
+   cd client && npm run build # this generates a new KairosV2/Sidebar.html file
+   clasp push  # In .clasp.json- make sure you have production document script id
    clasp deploy
    ```
+---
 ---
 
 Happy coding! 🎉

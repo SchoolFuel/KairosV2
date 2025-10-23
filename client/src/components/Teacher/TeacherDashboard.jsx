@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import "../styles/Teacher.css";
 
-import GatePanel from "./GatePanel";
-import { gsRun } from "./utils/gsRun";
+import GatePanel from "../GatePanel";
+import { gsRun } from "../utils/gsRun";
 
-import Docteacher from "./Docteacher";
+import Docteacher from "./DocTeacher";
 import "../styles/Docteacher.css";
 
 const parseMaybeJSON = (v) => {

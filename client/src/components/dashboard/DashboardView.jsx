@@ -1,5 +1,7 @@
 import { CheckCircle, Briefcase, Users, Heart } from 'lucide-react';
 import { DashboardSection } from './DashboardSection';
+import { PeerUpdatesSection } from './PeerUpdatesSection';
+import { AcknowledgmentsSection } from './AcknowledgmentsSection';
 
 // export const DashboardView = ({ 
 //   dashboardData,
@@ -112,7 +114,12 @@ export const DashboardView = ({
   resetButtonText = "Submit New Morning Pulse",
   sectionsConfig = null,
   showResetButton = true,
-  className = ""
+  className = "",
+  reactions = {},
+  acknowledgments = [],
+  onReaction = null,
+  onClearAcknowledgments = null,
+  userEmail = 'user@example.com'
 }) => {
   const defaultSectionsConfig = [
     {
@@ -139,7 +146,8 @@ export const DashboardView = ({
       titleColor: 'text-green-900',
       itemColor: 'text-black-800',
       dotColor: 'bg-green-500',
-      maxHeight: '48'
+      maxHeight: '48',
+      isCustomComponent: true
     },
     {
       key: 'ActiveProjects',
@@ -196,19 +204,44 @@ export const DashboardView = ({
 
       {/* Step 3: Render only the selected section */}
       {selectedSection ? (
-        <DashboardSection
-          title={selectedSection.title}
-          icon={selectedSection.icon}
-          items={selectedItems}
-          bgGradient={selectedSection.bgGradient}
-          borderColor={selectedSection.borderColor}
-          iconColor={selectedSection.iconColor}
-          titleColor={selectedSection.titleColor}
-          itemColor={selectedSection.itemColor}
-          dotColor={selectedSection.dotColor}
-          maxHeight={selectedSection.maxHeight}
-          renderItem={selectedSection.renderItem}
-        />
+        <>
+          {selectedSection.isCustomComponent && selectedSectionKey === 'Peers' ? (
+            <PeerUpdatesSection
+              peerData={selectedItems}
+              reactions={reactions}
+              onReaction={onReaction}
+              userEmail={userEmail}
+              bgGradient={selectedSection.bgGradient}
+              borderColor={selectedSection.borderColor}
+              iconColor={selectedSection.iconColor}
+              titleColor={selectedSection.titleColor}
+              itemColor={selectedSection.itemColor}
+              dotColor={selectedSection.dotColor}
+            />
+          ) : (
+            <DashboardSection
+              title={selectedSection.title}
+              icon={selectedSection.icon}
+              items={selectedItems}
+              bgGradient={selectedSection.bgGradient}
+              borderColor={selectedSection.borderColor}
+              iconColor={selectedSection.iconColor}
+              titleColor={selectedSection.titleColor}
+              itemColor={selectedSection.itemColor}
+              dotColor={selectedSection.dotColor}
+              maxHeight={selectedSection.maxHeight}
+              renderItem={selectedSection.renderItem}
+            />
+          )}
+          
+          {/* Show Acknowledgments section only when Peer Updates is selected and there are acknowledgments */}
+          {selectedSectionKey === 'Peers' && acknowledgments.length > 0 && (
+            <AcknowledgmentsSection
+              acknowledgments={acknowledgments}
+              onClear={onClearAcknowledgments}
+            />
+          )}
+        </>
       ) : (
         <p>No section selected</p>
       )}

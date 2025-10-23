@@ -1,4 +1,4 @@
-import "../styles/Credentials.css";
+import "../../styles/Credentials.css";
 
 export default function Credentials(props) {
 

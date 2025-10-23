@@ -28,14 +28,38 @@ const DEFAULT_DASHBOARD_DATA = {
   "ValueMessage": [
     
   ],
-  "Peers": [
-    "Diego Lopez completed a major project assessment!",
-    "Aiden Smith is working on a task similar to yours.",
-    "Fatima Patel is looking for experts in the area of climate change.",
-    "Liam O'Connor just started a new project.",
-    "Sofia Martinez is looking to put together a reading group.",
-    "Jin Yamamoto is new to your class group."
-  ],
+  "Peers": {
+    "Diego Lopez": [
+      "completed a major project assessment!",
+      "is working on climate change research",
+      "shared insights about sustainable practices"
+    ],
+    "Aiden Smith": [
+      "is working on a task similar to yours",
+      "completed the weekly assignment",
+      "is looking for study partners"
+    ],
+    "Fatima Patel": [
+      "is looking for experts in the area of climate change",
+      "published a new research paper",
+      "is organizing a climate awareness event"
+    ],
+    "Liam O'Connor": [
+      "just started a new project",
+      "is seeking feedback on his latest work",
+      "completed the group presentation"
+    ],
+    "Sofia Martinez": [
+      "is looking to put together a reading group",
+      "shared interesting articles about sustainability",
+      "is organizing a community cleanup event"
+    ],
+    "Jin Yamamoto": [
+      "is new to your class group",
+      "introduced himself in the discussion forum",
+      "is eager to collaborate on projects"
+    ]
+  },
   "ActiveProjects": [
     "Climate Change in Arcadia, AZ",
     "Displacement of People Impacted by Climate Disasters",
@@ -103,6 +127,8 @@ export default function SidebarMorningPulse({
 
   const [motivation, setMotivation] = React.useState(""); 
   const [updatedDashboardData, setUpdatedDashboardData] = React.useState(dashboardData);
+  const [reactions, setReactions] = React.useState({}); // Store reactions: {peerName: {messageIndex: {emoji: '😊', user: 'currentUser'}}}
+  const [acknowledgments, setAcknowledgments] = React.useState([]); // Store acknowledgment history
    
 
   // Auto-expand functionality
@@ -158,6 +184,42 @@ const handlePulseSubmit = () => {
     resetForm();
     //setMotivation("");
     setUpdatedDashboardData(dashboardData);
+    setReactions({});
+    setAcknowledgments([]);
+  };
+
+  // Handle reaction to peer updates
+  const handleReaction = (peerName, messageIndex, emoji, messageContent) => {
+    const newReaction = {
+      peerName,
+      messageIndex,
+      emoji,
+      user: userEmail,
+      messageContent,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Update reactions state (replace existing reaction if any)
+    setReactions(prev => ({
+      ...prev,
+      [peerName]: {
+        ...prev[peerName],
+        [messageIndex]: newReaction
+      }
+    }));
+    
+    // Update acknowledgments (replace existing reaction if any)
+    setAcknowledgments(prev => {
+      const filtered = prev.filter(ack => 
+        !(ack.peerName === peerName && ack.messageIndex === messageIndex)
+      );
+      return [...filtered, newReaction];
+    });
+  };
+
+  // Clear acknowledgments
+  const clearAcknowledgments = () => {
+    setAcknowledgments([]);
   };
 
   const getStatusIcon = () => {
@@ -244,6 +306,11 @@ const StatusIconWithDot = () => (
               sectionsConfig={sectionsConfig}
               showResetButton={showResetButton}
               responseMessage={state.responseMessage}
+              reactions={reactions}
+              acknowledgments={acknowledgments}
+              onReaction={handleReaction}
+              onClearAcknowledgments={clearAcknowledgments}
+              userEmail={userEmail}
             />
             </>
 

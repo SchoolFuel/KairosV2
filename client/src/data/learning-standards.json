@@ -1,0 +1,1562 @@
+[
+  {
+    "grade_level": "HS",
+    "subject_area": "Social Studies",
+    "code": "HS.SP1.1",
+    "description": "Evaluate how events and developments were shaped by unique circumstances of time and place as well as broader contexts."
+  },
+  {
+    "grade_level": "HS",
+    "subject_area": "Social Studies",
+    "code": "HS.SP1.2",
+    "description": "Analyze change and continuity in historical eras."
+  },
+  {
+    "grade_level": "HS",
+    "subject_area": "Social Studies",
+    "code": "HS.SP1.3",
+    "description": "Evaluate the significance of past events as they relate to their own lives and the world."
+  },
+  {
+    "grade_level": "HS",
+    "subject_area": "Social Studies",
+    "code": "HS.SP1.4",
+    "description": "Use compelling questions generated about individuals and groups to assess how the significance of their actions changes over time and is shaped by the historical context."
+  },
+  {
+    "grade_level": "HS",
+    "subject_area": "Civics",
+    "code": "HS.C1.1",
+    "description": "Explain the significance of civic virtues to a well-functioning constitutional republic."
+  },
+  {
+    "grade_level": "HS",
+    "subject_area": "Civics",
+    "code": "HS.C2.1",
+    "description": "Explain the importance of individual participation in civic and political institutions."
+  },
+  {
+    "grade_level": "HS",
+    "subject_area": "Economics",
+    "code": "HS.E1.1",
+    "description": "Evaluate how and why people make choices to improve their economic well-being."
+  },
+  {
+    "grade_level": "HS",
+    "subject_area": "Economics",
+    "code": "HS.E2.1",
+    "description": "Explain how scarcity results in economic decisions and evaluate their impact on individuals, institutions, and societies."
+  },
+  {
+    "grade_level": "HS",
+    "subject_area": "Geography",
+    "code": "HS.G1.1",
+    "description": "Use geographic data to explain and analyze relationships between locations of place and regions."
+  },
+  {
+    "grade_level": "HS",
+    "subject_area": "Geography",
+    "code": "HS.G2.1",
+    "description": "Analyze interactions within and between human and physical systems."
+  },
+  {
+    "grade_level": "HS",
+    "subject_area": "History",
+    "code": "HS.H1.1",
+    "description": "Explain the process of state-building, expansion, and dissolution."
+  },
+  {
+    "grade_level": "HS",
+    "subject_area": "History",
+    "code": "HS.H2.1",
+    "description": "Explain multiple causes of conflict."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.P1U1.1",
+    "description": "Develop and use models to explain the relationship of the structure of atoms to patterns and properties observed within the Periodic Table and describe how these models are revised with new evidence."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+C.P1U1.1",
+    "description": "Develop and use models to demonstrate how changes in the number of subatomic particles (protons, neutrons, electrons) affect the identity, stability, and properties of the element."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+C.P1U1.2",
+    "description": "Obtain, evaluate, and communicate the qualitative evidence supporting claims about how atoms absorb and emit energy in the form of electromagnetic radiation."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+C.P1U1.3",
+    "description": "Analyze and interpret data to develop and support an explanation for the relationships between kinetic molecular theory and gas laws."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.P1U1.2",
+    "description": "Develop and use models for the transfer or sharing of electrons to predict the formation of ions, molecules, and compounds in both natural and synthetic processes."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.P1U1.3",
+    "description": "Ask questions, plan, and carry out investigations to explore the cause and effect relationship between reaction rate factors."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+C.P1U1.4",
+    "description": "Develop and use models to predict and explain forces within and between molecules."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+C.P1U1.5",
+    "description": "Plan and carry out investigations to test predictions of the outcomes of various reactions, based on patterns of physical and chemical properties."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+C.P1U1.6",
+    "description": "Construct an explanation, design a solution, or refine the design of a chemical system in equilibrium to maximize production."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+C.P1U1.7",
+    "description": "Use mathematics and computational thinking to determine stoichiometric relationships between reactants and products in chemical reactions."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.P1U3.4",
+    "description": "Obtain, evaluate, and communicate information about how the use of chemistry related technologies have had positive and negative ethical, social, economic, and/or political implications."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+C.P1U3.8",
+    "description": "Engage in argument from evidence regarding the ethical, social, economic, and/or political benefits and liabilities of fission, fusion, and radioactive decay."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.P2U1.5",
+    "description": "Construct an explanation for a field’s strength and influence on an object (electric, gravitational, magnetic)."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+Phy.P2U1.1",
+    "description": "Plan and carry out investigations to design, build, and refine a device that works within given constraints to demonstrate that an electric current can produce a magnetic field and that a changing magnetic field can produce an electric current."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.P3U1.6",
+    "description": "Collect, analyze, and interpret data regarding the change in motion of an object or system in one dimension, to construct an explanation using Newton’s Laws."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+Phy.P3U1.2",
+    "description": "Develop and use mathematical models of Newton’s law of gravitation and Coulomb’s law to describe and predict the gravitational and electrostatic forces between objects."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+Phy.P3U1.3",
+    "description": "Develop a mathematical model, using Newton’s laws, to predict the motion of an object or system in two dimensions (projectile and circular motion)."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+Phy.P3U1.4",
+    "description": "Engage in argument from evidence regarding the claim that the total momentum of a system is conserved when there is no net force on the system."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.P3U2.7",
+    "description": "Use mathematics and computational thinking to explain how Newton’s laws are used in engineering and technologies to create products to serve human ends."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+Phy.P3U2.5",
+    "description": "Design, evaluate, and refine a device that minimizes or maximizes the force on a macroscopic object during a collision."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.P4U1.8",
+    "description": "Engage in argument from evidence that the net change of energy in a system is always equal to the total energy exchanged between the system and the surroundings."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.P4U3.9",
+    "description": "Engage in argument from evidence regarding the ethical, social, economic, and/or political benefits and liabilities of energy usage and transfer."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+Phy.P4U1.6",
+    "description": "Analyze and interpret data to quantitatively describe changes in energy within a system and/or energy flows in and out of a system."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+Phy.P4U2.7",
+    "description": "Design, evaluate, and refine a device that works within given constraints to transfer energy within a system."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+Phy.P4U1.8",
+    "description": "Use mathematics and computational thinking to explain the relationships between power, current, voltage, and resistance."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.P4U1.10",
+    "description": "Construct an explanation about the relationships among the frequency, wavelength, and speed of waves traveling in various media, and their applications to modern technology."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.E1U1.11",
+    "description": "Analyze and interpret data to determine how energy from the Sun affects weather patterns and climate."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E1U1.1",
+    "description": "Construct an explanation based on evidence for how the Sun’s energy transfers between Earth’s systems."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E1U1.2",
+    "description": "Develop and use models to describe how variations in the flow of energy into and out of Earth’s systems result in changes in climate."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E1U1.3",
+    "description": "Analyze geoscience data and the results from global climate models to make evidence-based predictions of current rate and scale of global or regional climate changes."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.E1U1.12",
+    "description": "Develop and use models of the Earth that explains the role of energy and matter in Earth’s constantly changing internal and external systems (geosphere, hydrosphere, atmosphere, biosphere)."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E1U1.4",
+    "description": "Analyze and interpret geoscience data to make the claim that dynamic interactions with Earth’s surface can create feedbacks that cause changes to other Earth systems."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E1U1.5",
+    "description": "Obtain, evaluate, and communicate information on the effect of water on Earth’s materials, surface processes, and groundwater systems."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.E1U1.13",
+    "description": "Evaluate explanations and theories about the role of energy and matter in geologic changes over time."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E1U1.6",
+    "description": "Obtain, evaluate, and communicate information of the theory of plate tectonics to explain the differences in age, structure, and composition of Earth’s crust."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E1U1.7",
+    "description": "Engage in argument from evidence of ancient Earth materials, meteorites, and other planetary surfaces to explain Earth’s formation and early history."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E1U1.8",
+    "description": "Develop and use models to illustrate how Earth's internal and surface processes operate over time to form, modify, and recycle continental and ocean floor features."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.E1U3.14",
+    "description": "Engage in argument from evidence about the availability of natural resources, occurrence of natural hazards, changes in climate, and human activity and how they influence each other."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E1U3.9",
+    "description": "Construct an explanation, based on evidence, for how the availability of natural resources, occurrence of natural hazards, and changes in climate have influenced human activity."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E1U3.10",
+    "description": "Ask questions, define problems, and evaluate a solution to a complex problem, based on prioritized criteria and tradeoffs."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E1U3.11",
+    "description": "Develop and use a quantitative model to illustrate the relationship among Earth systems and the degree to which those relationships are being modified due to human activity."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.E2U1.15",
+    "description": "Construct an explanation based on evidence to illustrate the role of nuclear fusion in the life cycle of a star."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E2U1.12",
+    "description": "Obtain, evaluate, and communicate scientific information about the way stars, throughout their stellar stages, produce elements and energy."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.E2U1.16",
+    "description": "Construct an explanation of how gravitational forces impact the evolution of planetary motion, structure, surfaces, atmospheres, moons, and rings."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E2U1.13",
+    "description": "Analyze and interpret data showing how gravitational forces are influenced by mass, and the distance between objects."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E2U1.14",
+    "description": "Use mathematics and computational thinking to explain the movement of planets and objects in the solar system."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.E2U1.17",
+    "description": "Construct an explanation of the origin, expansion, and scale of the universe based on astronomical evidence."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E2U1.15",
+    "description": "Obtain, evaluate, and communicate information on how the nebular theory explains solar system formation with distinct regions."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E2U1.16",
+    "description": "Obtain, evaluate, and communicate information about patterns of size and scale of our solar system, our galaxy, and the universe."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+E.E2U2.17",
+    "description": "Obtain, evaluate, and communicate the impact of technology on human understanding of the formation, scale, and composition of the universe."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.L2U3.18",
+    "description": "Obtain, evaluate, and communicate about the positive and negative ethical, social, economic, and political implications of human activity on the biodiversity of an ecosystem."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L2U1.1",
+    "description": "Develop a model showing the relationship between limiting factors and carrying capacity, and use the model to make predictions on how environmental changes impact biodiversity."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L4U1.2",
+    "description": "Engage in argument from evidence that changes in environmental conditions or human interventions may change species diversity in an ecosystem."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.L2U1.19",
+    "description": "Develop and use models that show how changes in the transfer of matter and energy within an ecosystem and interactions between species may affect organisms and their environment."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L2U1.3",
+    "description": "Use mathematics and computational thinking to support claims for the cycling of matter and flow of energy through trophic levels in an ecosystem."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.L1U1.20",
+    "description": "Ask questions and/or make predictions based on observations and evidence to demonstrate how cellular organization, structure, and function allow organisms to maintain homeostasis."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L1U1.4",
+    "description": "Develop and use models to explain the interdependency and interactions between cellular organelles."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L1U1.5",
+    "description": "Analyze and interpret data that demonstrates the relationship between cellular function and the diversity of protein functions."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L1U1.6",
+    "description": "Develop and use models to show how transport mechanisms function in cells."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L1U1.7",
+    "description": "Develop and use models to illustrate the hierarchical organization of interacting systems that provide specific functions within multicellular organisms (plant and animal)."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.L2U1.21",
+    "description": "Obtain, evaluate, and communicate data showing the relationship of photosynthesis and cellular respiration; flow of energy and cycling of matter."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L2U1.8",
+    "description": "Develop and use models to develop a scientific explanation that illustrates how photosynthesis transforms light energy into stored chemical energy and how cellular respiration breaks down macromolecules."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.L1U1.22",
+    "description": "Construct an explanation for how cellular division (mitosis) is the process by which organisms grow and maintain complex, interconnected systems."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.L1U3.23",
+    "description": "Obtain, evaluate, and communicate the ethical, social, economic and/or political implications of the detection and treatment of abnormal cell function."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L1U1.9",
+    "description": "Develop and use a model to communicate how a cell copies genetic information to make new cells during asexual reproduction (mitosis)."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.L3U1.24",
+    "description": "Construct an explanation of how the process of sexual reproduction contributes to genetic variation."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.L3U1.25",
+    "description": "Obtain, evaluate, and communicate information about the causes and implications of DNA mutation."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.L3U3.26",
+    "description": "Engage in argument from evidence regarding the ethical, social, economic, and/or political implications of a current genetic technology."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L3U1.10",
+    "description": "Use mathematics and computational thinking to explain the variation that occurs through meiosis and calculate the distribution of expressed traits in a population."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L3U1.11",
+    "description": "Construct an explanation for how the structure of DNA and RNA determine the structure of proteins that perform essential life functions."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L3U1.12",
+    "description": "Analyze and interpret data on how mutations can lead to increased genetic variation in a population."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.L4U1.27",
+    "description": "Obtain, evaluate, and communicate evidence that describes how changes in frequency of inherited traits in a population can lead to biological diversity."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS.L4U1.28",
+    "description": "Gather, evaluate, and communicate multiple lines of empirical evidence to explain the mechanisms of biological evolution."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L4U1.13",
+    "description": "Obtain, evaluate, and communicate multiple lines of empirical evidence to explain the change in genetic composition of a population over successive generations."
+  },
+  {
+    "grade_level": "9–12",
+    "subject_area": "Science",
+    "code": "HS+B.L4U1.14",
+    "description": "Construct an explanation based on scientific evidence that the process of natural selection can lead to adaption."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RL.1",
+    "description": "Cite strong and thorough textual evidence to support analysis of what the text says explicitly as well as inferences drawn from the text."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RL.2",
+    "description": "Determine a theme or central idea of a text and analyze in detail its development over the course of the text, including how it emerges and is shaped and refined by specific details; provide an objective summary of the text."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RL.3",
+    "description": "Analyze how complex characters (e.g., those with multiple or conflicting motivations) develop over the course of a text, interact with other characters, and advance the plot or develop the theme."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RL.4",
+    "description": "Determine the meaning of words and phrases as they are used in the text, including figurative and connotative meanings; analyze the cumulative impact of specific word choices on meaning and tone."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RL.5",
+    "description": "Analyze how an author’s choices concerning how to structure a text, order events within it, and manipulate time create such effects as mystery, tension, or surprise."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RL.6",
+    "description": "Analyze how points of view and/or cultural experiences are reflected in works of literature, drawing from a variety of literary texts."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RL.7",
+    "description": "Analyze the representation of a subject or a key scene in two different artistic mediums, including what is emphasized or absent in each treatment."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RL.9",
+    "description": "Analyze how an author draws on and transforms source material in a specific work."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RL.10",
+    "description": "By the end of the year, proficiently and independently read and comprehend literature, including stories, drama, and poetry, in a text complexity range determined by qualitative and quantitative measures appropriate to grade 9 and 10."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RI.1",
+    "description": "Cite strong and thorough textual evidence to support analysis of what the text says explicitly as well as inferences drawn from the text."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RI.2",
+    "description": "Determine a central idea of a text and analyze its development over the course of the text, including how it emerges and is shaped and refined by specific details; provide an objective summary of the text."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RI.3",
+    "description": "Analyze how the author constructs an analysis or series of ideas or events, including the order in which the points are made, how they are introduced and developed, and the connections that are drawn between them."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RI.4",
+    "description": "Determine the meaning of words and phrases as they are used in a text, including figurative, connotative, and technical meanings; analyze the cumulative impact of specific word choices on meaning and tone."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RI.5",
+    "description": "Analyze in detail how an author’s ideas or claims are developed and refined by particular sentences, paragraphs, or larger portions of a text (e.g., a section or chapter)."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RI.6",
+    "description": "Determine an author’s point of view or purpose in a text and analyze how an author uses rhetoric to advance that point of view or purpose."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RI.7",
+    "description": "Analyze various accounts of a subject told in different mediums (e.g., a person’s life story in both print and multimedia), determining which details are emphasized in each account."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RI.8",
+    "description": "Delineate and evaluate the argument and specific claims in a text, assessing whether the reasoning is valid and the evidence is relevant and sufficient; identify false statements and fallacious reasoning."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RI.9",
+    "description": "Analyze seminal/primary documents of historical and literary significance, including how they address related themes and concepts."
+  },
+  {
+    "grade_level": "9-10",
+    "subject_area": "ELA",
+    "code": "9-10.RI.10",
+    "description": "By the end of the year, proficiently and independently read and comprehend informational texts and nonfiction in a text complexity range determined by qualitative and quantitative measures appropriate to grade 9 and 10."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.AF.1",
+    "description": "Interpret parameters of a function defined by an expression in the context of the situation."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.AF.2",
+    "description": "Sketch the graph of a function that models a relationship between two quantities, identifying key features."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.AF.3",
+    "description": "Interpret key features of graphs and tables for a function that models a relationship between two quantities in terms of the quantities."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.AF.4",
+    "description": "Use limits to describe long-range behavior, asymptotic behavior, and points of discontinuity."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.AF.5",
+    "description": "Sketch the graph of all six trigonometric functions, identifying key features."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.BF.1",
+    "description": "Model relationships between quantities that require adding, subtracting, multiplying, and/or dividing functions."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.BF.2",
+    "description": "Model relationships through composition and attend to the restrictions of the domain."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.BF.3",
+    "description": "Rewrite a function as a composition of functions."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.BF.4",
+    "description": "Determine if a function has an inverse. If so, find the inverse. If not, define a restriction on the domain that meets the requirement for invertibility and find the inverse on the restricted domain."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.BF.5",
+    "description": "Interpret the meanings of quantities involving functions and their inverses."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.BF.6",
+    "description": "Verify by analytical methods that one function is the inverse of another."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.IC.1",
+    "description": "Model real-world situations which involve conic sections."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.IC.2",
+    "description": "Identify key features of conic sections graphically and algebraically."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.IC.3",
+    "description": "Sketch a graph of a conic section using its key features."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.IC.4",
+    "description": "Use the key features of a conic section to write its equation."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.IC.5",
+    "description": "Determine the type of conic section represented by a given quadratic equation."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.ISS.1",
+    "description": "Model real-world situations involving sequences or series using recursive and/or explicit definitions."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.ISS.2",
+    "description": "Use covariational reasoning to describe sequences and series."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.ISS.3",
+    "description": "Represent finite or infinite series using sigma notation."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RFR.ISS.4",
+    "description": "Find the sums of finite or infinite series, if they exist."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RT.ETT.1",
+    "description": "Model real-world situations involving trigonometry."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RT.ETT.2",
+    "description": "Apply the Law of Sines and Law of Cosines to solve problems."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RT.ETT.3",
+    "description": "Use trigonometry to find the area of triangles."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RT.ETT.4",
+    "description": "Use special triangles and the unit circle to determine values of trig functions."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RT.ETT.5",
+    "description": "Use the unit circle to explain symmetry and periodicity of trigonometric functions."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RT.ETT.6",
+    "description": "Use inverse functions to solve trigonometric equations utilizing real-world context."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RT.RTS.1",
+    "description": "Use the structure of a trigonometric expression to identify ways to rewrite it."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RT.RTS.2",
+    "description": "Choose and produce an equivalent form of an expression to explain properties."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RT.RTS.3",
+    "description": "Solve trigonometric equations."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RT.EPE.1",
+    "description": "Graph polar equations."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RT.EPE.2",
+    "description": "Analyze and interpret the graphs of polar equations."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RT.EPE.3",
+    "description": "Use polar equations to solve problems."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RV.MP.1",
+    "description": "Model real-world contexts with parametric equations."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RV.MP.2",
+    "description": "Use parametric equations to solve problems."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RV.MP.3",
+    "description": "Graph parametric equations and identify orientation."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RV.MP.4",
+    "description": "Analyze and interpret the graphs of parametric equations."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RV.EV.1",
+    "description": "Recognize vector quantities as having both magnitude and direction."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RV.EV.2",
+    "description": "Represent vector quantities by directed line segments."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RV.EV.3",
+    "description": "Find the components of a vector from its initial and terminal points."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RV.EV.4",
+    "description": "Solve problems involving velocity and other vector quantities."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RV.EV.5",
+    "description": "Add and subtract vectors, and multiply a vector by a scalar."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RM.UM.1",
+    "description": "Use matrices to represent and manipulate data."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RM.UM.2",
+    "description": "Use matrix operations to solve problems."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RM.UM.3",
+    "description": "Find the inverse and determinant of a matrix."
+  },
+  {
+    "grade_level": "11–12",
+    "subject_area": "Math",
+    "code": "RM.UM.4",
+    "description": "Use matrices to solve systems of linear equations."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.N-RN.B.3",
+    "description": "Explain why the sum or product of two rational numbers is rational; that the sum of a rational number and an irrational number is irrational; and that the product of a nonzero rational number and an irrational number is irrational. Quantities (N-Q) A1.N-Q.A Reason quantitatively and use units to solve problems."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.N-Q.A.1",
+    "description": "Use units as a way to understand problems and to guide the solution of multi-step problems; choose and interpret units consistently in formulas; choose and interpret the scale and the origin in graphs and data displays, include utilizing real-world context."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.N-Q.A.2",
+    "description": "Define appropriate quantities for the purpose of descriptive modeling.  Include problem-solving opportunities utilizing real-world context."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.N-Q.A.3",
+    "description": "Choose a level of accuracy appropriate to limitations on measurement when reporting quantities utilizing real-world context. Algebra - A Seeing Structure in Expressions (A-SSE) A1.A-SSE.A Interpret the structure of expressions."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-SSE.A.1",
+    "description": "Interpret expressions that represent a quantity in terms of its context. a. Interpret parts of an expression, such as terms, factors, and coefficients. b. Interpret expressions by viewing one or more of their parts as a single entity."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-SSE.A.2",
+    "description": "Use structure to identify ways to rewrite numerical and polynomial expressions. Focus on polynomial multiplication and factoring patterns. A1.A-SSE.B Write expressions in equivalent forms to solve problems."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-SSE.B.3",
+    "description": "Choose and produce an equivalent form of an expression to reveal and explain properties of the quantity represented by the expression. a. Factor a quadratic expression to reveal the zeros of the function it defines. b. Complete the square in a quadratic expression to reveal the maximum or minimum value of the function it defines. ________________ Arithmetic with Polynomials and Rational Expressions (A-APR) A1.A-APR.A Perform arithmetic operations on polynomials."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-APR.A.1",
+    "description": "Understand that polynomials form a system analogous to the integers, namely, they are closed under the operations of addition, subtraction, and multiplication; add, subtract, and multiply polynomials. A1.A-APR.B Understand the relationship between zeros and factors of polynomials."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-APR.B.3",
+    "description": "Identify zeros of polynomials when suitable factorizations are available, and use the zeros to construct a rough graph of the function defined by the polynomial. Focus on quadratic and cubic polynomials in which linear and quadratic factors are available. Creating Equations (A-CED) A1.A-CED.A Create equations that describe numbers or relationships."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-CED.A.1",
+    "description": "Create equations and inequalities in one variable and use them to solve problems. Include problem-solving opportunities utilizing real-world context. Focus on linear, quadratic, exponential and piecewise-defined functions (limited to absolute value and step)."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-CED.A.2",
+    "description": "Create equations in two or more variables to represent relationships between quantities; graph equations on coordinate axes with labels and scales."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-CED.A.3",
+    "description": "Represent constraints by equations or inequalities, and by systems of equations and/or inequalities, and interpret solutions as viable or non-viable options in a modeling context."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-CED.A.4",
+    "description": "Rearrange formulas to highlight a quantity of interest, using the same reasoning as in solving equations. For example, rearrange Ohm’s law V = IR to highlight resistance R. Reasoning with Equations and Inequalities (A-REI) A1.A-REI.A Understand solving equations as a process of reasoning and explain the reasoning."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-REI.A.1",
+    "description": "Explain each step in solving linear and quadratic equations as following from the equality of numbers asserted at the previous step, starting from the assumption that the original equation has a solution. Construct a viable argument to justify a solution method. A1.REI.B Solve equations and inequalities in one variable."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-REI.B.3",
+    "description": "Solve linear equations and inequalities in one variable, including equations with coefficients represented by letters."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-REI.B.4",
+    "description": "Solve quadratic equations in one variable. a. Use the method of completing the square to transform any quadratic equation in x into an equation of the form (x – k)2 = q that has the same solutions. Derive the quadratic formula from this form. b. Solve quadratic equations by inspection (e.g., x2 = 49), taking square roots, completing the square, the quadratic formula and factoring, as appropriate to the initial form of the equation. Focus on solutions for quadratic equations that have real roots.  Include cases that recognize when a quadratic equation has no real solutions. ________________ A1.A-REI.C Solve systems of equations."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-REI.C.5",
+    "description": "Prove that, given a system of two equations in two variables, replacing one equation by the sum of that equation and a multiple of the other produces a system with the same solutions."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-REI.C.6",
+    "description": "Solve systems of linear equations exactly and approximately, focusing on pairs of linear equations in two variables. Include problem solving opportunities utilizing real-world context. A1.A-REI.D Represent and solve equations and inequalities graphically."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-REI.D.10",
+    "description": "Understand that the graph of an equation in two variables is the set of all its solutions plotted in the coordinate plane, often forming a curve, which could be a line."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-REI.D.11",
+    "description": "Explain why the x-coordinates of the points where the graphs of the equations y=f(x) and y=g(x) intersect are the solutions of the equation f(x) =g(x); find the solutions approximately (e.g., using technology to graph the functions, make tables of values, or find successive approximations). Focus on cases where f(x) and/or g(x) are linear, quadratic, exponential and piecewise-defined functions (limited to absolute value and step)."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.A-REI.D.12",
+    "description": "Graph the solutions to a linear inequality in two variables as a half-plane, excluding the boundary in the case of a strict inequality, and graph the solution set to a system of linear inequalities in two variables as the intersection of the corresponding half-planes. Functions - F Interpreting Functions (F-IF) A1.F-IF.A Understand the concept of a function and use function notation."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-IF.A.1",
+    "description": "Understand that a function from one set (called the domain) to another set (called the range) assigns to each element of the domain exactly one element of the range. If f is a function and x is an element of its domain, then f(x) denotes the output of f corresponding to the input x. The graph of f is the graph of the equation y = f(x)."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-IF.A.2",
+    "description": "Evaluate a function for inputs in the domain, and interpret statements that use function notation in terms of a context."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-IF.A.3",
+    "description": "Recognize that sequences are functions, sometimes defined recursively, whose domain is a subset of the integers. A1.F-IF.B Interpret functions that arise in applications in terms of the context"
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-IF.B.4",
+    "description": "For a function that models a relationship between two quantities, interpret key features of graphs and tables in terms of the quantities, and sketch graphs showing key features given a verbal description of the relationship. Include problem-solving opportunities utilizing real-world context. Key features include: intercepts; intervals where the function is increasing, decreasing, positive, or negative; relative maximums and minimums. Focus on linear, quadratic, exponential and piecewise-defined functions (limited to absolute value and step)."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-IF.B.5",
+    "description": "Relate the domain of a function to its graph and, where applicable, to the quantitative relationship it describes. A1.F-IF.B (cont.)"
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-IF.B.6",
+    "description": "Calculate and interpret the average rate of change of a continuous function (presented symbolically or as a table) on a closed interval. Estimate the rate of change from a graph.  Include problem-solving opportunities utilizing real-world context. Focus on linear, quadratic, exponential and piecewise-defined functions (limited to absolute value and step). A1.F-IF.C Analyze functions using different representations."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-IF.C.7",
+    "description": "Graph functions expressed symbolically and show key features of the graph, by hand in simple cases and using technology for more complicated cases. Focus on linear, quadratic, exponential and piecewise-defined functions (limited to absolute value and step)."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-IF.C.8",
+    "description": "Write a function defined by an expression in different but equivalent forms to reveal and explain different properties of the function. a. Use the process of factoring and completing the square of a quadratic function to show zeros, extreme values, and symmetry of the graph, and interpret these in terms of a context."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-IF.C.9",
+    "description": "Compare properties of two functions each represented in a different way (algebraically, graphically, numerically in tables, or by verbal descriptions). Focus on linear, quadratic, exponential and piecewise-defined functions (limited to absolute value and step). Building Functions (F-BF) A1.F-BF.A Build a function that models a relationship between two quantities."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-BF.A.1",
+    "description": "Write a function that describes a relationship between two quantities.  Determine an explicit expression, a recursive process, or steps for calculation from real-world context. Focus on linear, quadratic, exponential and piecewise-defined functions (limited to absolute value and step). A1.F-BF.B Build new functions from existing functions."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-BF.B.3",
+    "description": "Identify the effect on the graph of replacing f(x) by f(x) + k, k f(x), and f(x+k) for specific values of k (both positive and negative); find the value of k given the graphs.  Experiment with cases and illustrate an explanation of the effects on the graph. Focus on linear, quadratic, exponential and piecewise-defined functions (limited to absolute value and step). Linear, Quadratic, and Exponential Models (F-LE) A1.F-LE.A Construct and compare linear, quadratic, and exponential models and solve problems."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-LE.A.1",
+    "description": "Distinguish between situations that can be modeled with linear functions and with exponential functions. a. Prove that linear functions grow by equal differences over equal intervals, and that exponential functions grow by equal factors over equal intervals. b. Recognize situations in which one quantity changes at a constant rate per unit interval relative to another. c. Recognize situations in which a quantity grows or decays by a constant percent rate per unit interval relative to another. A1.F-LE.A (cont.)"
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-LE.A.2",
+    "description": "Construct linear and exponential functions, including arithmetic and geometric sequences, given a graph, a description of a relationship, or input/output pairs."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-LE.A.3",
+    "description": "Observe, using graphs and tables, that a quantity increasing exponentially eventually exceeds a quantity increasing linearly or quadratically. A1.F-LE.B Interpret expressions for functions in terms of the situation they model."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.F-LE.B.5",
+    "description": "Interpret the parameters in a linear or exponential function with integer exponents utilizing real world context. Statistics and Probability - S Interpreting Categorical and Quantitative Data (S-ID) A1.S-ID.A Summarize, represent, and interpret data on a single count or measurement variable."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.S-ID.A.1",
+    "description": "Represent real-value data with plots for the purpose of comparing two or more data sets."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.S-ID.A.2",
+    "description": "Use statistics appropriate to the shape of the data distribution to compare center (median, mean) and spread (interquartile range, standard deviation) of two or more different data sets."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.S-ID.A.3",
+    "description": "Interpret differences in shape, center, and spread in the context of the data sets, accounting for possible effects of outliers if present. A1.S-ID.B Summarize, represent, and interpret data on two categorical and quantitative variables."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.S-ID.B.5",
+    "description": "Summarize categorical data for two categories in two-way frequency tables. Interpret relative frequencies in the context of the data, including joint, marginal, and conditional relative frequencies. Recognize possible associations and trends in the data."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.S-ID.B.6",
+    "description": "Represent data on two quantitative variables on a scatter plot, and describe how the quantities are related. a. Fit a function to the data; use functions fitted to data to solve problems in the context of the data. Focus on linear models. b. Informally assess the fit of a function by plotting and analyzing residuals. A1.S-ID.C Interpret linear models."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.S-ID.C.7",
+    "description": "Interpret the slope as a rate of change and the constant term of a linear model in the context of the data."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.S-ID.C.8",
+    "description": "Compute and interpret the correlation coefficient of a linear relationship."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.S-ID.C.9",
+    "description": "Distinguish between correlation and causation. ________________ Conditional Probability and the rules of Probability (S-CP) A1.S-CP.A Understand independence and conditional probability and use them to interpret data."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.S-CP.A.1",
+    "description": "Describe events as subsets of a sample space using characteristics of the outcomes, or as unions, intersections, or complements of other events."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.S-CP.A.2",
+    "description": "Use the Multiplication Rule for independent events to understand that two events A and B are independent if the probability of A and B occurring together is the product of their probabilities, and use this characterization to determine if they are independent. ________________ Standards for Mathematical Practice"
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.MP.1",
+    "description": "Make sense of problems and persevere in solving them. Mathematically proficient students explain to themselves the meaning of a problem, look for entry points to begin work on the problem, and plan and choose a solution pathway. While engaging in productive struggle to solve a problem, they continually ask themselves, “Does this make sense?\" to monitor and evaluate their progress and change course if necessary.  Once they have a solution, they look back at the problem to determine if the solution is reasonable and accurate. Mathematically proficient students check their solutions to problems using different methods, approaches, or representations. They also compare and understand different representations of problems and different solution pathways, both their own and those of others."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.MP.2",
+    "description": "Reason abstractly and quantitatively. Mathematically proficient students make sense of quantities and their relationships in problem situations. Students can contextualize and decontextualize problems involving quantitative relationships. They contextualize quantities, operations, and expressions by describing a corresponding situation. They decontextualize a situation by representing it symbolically. As they manipulate the symbols, they can pause as needed to access the meaning of the numbers, the units, and the operations that the symbols represent. Mathematically proficient students know and flexibly use different properties of operations, numbers, and geometric objects and when appropriate they interpret their solution in terms of the context."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.MP.3",
+    "description": "Construct viable arguments and critique the reasoning of others. Mathematically proficient students construct mathematical arguments (explain the reasoning underlying a strategy, solution, or conjecture) using concrete, pictorial, or symbolic referents. Arguments may also rely on definitions, assumptions, previously established results, properties, or structures. Mathematically proficient students make conjectures and build a logical progression of statements to explore the truth of their conjectures. They are able to analyze situations by breaking them into cases, and can recognize and use counterexamples. Mathematically proficient students present their arguments in the form of representations, actions on those representations, and explanations in words (oral or written). Students critique others by affirming or questioning the reasoning of others. They can listen to or read the reasoning of others, decide whether it makes sense, ask questions to clarify or improve the reasoning, and validate or build on it. Mathematically proficient students can communicate their arguments, compare them to others, and reconsider their own arguments in response to the critiques of others."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.MP.4",
+    "description": "Model with mathematics. Mathematically proficient students apply the mathematics they know to solve problems arising in everyday life, society, and the workplace. When given a problem in a contextual situation, they identify the mathematical elements of a situation and create a mathematical model that represents those mathematical elements and the relationships among them. Mathematically proficient students use their model to analyze the relationships and draw conclusions. They interpret their mathematical results in the context of the situation and reflect on whether the results make sense, possibly improving the model if it has not served its purpose. ________________"
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.MP.5",
+    "description": "Use appropriate tools strategically. Mathematically proficient students consider available tools when solving a mathematical problem. They choose tools that are relevant and useful to the problem at hand. Proficient students are sufficiently familiar with tools appropriate for their grade or course to make sound decisions about when each of these tools might be helpful; recognizing both the insight to be gained and their limitations. Students deepen their understanding of mathematical concepts when using tools to visualize, explore, compare, communicate, make and test predictions, and understand the thinking of others."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.MP.6",
+    "description": "Attend to precision. Mathematically proficient students clearly communicate to others using appropriate mathematical terminology, and craft explanations that convey their reasoning. When making mathematical arguments about a solution, strategy, or conjecture, they describe mathematical relationships and connect their words clearly to their representations. Mathematically proficient students understand meanings of symbols used in mathematics, calculate accurately and efficiently, label quantities appropriately, and record their work clearly and concisely."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.MP.7",
+    "description": "Look for and make use of structure. Mathematically proficient students use structure and patterns to assist in making connections among mathematical ideas or concepts when making sense of mathematics. Students recognize and apply general mathematical rules to complex situations. They are able to compose and decompose mathematical ideas and notations into familiar relationships. Mathematically proficient students manage their own progress, stepping back for an overview and shifting perspective when needed."
+  },
+  {
+    "grade_level": 9,
+    "subject_area": "Math",
+    "code": "A1.MP.8",
+    "description": "Look for and express regularity in repeated reasoning. Mathematically proficient students look for and describe regularities as they solve multiple related problems. They formulate conjectures about what they notice and communicate observations with precision. While solving problems, students maintain oversight of the process and continually evaluate the reasonableness of their results. This informs and strengthens their understanding of the structure of mathematics which leads to fluency. Updated 5-2-2018  Page"
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.N-RN.A.1",
+    "description": "Explain how the definition of rational exponents follows from extending the properties of integer exponents to those values, allowing for a notation for radicals in terms of rational exponents."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.N-RN.A.2",
+    "description": "Rewrite expressions involving radicals and rational exponents using the properties of exponents. Quantities (N-Q) A2.N-Q.A Reason quantitatively and use units to solve problems. A2-N-Q.A.1 Use units as a way to understand problems and to guide the solution of multi-step problems; choose and interpret units consistently in formulas; choose and interpret the scale and the origin in graphs and data displays, include utilizing real-world context."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.N-Q.A.2",
+    "description": "Define appropriate quantities for the purpose of descriptive modeling. Include problem-solving opportunities utilizing real-world context."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.N-Q.A.3",
+    "description": "Choose a level of accuracy appropriate to limitations on measurement when reporting quantities utilizing real-world context. The Complex Number System (N –CN) A2.N-CN.A Perform arithmetic operations with complex numbers."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.N-CN.A.1",
+    "description": "Apply the relation i2 = –1 and the commutative, associative, and distributive properties to add, subtract, and multiply complex numbers.  Write complex numbers in the form (a+bi ) with a and b real. A2.N-CN.C Use complex numbers in polynomial identities and equations."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.N-CN.C.7",
+    "description": "Solve quadratic equations with real coefficients that have complex solutions. Algebra - A Seeing Structure in Expressions (A-SSE) A2.A-SSE.A Interpret the structure of expressions."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-SSE.A.2",
+    "description": "Use structure to identify ways to rewrite polynomial and rational expressions. Focus on polynomial operations and factoring patterns. ________________ A2.A-SSE.B Write expressions in equivalent forms to solve problems."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-SSE.B.3",
+    "description": "Choose and produce an equivalent form of an expression to reveal and explain properties of the quantity represented by the expression. Include problem-solving opportunities utilizing real-world context and focus on expressions with rational exponents. c. Use the properties of exponents to transform expressions for exponential functions."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-SSE.B.4",
+    "description": "Derive the formula for the sum of a finite geometric series (when the common ratio is not 1), and use the formula to solve problems. For example, calculate mortgage payments. Arithmetic with Polynomials and Rational Expressions (A-APR) A2.A-APR.B Understand the relationship between zeros and factors of polynomials."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-APR.B.2",
+    "description": "Know and apply the Remainder and Factor Theorem: For a polynomial p(x) and a number a, the remainder on division by (x – a) is p(a), so p(a) = 0 if and only if (x – a) is a factor of p(x)."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-APR.B.3",
+    "description": "Identify zeros of polynomials when suitable factorizations are available, and use the zeros to construct a rough graph of the function defined by the polynomial. Focus on quadratic, cubic, and quartic polynomials including polynomials for which factors are not provided A2.A-APR.C Use polynomial identities to solve problems."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-APR.C.4",
+    "description": "Prove polynomial identities and use them to describe numerical relationships. A2.A-APR.D Rewrite rational expressions."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-APR.D.6",
+    "description": "Rewrite rational expressions in different forms; write a(x)/b(x) in the form q(x) + r(x)/b(x), where a(x), b(x), q(x), and r(x) are polynomials with the degree of r(x) less than the degree of b(x), using inspection, long division, or for the more complicated examples, a computer algebra system. Creating Equations (A-CED) A2.A-CED.A Create equations that describe numbers or relationships."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-CED.A.1",
+    "description": "Create equations and inequalities in one variable and use them to solve problems. Include problem-solving opportunities utilizing real-world context. Focus on equations and inequalities arising from linear, quadratic, rational, and exponential functions. Reasoning with Equations and Inequalities (A-REI) A2.A-REI.A Understand solving equations as a process of reasoning and explain the reasoning."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-REI.A.1",
+    "description": "Explain each step in solving an equation as following from the equality of numbers asserted at the previous step, starting from the assumption that the original equation has a solution. Construct a viable argument to justify a solution method. Extend from quadratic equations to rational and radical equations."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-REI.A.2",
+    "description": "Solve rational and radical equations in one variable, and give examples showing how extraneous solutions may arise. A2.A-REI.B Solve equations and inequalities in one variable."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-REI.B.4",
+    "description": "Fluently solve quadratic equations in one variable. Solve quadratic equations by inspection (e.g., for x2 = 49), taking square roots, completing the square, the quadratic formula and factoring, as appropriate to the initial form of the equation. Recognize when the quadratic formula gives complex solutions and write them as a ± bi for real numbers a and b. A2.A-REI.C Solve systems of equations."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-REI.C.7",
+    "description": "Solve a system consisting of a linear equation and a quadratic equation in two variables algebraically and graphically. For example, find the points of intersection between the line y = -3x and the circle x2 + y2 = 3. A2.A-REI.D Represent and solve equations and inequalities graphically."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.A-REI.D.11",
+    "description": "Explain why the x-coordinates of the points where the graphs of the equations y = f(x) and y = g(x) intersect are the solutions of the equation f(x) =g(x); find the solutions approximately (e.g., using technology to graph the functions, make tables of values, or find successive approximations).   Include problems in real-world context. Extend from linear, quadratic, and exponential functions to cases where f(x) and/or g(x) are polynomial, rational, exponential, and logarithmic functions. Functions - F Interpreting Functions (F-IF) A2.F-IF.B Interpret functions that arise in applications in terms of the context."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-IF.B.4",
+    "description": "For a function that models a relationship between two quantities, interpret key features of graphs and tables in terms of the quantities, and sketch graphs showing key features given a verbal description of the relationship. Include problem-solving opportunities utilizing a real-world context. Key features include: intercepts; intervals where the function is increasing, decreasing, positive, or negative; relative maximums and minimums; symmetries; end behavior; and periodicity. Functions include linear, quadratic, exponential, polynomial, logarithmic, rational, sine, cosine, tangent, square root, cube root and piecewise-defined functions."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-IF.B.6",
+    "description": "Calculate and interpret the average rate of change of a continuous function (presented symbolically or as a table) on a closed interval. Estimate the rate of change from a graph. Include problem-solving opportunities utilizing real-world context. Functions include linear, quadratic, exponential, polynomial, logarithmic, rational, sine, cosine, tangent, square root, cube root and piecewise-defined functions. A2.F-IF.C Analyze functions using different representations."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-IF.C.7",
+    "description": "Graph functions expressed symbolically and show key features of the graph, by hand in simple cases and using technology for more complicated cases. Functions include linear, quadratic, exponential, polynomial, logarithmic, rational, sine, cosine, tangent, square root, cube root and piecewise-defined functions."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-IF.C.8",
+    "description": "Write a function defined by an expression in different but equivalent forms to reveal and explain different properties of the function. b. Use the properties of exponents to interpret expressions for exponential functions and classify those functions as exponential growth or decay. A2.F-IF.C (cont.)"
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-IF.C.9",
+    "description": "Compare properties of two functions each represented in a different way (algebraically, graphically, numerically in tables, or by verbal descriptions.). Functions include linear, quadratic, exponential, polynomial, logarithmic, rational, sine, cosine, tangent, square root, cube root and piecewise-defined functions. Building Functions (F-BF) A2.F-BF.A Build a function that models a relationship between two quantities."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-BF.A.1",
+    "description": "Write a function that describes a relationship between two quantities. Functions include linear, quadratic, exponential, polynomial, logarithmic, rational, sine, cosine, tangent, square root, cube root and piecewise-defined functions. Include problem-solving opportunities utilizing real-world context. a. Determine an explicit expression, a recursive process, or steps for calculation from a context. b. Combine function types using arithmetic operations and function composition."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-BF.A.2",
+    "description": "Write arithmetic and geometric sequences both recursively and with an explicit formula, use them to model situations, and translate between the two forms. A2.F-BF.B Build new functions from existing functions."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-BF.B.3",
+    "description": "Identify the effect on the graph of replacing f(x) by f(x) + k,   kf(x),  f(kx), and f(x+k) for specific values of k (both positive and negative); find the value of k given the graphs.  Experiment with cases and illustrate an explanation of the effects on the graph using technology.  Include recognizing even and odd functions from their graphs and algebraic expressions for them. Functions include linear, quadratic, exponential, polynomial, logarithmic, rational, sine, cosine, tangent, square root, cube root and piecewise-defined functions."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-BF.B.4",
+    "description": "Find inverse functions. a. Understand that an inverse function can be obtained by expressing the dependent variable of one function as the independent variable of another, recognizing that functions f and g are inverse functions if and only if f(x) = y and g(y) = x for all values of x in the domain of f and all values of y in the domain of g. b. Understand that if a function contains a point (a,b), then the graph of the inverse relation of the function contains the point (b,a). c. Interpret the meaning of and relationship between a function and its inverse utilizing real-world context. ________________ Linear, Quadratic, and Exponential Models (F-LE) A2.F-LE.A Construct and compare linear, quadratic, and exponential models and solve problems."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-LE.A.4",
+    "description": "For exponential models, express as a logarithm the solution to abct = d where a, c, and d are numbers and the base b is 2, 10, or e; evaluate the logarithms that are not readily found by hand or observation using technology. A2.F-LE.B Interpret expressions for functions in terms of the situation they model."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-LE.B.5",
+    "description": "Interpret the parameters in an exponential function with rational exponents utilizing real-world context. Trigonometric Functions  (F-TF) A2.F-TF.A Extend the domain of trigonometric functions using the unit circle."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-TF.A.1",
+    "description": "Understand radian measure of an angle as the length of the arc on any circle subtended by the angle, measured in units of the circle's radius."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-TF.A.2",
+    "description": "Explain how the unit circle in the coordinate plane enables the extension of sine and cosine functions to all real numbers, interpreted as radian measures of angles traversed counterclockwise around the unit circle. A2.F-TF.B Model periodic phenomena with trigonometric functions."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-TF.B.5",
+    "description": "Create and interpret sine, cosine and tangent functions that model periodic phenomena with specified amplitude, frequency, and midline. A2.F-TF.C Apply trigonometric identities."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.F-TF.C.8",
+    "description": "Use the Pythagorean identity sin2(θ) + cos2(θ) = 1 and the quadrant of the angle θ to find sin(θ), cos(θ), or tan(θ) given sin(θ) or cos(θ). Statistics and Probability - S Interpreting Categorical and Quantitative Data (S-ID) A2.S-ID.A Summarize, represent, and interpret data on a single count or measurement variable."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-ID.A.4",
+    "description": "Use the mean and standard deviation of a data set to fit it to a normal curve, and use properties of the normal distribution and to estimate population percentages. Recognize that there are data sets for which such a procedure is not appropriate. Use calculators, spreadsheets, or tables to estimate areas under the normal curve. A2.S-ID.B Summarize, represent, and interpret data on two categorical and quantitative variables."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-ID.B.6",
+    "description": "Represent data of two quantitative variables on a scatter plot, and describe how the quantities are related. Extend to polynomial and exponential models. a. Fit a function to the data; use functions fitted to data to solve problems in the context of the data. Use given functions or chooses a function suggested by the context. ________________ A2.S-ID.C Interpret models."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-ID.C.10",
+    "description": "Interpret parameters of exponential models. Making Inferences and Justifying Conclusions (S-IC) A2.S-IC.A Understand and evaluate random processes underlying statistical experiments."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-IC.A.1",
+    "description": "Understand statistics as a process for making inferences about population parameters based on a random sample from that population."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-IC.A.2",
+    "description": "Explain whether a specified model is consistent with results from a given data-generating process. A2.S-IC.B Make inferences and justify conclusions from experiments, and observational studies."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-IC.B.3",
+    "description": "Recognize the purposes of and differences between designed experiments, sample surveys and observational studies."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-IC.B.4",
+    "description": "Use data from a sample survey to estimate a population mean or proportion; recognize that estimates are unlikely to be correct and the estimates will be more precise with larger sample sizes. Conditional Probability and the Rules of Probability (S-CP) A2.S-CP.A Understand independence and conditional probability and use them to interpret data."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-CP.A.3",
+    "description": "Understand the conditional probability of A given B as P(A and B)/P(B), and interpret independence of A and B as saying that the conditional probability of A given B is the same as the probability of A, and the conditional probability of B given A is the same as the probability of B."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-CP.A.4",
+    "description": "Construct and interpret two-way frequency tables of data when two categories are associated with each object being classified. Use the two-way table as a sample space to decide if events are independent and to approximate conditional probabilities."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-CP.A.5",
+    "description": "Recognize and explain the concepts of conditional probability and independence utilizing real-world context. A2.S-CP.B Use the rules of probability to compute probabilities of compound events in a uniform probability model."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-CP.B.6",
+    "description": "Use Bayes Rule to find the conditional probability of A given B as the fraction of B’s outcomes that also belong to A, and interpret the answer in terms of the model."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-CP.B.7",
+    "description": "Apply the Addition Rule, P(A or B) = P(A) + P(B) – P(A and B), and interpret the answer in terms of the model."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.S-CP.B.8",
+    "description": "Apply the general Multiplication Rule in a uniform probability model, P(A and B) = P(A)P(B|A) = P(B)P(A|B), and interpret the answer in terms of the model."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.MP.1",
+    "description": "Make sense of problems and persevere in solving them. Mathematically proficient students explain to themselves the meaning of a problem, look for entry points to begin work on the problem, and plan and choose a solution pathway. While engaging in productive struggle to solve a problem, they continually ask themselves, “Does this make sense?\" to monitor and evaluate their progress and change course if necessary.  Once they have a solution, they look back at the problem to determine if the solution is reasonable and accurate. Mathematically proficient students check their solutions to problems using different methods, approaches, or representations. They also compare and understand different representations of problems and different solution pathways, both their own and those of others."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.MP.2",
+    "description": "Reason abstractly and quantitatively. Mathematically proficient students make sense of quantities and their relationships in problem situations. Students can contextualize and decontextualize problems involving quantitative relationships. They contextualize quantities, operations, and expressions by describing a corresponding situation. They decontextualize a situation by representing it symbolically. As they manipulate the symbols, they can pause as needed to access the meaning of the numbers, the units, and the operations that the symbols represent. Mathematically proficient students know and flexibly use different properties of operations, numbers, and geometric objects and when appropriate they interpret their solution in terms of the context."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.MP.3",
+    "description": "Construct viable arguments and critique the reasoning of others. Mathematically proficient students construct mathematical arguments (explain the reasoning underlying a strategy, solution, or conjecture) using concrete, pictorial, or symbolic referents. Arguments may also rely on definitions, assumptions, previously established results, properties, or structures. Mathematically proficient students make conjectures and build a logical progression of statements to explore the truth of their conjectures. They are able to analyze situations by breaking them into cases, and can recognize and use counterexamples. Mathematically proficient students present their arguments in the form of representations, actions on those representations, and explanations in words (oral or written). Students critique others by affirming or questioning the reasoning of others. They can listen to or read the reasoning of others, decide whether it makes sense, ask questions to clarify or improve the reasoning, and validate or build on it. Mathematically proficient students can communicate their arguments, compare them to others, and reconsider their own arguments in response to the critiques of others."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.MP.4",
+    "description": "Model with mathematics. Mathematically proficient students apply the mathematics they know to solve problems arising in everyday life, society, and the workplace. When given a problem in a contextual situation, they identify the mathematical elements of a situation and create a mathematical model that represents those mathematical elements and the relationships among them. Mathematically proficient students use their model to analyze the relationships and draw conclusions. They interpret their mathematical results in the context of the situation and reflect on whether the results make sense, possibly improving the model if it has not served its purpose. ________________"
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.MP.5",
+    "description": "Use appropriate tools strategically. Mathematically proficient students consider available tools when solving a mathematical problem. They choose tools that are relevant and useful to the problem at hand. Proficient students are sufficiently familiar with tools appropriate for their grade or course to make sound decisions about when each of these tools might be helpful; recognizing both the insight to be gained and their limitations. Students deepen their understanding of mathematical concepts when using tools to visualize, explore, compare, communicate, make and test predictions, and understand the thinking of others."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.MP.6",
+    "description": "Attend to precision. Mathematically proficient students clearly communicate to others using appropriate mathematical terminology, and craft explanations that convey their reasoning. When making mathematical arguments about a solution, strategy, or conjecture, they describe mathematical relationships and connect their words clearly to their representations. Mathematically proficient students understand meanings of symbols used in mathematics, calculate accurately and efficiently, label quantities appropriately, and record their work clearly and concisely."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.MP.7",
+    "description": "Look for and make use of structure. Mathematically proficient students use structure and patterns to assist in making connections among mathematical ideas or concepts when making sense of mathematics. Students recognize and apply general mathematical rules to complex situations. They are able to compose and decompose mathematical ideas and notations into familiar relationships. Mathematically proficient students manage their own progress, stepping back for an overview and shifting perspective when needed."
+  },
+  {
+    "grade_level": 10,
+    "subject_area": "Math",
+    "code": "A2.MP.8",
+    "description": "Look for and express regularity in repeated reasoning. Mathematically proficient students look for and describe regularities as they solve multiple related problems. They formulate conjectures about what they notice and communicate observations with precision. While solving problems, students maintain oversight of the process and continually evaluate the reasonableness of their results. This informs and strengthens their understanding of the structure of mathematics which leads to fluency. Updated 5-2-2018                                Page"
+  }
+]

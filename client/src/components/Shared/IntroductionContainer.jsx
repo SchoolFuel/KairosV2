@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import '../styles/IntroductionContainer.css';
-import playLessonIcon from '../assets/play_lesson_37dp_BLACK_FILL0_wght400_GRAD0_opsz40.png';
+import '../../styles/IntroductionContainer.css';
+import playLessonIcon from '../../assets/play_lesson_37dp_BLACK_FILL0_wght400_GRAD0_opsz40.png';
 
 export default function IntroductionContainer() {
   const [isExpanded, setIsExpanded] = useState(false);

@@ -1,0 +1,294 @@
+/* Wrapper */
+.workshop-wrapper {
+  width: 100%;
+  font-family: sans-serif;
+}
+
+/* Card */
+.workshop-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  width: 100%;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+/* --- Slim nav buttons --- */
+.nav-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 12px;
+}
+
+.nav-btn {
+  appearance: none;
+  background: #ffffff;
+  color: #374151;                 /* slate-700 */
+  border: 1px solid #e5e7eb;      /* gray-200 */
+  padding: 0.5rem 0.9rem;         /* compact */
+  border-radius: 9999px;          /* stadium/pill */
+  font-size: 0.875rem;            /* text-sm */
+  font-weight: 500;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: #f3f4f6;            /* gray-100 on hover */
+  border-color: #d1d5db;          /* gray-300 */
+}
+
+.nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Toggle / Header */
+.workshop-toggle { width: 100%; padding: 1rem; cursor: pointer; transition: background-color 0.2s; }
+.workshop-toggle:hover { background-color: #f9fafb; }
+
+.workshop-header { display: flex; justify-content: space-between; align-items: center; }
+.workshop-header-left { display: flex; align-items: center; gap: 0.75rem; }
+
+.status-icon { position: relative; }
+.icon { width: 1.5rem; height: 1.5rem; }
+
+.status-dot {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+}
+
+.dot-green { background-color: #22c55e; }
+.dot-blue  { background-color: #3b82f6; }
+.dot-gray  { background-color: #9ca3af; }
+
+.text-green { color: #16a34a; }
+.text-blue  { color: #2563eb; }
+.text-gray  { color: #4b5563; }
+
+.title { font-weight: normal; color: #111827; }
+.subtitle { font-size: 0.875rem; color: #6b7280; }
+
+.chevron { width: 1.25rem; height: 1.25rem; color: #9ca3af; transition: transform 0.2s; }
+.rotate { transform: rotate(180deg); }
+
+/* Header actions (Expand/Shrink) */
+.workshop-header-actions { display: flex; gap: 8px; align-items: center; }
+.header-btn {
+  font-size: 12px; padding: 4px 8px; border: 1px solid #e5e7eb;
+  border-radius: 9999px; background: #fff; color: #374151; cursor: pointer;
+}
+.header-btn:hover { background: #f3f4f6; }
+
+/* Panel */
+.workshop-panel { border-top: 1px solid #f3f4f6; }
+
+/* Panel body: fixed card height, no internal scroll, no bottom padding */
+.panel-body {
+  padding: 1rem 1rem 0;         /* no bottom padding */
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;            /* ↑ taller card for larger scroll area */
+  max-height: 400px;
+  overflow: hidden;             /* hide; let .workshop-step scroll instead */
+}
+
+/* Scrollable content area only */
+.workshop-step {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-bottom: 0;            /* keep content close to nav row */
+}
+
+/* Buttons row: small cushion to card edge */
+.nav-row {
+  margin-top: 8px;              /* space above buttons */
+  padding: 0 0 8px 0;           /* tiny bottom cushion; change to 0 if you want absolutely flush */
+}
+
+
+
+
+/* Form elements */
+.input-section label { font-size: 0.875rem; color: #374151; margin-bottom: 0.5rem; display: block; }
+
+.input-section textarea {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  resize: vertical;          /* allow user to grow it if needed */
+  outline: none;
+  min-height: 88px;          /* ~2–3 lines */
+  max-height: 140px;         /* avoids pushing controls off-screen */
+}
+
+.input-section textarea:focus { border-color: #6366f1; box-shadow: 0 0 0 2px #c7d2fe; }
+
+.grid select, .grid input[type="number"], .grid input[type="text"] {
+  width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;
+  font-size: 0.875rem; background: #fff; color: #111827;
+}
+
+/* Buttons */
+.btn-group { display: flex; gap: 0.5rem; margin-top: 1rem; }
+.submit-btn {
+  flex: 1; display: flex; gap: 0.5rem; align-items: center; justify-content: center;
+  padding: 0.5rem 1rem; background: #4f46e5; color: #fff; border-radius: 0.375rem;
+  font-size: 0.875rem; transition: background 0.2s;
+}
+.submit-btn:hover { background: #4338ca; }
+.submit-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+
+.clear-btn {
+  background: #fff;               /* white background */
+  color: #dc2626;                 /* red-600 text */
+  border: 1px solid #dc2626;      /* red-600 outline */
+  border-radius: 0.375rem;        /* rounded corners */
+  padding: 0.25rem 0.5rem;        /* smaller padding */
+  font-size: 0.75rem;             /* smaller text (text-sm) */
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.clear-btn:hover {
+  background: #dc2626;            /* red background on hover */
+  color: #fff;                    /* white text on hover */
+}
+
+
+/* Markdown preview */
+.markdown { font-size: 0.875rem; color: #334155; line-height: 1.6; margin-top: 0.5rem; }
+.markdown h5 { margin: 1rem 0 0.25rem; font-size: 0.95rem; font-weight: 600; color: #1d4ed8; }
+.markdown ul { margin: 0.25rem 0 1rem; padding-left: 1.25rem; list-style: disc; }
+
+/* Utilities */
+.animate-spin { animation: spin 1s linear infinite; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+
+/* Space out each resource row */
+.resource-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;   /* 👈 adds spacing between rows */
+}
+
+/* Ensure the two inputs truly fill the row without leftover space */
+.resource-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 8px;
+}
+
+/* Give each resource row its own vertical space so buttons don't stack */
+.resource-list { list-style: none; padding: 0; margin: 8px 0 0; }
+.resource-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+/* (optional) your red-outline delete button style if not already present */
+.clear-btn--outline {
+  background: #fff;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  min-width: 88px;
+}
+.clear-btn--outline:hover {
+  background: #fee2e2;
+}
+
+/* Spinner inside button */
+.process-btn .spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #fff;
+  border-radius: 9999px;
+  display: inline-block;
+  margin-right: 0.5rem;
+  animation: spin 0.8s linear infinite;
+}
+
+.results-box::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.results-box::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 9999px;
+}
+.results-box::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+
+/* Step 6 results styling */
+.results-box {
+  font-family: sans-serif;
+  font-size: 0.85rem;       /* smaller text like preview */
+  line-height: 1.4;
+  color: #374151;           /* slate-700 */
+}
+
+.results-box h5 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.25rem;
+  color: #1d4ed8;           /* blue headings like preview */
+}
+
+.results-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.results-box li {
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;  /* shorten long file names */
+  white-space: nowrap;
+}
+
+.results-box a {
+  color: #4f46e5;           /* indigo links */
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.results-box a:hover {
+  text-decoration: underline;
+}
+
+.results-box p {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+}

@@ -1,18 +1,13 @@
 import { useEffect, useState } from 'react';
-import Credentials from './components/Credentials';
-import LogoContainer from './components/LogoContainer';
+import Credentials from './components/Shared/Credentials';
+import LogoContainer from './components/Shared/LogoContainer';
 import StudentDashboard from './components/StudentDashboard';
 import TeacherDashboard from './components/TeacherDashboard';
-import UnauthorizedUser from './components/UnauthorizedUser';
+import UnauthorizedUser from './components/Shared/UnauthorizedUser';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import Loader from './components/Loader';
+import Loader from './components/Shared/Loader';
 
 export default function App() {
-  // return(<div>
-  //   <TeacherDashboard />
-  // </div>
-
-
   const [isAuthorized, setIsAuthorized] = useState(null);
   const [userEmail, setUserEmail] = useState('');
   const [userRole, setUserRole] = useState(null);
@@ -28,7 +23,7 @@ export default function App() {
           setIsAuthorized(false);
         }
       })
-      .getUserEmail();
+      .validateUser();
   }, []);
 
   if (isAuthorized === null) return <Loader />;
