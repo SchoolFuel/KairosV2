@@ -38,8 +38,8 @@ const StandardsSelector = ({ onStandardsChange, initialStandards = [] }) => {
               setIsLoading(false);
               return;
             }
-            
             if (status === 'selected') {
+              setIsLoading(true);
               google.script.run
                 .withSuccessHandler((data) => {
                   setSelectedStandards(data || []);
