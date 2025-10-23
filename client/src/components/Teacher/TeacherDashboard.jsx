@@ -1,20 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import "../styles/Teacher.css";
+import "./Teacher.css";
 
 import GatePanel from "../GatePanel";
-import { gsRun } from "../utils/gsRun";
+import { gsRun } from "./utils/gsRun";
 
 import Docteacher from "./DocTeacher";
-import "../styles/Docteacher.css";
+import "./Docteacher.css";
 
 const parseMaybeJSON = (v) => {
   if (typeof v !== "string") return v;
-  try { return JSON.parse(v); } catch { return v; }
+  try {
+    return JSON.parse(v);
+  } catch {
+    return v;
+  }
 };
 const safePreview = (v, n = 240) => {
-  try { return JSON.stringify(parseMaybeJSON(v)).slice(0, n); }
-  catch { return String(v).slice(0, n); }
+  try {
+    return JSON.stringify(parseMaybeJSON(v)).slice(0, n);
+  } catch {
+    return String(v).slice(0, n);
+  }
 };
 const deepClone = (obj) =>
   typeof structuredClone === "function"
@@ -65,9 +72,13 @@ function ProjectCard({ p, onReview }) {
     <div className="td-card td-card--elevated">
       <div className="td-card-row">
         <div className="td-card-main">
-          <div className="td-card-title" title={title}>{title}</div>
+          <div className="td-card-title" title={title}>
+            {title}
+          </div>
           <div className="td-card-meta">
-            <span className="td-card-chip td-card-chip--subject">{subject}</span>
+            <span className="td-card-chip td-card-chip--subject">
+              {subject}
+            </span>
             {owner ? <span className="td-card-sep">•</span> : null}
             {owner ? <span className="td-card-owner">{owner}</span> : null}
           </div>
@@ -136,13 +147,19 @@ export default function TeacherDashboard() {
     setSelectedStageId(null);
 
     try {
-      const data = await gsRun("getTeacherProjectDetails", projectId, userId || "");
+      const data = await gsRun(
+        "getTeacherProjectDetails",
+        projectId,
+        userId || ""
+      );
       const obj = parseMaybeJSON(data);
       const body = parseMaybeJSON(obj?.body);
       const proj = body?.project || null;
 
       if (!proj) {
-        setDetailsErr(`No "project" in response (preview: ${safePreview(data)}…)`);
+        setDetailsErr(
+          `No "project" in response (preview: ${safePreview(data)}…)`
+        );
       } else {
         setDraft(deepClone(proj));
         setSelectedStageId(null);
@@ -162,7 +179,9 @@ export default function TeacherDashboard() {
         status: decision === "Revision" ? "Pending Approval" : decision,
       }));
     }
-    setSaveMsg(decision === "Revision" ? "Sent for revision 📝" : "Approved ✅");
+    setSaveMsg(
+      decision === "Revision" ? "Sent for revision 📝" : "Approved ✅"
+    );
     setTimeout(() => setSaveMsg(""), 2000);
   };
 
@@ -253,11 +272,14 @@ export default function TeacherDashboard() {
                   .sort((a, b) => (a?.stage_order || 0) - (b?.stage_order || 0))
                   .filter((st) => st && st.stage_id)
                   .map((st) => {
-                    const isActive = String(selectedStageId) === String(st.stage_id);
+                    const isActive =
+                      String(selectedStageId) === String(st.stage_id);
                     return (
                       <div
                         key={st.stage_id}
-                        className={`td-stage td-stage--list ${isActive ? "is-active" : ""}`}
+                        className={`td-stage td-stage--list ${
+                          isActive ? "is-active" : ""
+                        }`}
                         onClick={() => setSelectedStageId(String(st.stage_id))}
                         role="button"
                         tabIndex={0}
@@ -270,9 +292,13 @@ export default function TeacherDashboard() {
                       >
                         <div className="td-stage-toggle">
                           <div className="td-stage-left">
-                            <span className="td-stage-title">{st.title || "Stage"}</span>
+                            <span className="td-stage-title">
+                              {st.title || "Stage"}
+                            </span>
                           </div>
-                          <span className="td-stage-status">{st.status || "—"}</span>
+                          <span className="td-stage-status">
+                            {st.status || "—"}
+                          </span>
                         </div>
                       </div>
                     );
@@ -280,12 +306,11 @@ export default function TeacherDashboard() {
               </div>
 
               {/* Gate panel under the stage list */}
-              {selectedStageId && (
+              {selectedStageId &&
                 (() => {
                   const stage = findStageWithGate(draft, selectedStageId);
                   return stage ? <GatePanel stage={stage} /> : null;
-                })()
-              )}
+                })()}
 
               <div className="actions-section">
                 <button

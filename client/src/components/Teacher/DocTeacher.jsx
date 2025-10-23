@@ -1,4 +1,4 @@
-import "../styles/Docteacher.css";
+import "./Docteacher.css";
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 
 export default function Docteacher({ teacherEmail = "teacher@example.org" }) {

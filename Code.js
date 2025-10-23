@@ -38,6 +38,7 @@ function getUserEmail() {
         response.getContentText()
     );
   }
+}
 
   function showStandardsDialogAndReturn() {
     const html = HtmlService.createHtmlOutputFromFile('StandardsDialog')
@@ -172,7 +173,7 @@ function isCacheExpired(timestamp, maxAgeDays) {
 }
 
 
-  function getAdvice(prompt) {
+function getAdvice(prompt) {
   const baseUrl = 'https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke';
 
 function callOpenAI(prompt) {
@@ -388,7 +389,7 @@ function processDailyCheckin(userInput) {
  * API: My Projects
  *********************************/
 function getTeacherProjectsAll() {
-  const url =A
+  const url =
     "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
   const body = {
     action: "myprojects",
@@ -775,3 +776,4 @@ function getTeacherProjectDetails(projectId, userId) {
 
   return { statusCode: out.statusCode || status || 200, body: { project } };
 }
+

@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/SchoolFuel/KairosV2/issues"
   },
-  "homepage": "https://github.com/SchoolFuel/KairosV2#readme"
+  "homepage": "https://github.com/SchoolFuel/KairosV2#readme",
+  "dependencies": {
+    "react-select": "^5.10.2"
+  }
 }

@@ -1,7 +1,7 @@
 // src/components/GatePanel.jsx
 import React from "react";
-import { gsRun } from "./utils/gsRun"; // ← adjust path if your utils isn't here
-import "../styles/Teacher.css";
+import { gsRun } from "./Teacher/utils/gsRun"; // ← adjust path if your utils isn't here
+import "./Teacher/Teacher.css";
 
 /* ---------- local helpers (self-contained) ---------- */
 const norm = (s) => String(s ?? "").trim();
@@ -43,7 +43,8 @@ function GatePanel({ stage }) {
   const total = checklist.length;
   const gateId = norm(g.gate_id || g.id || "");
   const checklistTitle = total ? norm(checklist[idx]) : "";
-  const cacheKey = gateId && checklistTitle ? makeKey(gateId, checklistTitle) : "";
+  const cacheKey =
+    gateId && checklistTitle ? makeKey(gateId, checklistTitle) : "";
 
   /* -------- standards (per-checklist) -------- */
   const [pickedByKey, setPickedByKey] = React.useState({});
@@ -153,7 +154,9 @@ function GatePanel({ stage }) {
 
       setPickedByKey((prev) => {
         const curr = prev[cacheKey] || [];
-        const next = curr.map((it, i) => (i === index ? { ...it, percent: val } : it));
+        const next = curr.map((it, i) =>
+          i === index ? { ...it, percent: val } : it
+        );
 
         const ctx = { gateId, checklistTitle };
         savePercentsDebounced(cacheKey, ctx, next);
@@ -208,7 +211,8 @@ function GatePanel({ stage }) {
     });
   }
 
-  const gateNum = g.gate_num ?? g.num ?? stage?.gate_number ?? stage?.stage_order ?? 1;
+  const gateNum =
+    g.gate_num ?? g.num ?? stage?.gate_number ?? stage?.stage_order ?? 1;
 
   /* -------- UI -------- */
   // If no gate on this stage (because none was attached/detached), say so clearly
@@ -225,7 +229,9 @@ function GatePanel({ stage }) {
       <div className="td-gate-header">
         <div className="td-gate-title-stack td-like-checklist">
           <strong>Gate {gateNum}:</strong>
-          <div className="td-gate-title-text">“{g.title || stage?.title || "Gate"}”</div>
+          <div className="td-gate-title-text">
+            “{g.title || stage?.title || "Gate"}”
+          </div>
         </div>
       </div>
 
@@ -240,7 +246,14 @@ function GatePanel({ stage }) {
           </div>
 
           {/* Add / Refresh */}
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
             <button className="td-btn td-btn-primary" onClick={openDialog}>
               ➕ Add
             </button>
@@ -258,7 +271,10 @@ function GatePanel({ stage }) {
             {items.length === 0 ? (
               <div className="td-empty">No standards added yet.</div>
             ) : (
-              <ul className="td-standards" style={{ paddingLeft: 0, margin: 0, listStyle: "none" }}>
+              <ul
+                className="td-standards"
+                style={{ paddingLeft: 0, margin: 0, listStyle: "none" }}
+              >
                 {items.map((it, i) => (
                   <li key={i} className="std-row">
                     <code className="std-code">{it.code}</code>
@@ -310,7 +326,10 @@ function GatePanel({ stage }) {
           <div className="td-gd-grid one" style={{ marginTop: 8 }}>
             <div className="td-gd-field">
               <label>Status</label>
-              <select value={m.status || ""} onChange={(e) => setMeta("status", e.target.value)}>
+              <select
+                value={m.status || ""}
+                onChange={(e) => setMeta("status", e.target.value)}
+              >
                 <option value="">Select Status</option>
                 <option>Pending Approval</option>
                 <option>Approved</option>
@@ -350,10 +369,18 @@ function GatePanel({ stage }) {
 
           {/* Pager */}
           <div className="td-gd-actions two" style={{ marginTop: 10 }}>
-            <button className="td-btn" onClick={() => setIdx((v) => Math.max(0, v - 1))} disabled={idx === 0}>
+            <button
+              className="td-btn"
+              onClick={() => setIdx((v) => Math.max(0, v - 1))}
+              disabled={idx === 0}
+            >
               ◀ Prev
             </button>
-            <div className="td-gate-dots" role="tablist" aria-label="Checklist pager">
+            <div
+              className="td-gate-dots"
+              role="tablist"
+              aria-label="Checklist pager"
+            >
               {checklist.map((_, i) => (
                 <button
                   key={i}
