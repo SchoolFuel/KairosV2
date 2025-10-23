@@ -173,43 +173,6 @@ function isCacheExpired(timestamp, maxAgeDays) {
 }
 
 
-function getAdvice(prompt) {
-  const baseUrl = 'https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke';
-
-function callOpenAI(prompt) {
-  const baseUrl =
-    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
-  const payload = {
-    action: "advice",
-    payload: { message: prompt, email_id: Session.getActiveUser().getEmail() },
-  };
-  const options = {
-    method: "post",
-    contentType: "application/json",
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true,
-  };
-
-  try {
-    const response = UrlFetchApp.fetch(baseUrl, options);
-    const result = JSON.parse(response.getContentText());
-
-    return result;
-  } catch (error) {
-    Logger.log("❌ Error fetching from OpenAI Lambda:");
-    Logger.log(error);
-    return {
-      recommendation: {
-        advice: "No response available",
-        subject: "",
-        connection: "",
-        examples: [],
-        resources: []
-      }
-    };
-  }
-}
-
 function lockProject(projectData) {
   const baseUrl = 'https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke'
   Logger.log(projectData)
@@ -626,9 +589,6 @@ function submitAboutMeInfo(input){
   }
 }
 
-function callMorningPulseAPI(payload) {
-  const baseUrl = 'https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke';
-
 function submitProjectDecision(projectId, userId, decision, overallComment, projectSnapshot) {
   // Sidebar-only: do not read Sheets, do not call backend.
   // Optionally accept a project snapshot from the client (React) so you can log or preview what was decided on.
@@ -776,4 +736,3 @@ function getTeacherProjectDetails(projectId, userId) {
 
   return { statusCode: out.statusCode || status || 200, body: { project } };
 }
-
