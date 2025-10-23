@@ -1,6 +1,4 @@
 /*********************************
- * Standards Dialog + Sidebar bridge (NO sheet writes)
- *********************************/
 
 /** Open the “Add Standards” dialog with context (project/stage/gate) */
 function GS_openStandardDialogWithCtx(ctx) {
@@ -18,7 +16,7 @@ function GS_openStandardDialogWithCtx(ctx) {
   const t = HtmlService.createTemplateFromFile("AddStandardDialog");
   t.context = ctx;
   const html = t.evaluate().setWidth(700).setHeight(560);
-  SpreadsheetApp.getUi().showModalDialog(html, "Add Standard");
+  DocumentApp.getUi().showModalDialog(html, "Add Standard");
 }
 
 
@@ -28,7 +26,7 @@ function GS_openAddStandardDialog() {
   const t = HtmlService.createTemplateFromFile("AddStandardDialog");
   t.context = { projectId: "", stageId: "", gateId: "", gateTitle: "" };
   const html = t.evaluate().setWidth(700).setHeight(560);
-  SpreadsheetApp.getUi().showModalDialog(html, "Add Standard");
+  DocumentApp.getUi().showModalDialog(html, "Add Standard");
 }
 
 
@@ -101,50 +99,93 @@ function STD_pullSelectionByKey(key) {
 }
 
 
-/*********************************
- * Standards Catalog (kept)
- *********************************/
-const GSD_CAT_NAME = "StandardsCatalog";
+// const GSD_FILE_ID = "YOUR_SPREADSHEET_FILE_ID_HERE";
+const GSD_FILE_ID = "https://docs.google.com/spreadsheets/d/14-QuRN0P8on2xS0PW7yoZLDp1QZjGZeD8XA4GWA3mHA/edit?gid=0#gid=0"
+
+// Name of the spreadsheet file in Drive (used if GSD_FILE_ID is null)
+const GSD_SPREADSHEET_NAME = "StandardsCatalog";
+
+// Name of the tab/sheet inside the spreadsheet
+const GSD_TAB_NAME = "Catalog"; //
+
 
 function GSD_getCatalog_() {
-  const ss = SpreadsheetApp.getActive();
-  const sh = ss.getSheetByName(GSD_CAT_NAME);
+  const ss = GSD_FILE_ID
+    ? SpreadsheetApp.openById(GSD_FILE_ID)
+    : GSD_openSpreadsheetByName_(GSD_SPREADSHEET_NAME);
+
+  let sh = ss.getSheetByName(GSD_TAB_NAME);
   if (!sh) {
-    throw new Error(`❌ Missing required sheet: "${GSD_CAT_NAME}". Please create it manually with the expected headers.`);
+    throw new Error(`❌ Missing required tab: "${GSD_TAB_NAME}" in spreadsheet "${ss.getName()}".`);
   }
   return sh;
 }
 
+function GSD_openSpreadsheetByName_(name) {
+  const files = DriveApp.getFilesByName(name);
+  if (!files.hasNext()) {
+    throw new Error(`❌ Spreadsheet named "${name}" not found in Drive.`);
+  }
+  // If duplicates exist, we use the first match.
+  const file = files.next();
+  return SpreadsheetApp.openById(file.getId());
+}
+
+
 function GSD_getSubjects() {
   const sh = GSD_getCatalog_();
-  const vals = sh.getRange(2, 4, Math.max(0, sh.getLastRow() - 1), 1).getDisplayValues().flat();
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  const vals = sh.getRange(2, 4, last - 1, 1).getDisplayValues().flat(); // D = subject_area
   return Array.from(new Set(vals.map(v => String(v || "").trim()).filter(Boolean))).sort();
 }
 
 function GSD_getGrades() {
   const sh = GSD_getCatalog_();
-  const vals = sh.getRange(2, 5, Math.max(0, sh.getLastRow() - 1), 1).getDisplayValues().flat();
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  const vals = sh.getRange(2, 5, last - 1, 1).getDisplayValues().flat(); // E = grade_level
   return Array.from(new Set(vals.map(v => String(v || "").trim()).filter(Boolean))).sort();
 }
+
+
 
 /** Search standards by filters; returns [{id,code,description,subject,grade}] */
 function GSD_searchStandards(subject, grade, query, limit) {
   const sh = GSD_getCatalog_();
   const last = sh.getLastRow();
   if (last < 2) return [];
+
+  // Columns: A..F (standard_id, code, description, subject_area, grade_level, metadata)
   const rows = sh.getRange(2, 1, last - 1, 6).getValues();
+
+  const subjNorm = subject ? String(subject).trim() : "";
+  const gradeNorm = grade ? String(grade).trim() : "";
   const q = String(query || "").toLowerCase().trim();
+
   const out = [];
   for (let i = 0; i < rows.length; i++) {
-    const [id, code, desc, subj, grd] = rows[i];
-    if (subject && subj !== subject) continue;
-    if (grade && grd !== grade) continue;
-    if (q && !(
-      String(code || "").toLowerCase().includes(q) ||
-      String(desc || "").toLowerCase().includes(q)
-    )) continue;
-    out.push({ id: String(id || ""), code: String(code || ""), description: String(desc || ""), subject: String(subj || ""), grade: String(grd || "") });
-    if (limit && out.length >= limit) break;
+    const [standard_id, code, desc, subject_area, grade_level] = rows[i];
+
+    if (subjNorm && String(subject_area || "").trim() !== subjNorm) continue;
+    if (gradeNorm && String(grade_level || "").trim() !== gradeNorm) continue;
+
+    if (q) {
+      const codeL = String(code || "").toLowerCase();
+      const descL = String(desc || "").toLowerCase();
+      if (!(codeL.includes(q) || descL.includes(q))) continue;
+    }
+
+    out.push({
+      id: String(standard_id || ""),
+      code: String(code || ""),
+      description: String(desc || ""),
+      subject: String(subject_area || ""),
+      grade: String(grade_level || ""),
+    });
+
+    if (limit && out.length >= Number(limit)) break;
   }
+
   return out;
 }

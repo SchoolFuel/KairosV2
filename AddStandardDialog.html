@@ -152,7 +152,7 @@
       $('tbody').innerHTML='<tr><td colspan="3" class="empty">Searching…</td></tr>';
       google.script.run
         .withSuccessHandler(rows=>{ lastResults=rows||[]; selected.clear(); renderRows(lastResults); })
-        .withFailureHandler(()=>{}) // ignore
+        .withFailureHandler(()=>{handleServerError}) // ignore
         .GSD_searchStandards(subject, grade, q, 300);
     }
     const debouncedSearch = deb(search,300);
