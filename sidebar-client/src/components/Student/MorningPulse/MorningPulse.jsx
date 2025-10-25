@@ -1,9 +1,9 @@
 import React from 'react';
 import { Sunrise, CheckCircle } from 'lucide-react';
-import { CollapsibleHeader } from './ui/CollapsibleHeader';
-import { MorningPulseForm } from './forms/MorningPulseForm';
-import { DashboardView } from './dashboard/DashboardView';
-import { useMorningPulseState } from '../hooks/useMorningPulseState';
+import { CollapsibleHeader } from './CollapsibleHeader';
+import { MorningPulseForm } from './MorningPulseForm';
+import { DashboardView } from './DashboardView';
+import { useMorningPulseState } from '../../../hooks/useMorningPulseState';
 
 
 // Motivation array

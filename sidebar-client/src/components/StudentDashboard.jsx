@@ -4,7 +4,7 @@ import SidebarBreakTimer from './Student/Break/Break';
 import AboutMe from './Student/AboutMe/AboutMe';
 import GuideMe from './GuideMe';
 import StudentProjects from './Student/StudentProjects/StudentProjects';
-import SidebarMorningPulse from './MorningPulse';
+import SidebarMorningPulse from './Student/MorningPulse/MorningPulse';
 import CreateProject from './Student/CreateProject/CreateProject';
 import SidebarWorkshop from './WorkshopBuilder';
 import ExpertFinderComponent from './Student/FindExperts/ExpertFinderComponent';
