@@ -1,6 +1,6 @@
 import { EmojiSelector } from './EmojiSelector';
-import { TextInputField } from '../../ui/TextInputField';
-import { SubmitButton } from '../../ui/SubmitButton';
+import { TextInputField } from './TextInputField';
+import { SubmitButton } from './SubmitButton';
 
 export const MorningPulseForm = ({ 
   emojis,
