@@ -2,7 +2,7 @@ import IntroductionContainer from './Shared/IntroductionContainer';
 import SidebarAdvice from './Student/Advice/Advice';
 import SidebarBreakTimer from './Student/Break/Break';
 import AboutMe from './Student/AboutMe/AboutMe';
-import GuideMe from './GuideMe';
+import GuideMe from './Student/GuideMe/GuideMe';
 import StudentProjects from './Student/StudentProjects/StudentProjects';
 import SidebarMorningPulse from './Student/MorningPulse/MorningPulse';
 import CreateProject from './Student/CreateProject/CreateProject';
@@ -15,12 +15,12 @@ export default function StudentDashboard({ email }) {
     <div>
       <IntroductionContainer />
       <SidebarMorningPulse />
-      <CreateProject/>
+      <CreateProject />
       <StudentProjects />
       <GuideMe />
-      <SidebarWorkshop /> 
+      <SidebarWorkshop />
       <SidebarAdvice />
-      <ExpertFinderComponent/>
+      <ExpertFinderComponent />
       <AboutMe />
       <SidebarBreakTimer />
       <StandardsSelector />
