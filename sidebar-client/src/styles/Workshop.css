@@ -81,8 +81,8 @@
 .text-blue  { color: #2563eb; }
 .text-gray  { color: #4b5563; }
 
-.title { font-weight: normal; color: #111827; }
-.subtitle { font-size: 0.875rem; color: #6b7280; }
+.workshop-container .title { font-weight: normal; color: #111827; }
+.workshop-container .subtitle { font-size: 0.875rem; color: #6b7280; }
 
 .chevron { width: 1.25rem; height: 1.25rem; color: #9ca3af; transition: transform 0.2s; }
 .rotate { transform: rotate(180deg); }
