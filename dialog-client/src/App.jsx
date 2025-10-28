@@ -1,11 +1,9 @@
 import { useState,useEffect } from 'react'
 import './App.css'
-import DialogDashboard from './components/Student/Dashboard'
 import LearningStandardsDialog from './components/Shared/LearningStandards/LearningStandardsDialog'
 import CreateProject from './components/Student/CreateProject/CreateProject'
 
 const DIALOGS = {
-    "dashboard":DialogDashboard,
     "student-standards":LearningStandardsDialog,
     "create-project":CreateProject
   }
