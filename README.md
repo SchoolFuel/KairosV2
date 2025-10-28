@@ -1,203 +1,164 @@
+# KairosV2 Project Setup Guide
 
-# 🚀 Kairos V2 Onboarding Guide
+> A step-by-step setup guide for developers working on the **KairosV2** Google Docs Add-on.
 
-Welcome to **Kairos V2** – a collaborative Google Apps Script project now managed via **Git**. This guide helps you get started with setting up the project, contributing, and collaborating with the team.
-
----
-
-## 📂 Repository Link
-
-👉 [https://github.com/yadvendranaveen/KairosV2](https://github.com/yadvendranaveen/KairosV2)
+**Repository:** [SchoolFuel/KairosV2](https://github.com/SchoolFuel/KairosV2)
 
 ---
 
-## ✅ Prerequisites
+## 0. Prerequisites
 
-- [Git](https://git-scm.com/downloads) installed
-- GitHub account
-- (Optional) Access permissions from contributors for pushing changes (currently public repo)
+Before you begin, ensure you have the following installed:
+
+- [**Git**](https://git-scm.com/downloads)
+- [**Node.js (LTS version recommended)**](https://nodejs.org/)
+- [**Yarn** (optional, but recommended for macOS/Linux)](https://classic.yarnpkg.com/lang/en/docs/install/)
+- A **Google Account** with access to **Google Docs** and **Google Apps Script**
+- Access to the **KairosV2 repository**
+
+### ⚠️ Google Account Note
+This project uses `Session.getActiveUser()`.  
+That means you must use **one dedicated Google profile** per project.
+
+- Use **only one Google account per Chrome profile**
+- Each Google Doc should be linked to **one Google account only**
+- Avoid opening Docs linked to another Google profile
+
+This ensures the correct account is recognized and prevents authentication conflicts.
 
 ---
 
-## 👥 Contributors
+## 1. Fork the Repository
 
-To request contributor access (write permissions), contact:
-
-- **@mhv2408** – Venkata Sai Harsha Vardhan  
-- **@venkatasai7** – Venkata Sai Kuniganti
-
-(See contributor list in the GitHub repo)
+1. Visit the repository: [SchoolFuel/KairosV2](https://github.com/SchoolFuel/KairosV2)
+2. Click **Fork** in the top-right corner
 
 ---
 
-## 🧭 Getting Started
+## 2. Clone Your Fork
 
-1. **Clone the Repository**
+Once forked, clone your repository locally:
 
-Using SSH:
 ```bash
-git clone git@github.com:venkatasai7/KairosV2.git
+git clone https://github.com/<your-username>/KairosV2
 ```
+Then navigate into the project:
 
-Using HTTPS:
-```bash
-git clone https://github.com/venkatasai7/KairosV2.git
-```
-
-2. **Navigate into the Project**
 ```bash
 cd KairosV2
 ```
+## 3. Create a Google Doc & Link Apps Script
+Open Google Docs and create a new blank document
 
-3. **Set Up .clasp.json Configuration**
+From the menu bar, go to
+Extensions → Apps Script to open the script editor
 
-Create a `.clasp.json` file in the root directory of the project with the following template:
+## 4. Configure .clasp.json
+In the root directory of your cloned project, create a file named .clasp.json and add the following:
 
 ```json
 {
-    "scriptId": "<scriptId>",
-    "rootDir": "<repoRoot>",
-    "scriptExtensions": [".js", ".gs"],
-    "htmlExtensions": [".html"],
-    "jsonExtensions": [".json"],
-    "filePushOrder": [],
-    "skipSubdirectories": false
+  "scriptId": "<your-script-id>",
+  "rootDir": "",
+  "scriptExtensions": [".js", ".gs"],
+  "htmlExtensions": [".html"],
+  "jsonExtensions": [".json"],
+  "filePushOrder": [],
+  "skipSubdirectories": false
 }
 ```
+🔍 How to Find Your Script ID
+Open your Apps Script project
 
-**To get your script ID:**
-1. Create a personal Google Doc in your Google Drive
-2. Go to **Extensions** → **Apps Script** in the document
-3. Go to Settings->Script Id (copy)
-4. Replace `<scriptId>` with your actual script ID
-5. Replace `<repoRoot>` with the path to your repository root (usually just `"."`)
+Click Project Settings (⚙️ icon)
 
-4. **Create a Feature Branch**
+Under IDs, copy the Script ID
+
+Paste it into .clasp.json
+
+## 5. Install Client Dependencies
+Install dependencies for both sidebar-client and dialog-client:
+
+macOS/Linux:
 ```bash
-git checkout -b your-feature-name
+yarn install
 ```
-
-5. **Make Your Changes Locally**
-
-Edit using your preferred IDE or the Google Apps Script online editor.
-
-6. **Stage, Commit, and Push Changes**
+Windows:
 ```bash
-git add .
-git commit -m "Add: your change summary"
-git push origin your-feature-name
+npm install
 ```
+⚠️ Make sure Node.js is installed before running these commands.
 
-7. **Open a Pull Request** on GitHub for review and merge.
-
----
-
-## 🔄 Sync with Main Branch
-
-Before pushing or starting a new feature:
+## 6. Install clasp
+Install clasp (the Google Apps Script CLI) globally:
 ```bash
-git checkout main
-git pull origin main
+npm install -g @google/clasp
 ```
+Then enable the Google Apps Script API here:
+👉 [Google Apps Script API](https://script.google.com/home/usersettings)
 
----
-
-## 🗂️ Access the Production Document
-
-You must have edit access to the following Google Doc:
-
-**Kairos Project (Production)**  
-🔗 https://docs.google.com/document/d/1LygbPOaU-570iMOOlALU2KKktCjoC2uL41c3lDqIHAU/edit?usp=sharing
-
-To gain access, you may request it from any of the following:  
-`gbroberg@schoolfuel.org`, `broberggreg@gmail.com`, `vmirthin@asu.edu`, `snazer@asu.edu`, `raja.asileti2usa@gmail.com`, `devuser@schoolfuel.org`
-
----
-
-## ⚠️ Notes
-
-- **Do not push directly to `main`** unless you’re authorized.
-- Follow proper Git hygiene: pull before coding, branch off `main`, use meaningful commit messages, and open PRs for all changes.
-
----
-
----
-
-## 🚀 Deployment Strategy
-
-This project uses a **hybrid trunk-based deployment** approach with manual deployment processes.
-
-### **Branch Strategy**
-- **`main`**: Production-ready code, deployed to production
-- **`staging`**: Integration testing branch, deployed to staging environment
-- **Feature branches**: Short-lived branches for development
-
-### **Deployment Flow**
+## 7. Authenticate clasp
+Run the following:
+```bash
+clasp login
 ```
-Branch:Feature: Branch → staging → main 
-                 ↓          ↓        ↓     
-Use Case:       Develop   Test/QA   Deploy  
+This opens a browser window for Google authentication.
+
+🧠 Use the same Google account that owns the Google Doc you created in Step 3.
+Avoid being logged into multiple Google accounts in the same browser profile.
+
+## 8. Deploy the Application
+From your project root, run:
+
+```bash
+npm run deploy
 ```
+You should see output similar to:
 
-### **Manual Deployment Process**
+```css
+✅ Sidebar.html updated from React build.
+✅ Dialog.html updated from React build.
+Pushed 6 files.
+└─ appsscript.json
+└─ Code.js
+└─ Dialog.html
+└─ Sidebar.html
+└─ Student.js
+└─ Teacher.js
+```
+⚠️ Verify that your .clasp.json file contains the correct Script ID before deploying.
 
-#### **Development Workflow**
-1. **Create feature branch**
-   ```bash
-   git checkout -b feature/new-feature
-   ```
+🛠️ Common Issue
+If you see this error:
 
-2. **Make changes and commit**
-   ```bash
-   git add .
-   git commit -m "feat: add new feature"
-   git push origin feature/new-feature
-   ```
+```bash
+'vite' is not recognized as an internal or external command
+```
+Run the following inside both sidebar-client and dialog-client folders:
 
-3. **Merge to staging for testing**
-   ```bash
-   git checkout staging
-   git merge feature/new-feature
-   git push origin staging
-   ```
+```bash
+rm -rf node_modules
+npm install
+```
+Then try deploying again.
 
-4. **Build app - this generates a new KairosV2/Sidebar.html file**
-   ```
-   cd client && npm run build
-   ```
+## 9. Open & Test the Add-on
+Open your Google Doc
 
-5. **Deploy to staging environment**
-   ```bash
-   # Install clasp globally
-   npm install -g @google/clasp
-   
-   # Login to clasp
-   clasp login
-   
-   # Modify .clasp.json scriptId to the production document script Id
-   In .clasp.json - make sure you have production document script id
-   # Push to Apps Script
-   clasp push
-   
-   # Deploy to create new version
-   clasp deploy
-   ```
+Ensure you’re using the same Chrome profile tied to the Google account used earlier
 
-5. **Create Pull Request for Production Release**
-   - Create a PR from `staging` to `main`
-   - **PR Title**: `Release <date>` (e.g., "Release 2024-01-15")
-   - **Requirement**: At least one approval required before merge
-   - After approval, merge the PR to `main`
+Navigate to the `Kairos` on the top to launch and test the app.
 
-6. **Deploy to production**
-   ```bash
-   git checkout main
-   git pull origin main
-   cd client && npm run build # this generates a new KairosV2/Sidebar.html file
-   clasp push  # In .clasp.json- make sure you have production document script id
-   clasp deploy
-   ```
----
----
+⚠️ Avoid multiple Google accounts in the same Chrome profile — this may cause authentication issues.
 
-Happy coding! 🎉
+## Troubleshooting Tips
+Vite not found: Run npm install inside each client folder
+
+Authentication errors: Make sure only one Google account is logged in per Chrome profile
+
+Deployment not updating: Double-check your .clasp.json Script ID and rootDir path
+
+
+## 👩‍💻 Contributors
+SchoolFuel Team
+KairosV2 © SchoolFuel — All Rights Reserved
