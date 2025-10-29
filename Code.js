@@ -2,8 +2,6 @@ function onOpen() {
     DocumentApp.getUi()
       .createMenu('Kairos')
       .addItem('Open Sidebar', 'showSidebar')
-      .addSeparator()
-      .addItem('Teacher Project Queue', 'openTeacherProjectQueue')
       .addToUi();
   }
   

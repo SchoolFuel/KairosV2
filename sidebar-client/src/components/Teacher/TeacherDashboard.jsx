@@ -375,7 +375,7 @@ export default function TeacherDashboard() {
       )}
 
       {/* Render Docteacher below Projects */}
-      <Docteacher />
+    
     </div>
   );
 }
