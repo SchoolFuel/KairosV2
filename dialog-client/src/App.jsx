@@ -2,10 +2,12 @@ import { useState,useEffect } from 'react'
 import './App.css'
 import LearningStandardsDialog from './components/Shared/LearningStandards/LearningStandardsDialog'
 import CreateProject from './components/Student/CreateProject/CreateProject'
+import TeacherProjectQueue from './components/Teacher/TeacherProjectQueue'
 
 const DIALOGS = {
     "student-standards":LearningStandardsDialog,
-    "create-project":CreateProject
+    "create-project":CreateProject,
+    "teacher-project-queue":TeacherProjectQueue
   }
 function App() {
   

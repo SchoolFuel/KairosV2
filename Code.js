@@ -81,7 +81,7 @@ function validateUser() {
   }
 
   //  Cache is missing or expired → fetch fresh data
-  const user_email = currentUser();
+  const user_email = "teacher1@gmail.com"; //currentUser();
   const identity_url = 'https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/dev/identity-fetch';
   const payload = {
     email_id: user_email,
@@ -145,6 +145,11 @@ function openDialog(dialogType, title){
     .setHeight(700);
   
   DocumentApp.getUi().showModalDialog(modifiedHtml, title);
+}
+
+// Specific function to open Teacher Project Queue dialog
+function openTeacherProjectQueue() {
+  openDialog('teacher-project-queue', 'Teacher Project Queue');
 }
 
 function clearUserCache() {

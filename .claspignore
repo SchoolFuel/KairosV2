@@ -1,6 +1,5 @@
 # Ignore everything first
 **
-
 # Allow only necessary files
 !Code.js
 !Sidebar.html
@@ -8,5 +7,5 @@
 !Student.js
 !Teacher.js
 !Dialog.html
-!AddStandarDialog.html
+!AddStandardDialog.html
 !GateStandard.js
