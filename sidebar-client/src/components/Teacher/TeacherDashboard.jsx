@@ -5,8 +5,8 @@ import "./Teacher.css";
 import GatePanel from "./GatePanel";
 import { gsRun } from "./utils/gsRun";
 
-import Docteacher from "./DocTeacher";
-import "./Docteacher.css";
+
+
 
 const parseMaybeJSON = (v) => {
   if (typeof v !== "string") return v;
@@ -205,14 +205,6 @@ export default function TeacherDashboard() {
     <div className="td-wrapper">
       <div className="td-header-section">
         <h1 className="td-heading">Project Workflow</h1>
-        <button 
-          className="td-queue-btn"
-          onClick={openProjectQueueDialog}
-          title="Open detailed project queue"
-        >
-          <ClipboardList size={16} />
-          Project Queue
-        </button>
       </div>
 
       {rows.length === 0 ? (
@@ -374,8 +366,28 @@ export default function TeacherDashboard() {
         </div>
       )}
 
-      {/* Render Docteacher below Projects */}
-    
+      {/* Project Queue button at the bottom */}
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 32 }}>
+        <button
+          className="td-queue-btn"
+          onClick={openProjectQueueDialog}
+          title="Open detailed project queue"
+        >
+          <ClipboardList size={16} />
+          Project Queue
+        </button>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 32 }}>
+        <button
+          className="td-queue-btn"
+          onClick={openProjectQueueDialog}
+          title="Open detailed project queue"
+        >
+          <ClipboardList size={16} />
+          Gate Standards
+        </button>
+      </div>
     </div>
   );
 }
