@@ -63,7 +63,6 @@ function onOpen() {
 
 
 function validateUser() {
-  clearUserCache()
   const userProps = PropertiesService.getUserProperties();
   const cachedStandards = userProps.getProperty('LEARNING_STANDARDS');
   const cachedUserId = userProps.getProperty('USER_ID');
@@ -81,7 +80,7 @@ function validateUser() {
   }
 
   //  Cache is missing or expired → fetch fresh data
-  const user_email = currentUser();
+  const user_email = "teacher1@gmail.com"; //currentUser();
   const identity_url = 'https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/dev/identity-fetch';
   const payload = {
     email_id: user_email,
@@ -152,4 +151,24 @@ function clearUserCache() {
   ['LEARNING_STANDARDS','USER_ID','USER_ROLE','CACHE_TIMESTAMP','USER_EMAIL','SELECTED_STANDARDS','DIALOG_STATUS']
     .forEach(k => p.deleteProperty(k));
   return true;
+}
+function openPrototypeDialog(projectId) {
+  const html = HtmlService.createHtmlOutputFromFile('Dialog')
+    .setWidth(900)
+    .setHeight(700);
+
+  const htmlWithHash = html.getContent();
+  const modifiedHtml = HtmlService.createHtmlOutput(
+    htmlWithHash.replace(
+      '<body>',
+      `<body><script>
+        window.location.hash = 'project-dashboard';
+        window.PROJECT_ID = '${projectId || ''}';
+      </script>`
+    )
+  )
+    .setWidth(900)
+    .setHeight(700);
+
+  DocumentApp.getUi().showModalDialog(modifiedHtml, 'Project Prototype');
 }
