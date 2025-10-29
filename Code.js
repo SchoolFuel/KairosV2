@@ -63,6 +63,7 @@ function onOpen() {
 
 
 function validateUser() {
+  clearUserCache()
   const userProps = PropertiesService.getUserProperties();
   const cachedStandards = userProps.getProperty('LEARNING_STANDARDS');
   const cachedUserId = userProps.getProperty('USER_ID');
@@ -144,6 +145,11 @@ function openDialog(dialogType, title){
     .setHeight(700);
   
   DocumentApp.getUi().showModalDialog(modifiedHtml, title);
+}
+
+// Specific function to open Teacher Project Queue dialog
+function openTeacherProjectQueue() {
+  openDialog('teacher-project-queue', 'Teacher Project Queue');
 }
 
 function clearUserCache() {

@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, ClipboardList } from "lucide-react";
 import "./Teacher.css";
 
 import GatePanel from "./GatePanel";
 import { gsRun } from "./utils/gsRun";
 
-import Docteacher from "./DocTeacher";
-import "./Docteacher.css";
+
+
 
 const parseMaybeJSON = (v) => {
   if (typeof v !== "string") return v;
@@ -196,9 +196,16 @@ export default function TeacherDashboard() {
   }
   if (err) return <div className="td-error">{err}</div>;
 
+  // Function to open Teacher Project Queue dialog
+  const openProjectQueueDialog = () => {
+    google.script.run.openTeacherProjectQueue();
+  };
+
   return (
     <div className="td-wrapper">
-      <h1 className="td-heading">Project Workflow</h1>
+      <div className="td-header-section">
+        <h1 className="td-heading">Project Workflow</h1>
+      </div>
 
       {rows.length === 0 ? (
         <div className="td-empty">No projects yet.</div>
@@ -359,8 +366,28 @@ export default function TeacherDashboard() {
         </div>
       )}
 
-      {/* Render Docteacher below Projects */}
-      <Docteacher />
+      {/* Project Queue button at the bottom */}
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 32 }}>
+        <button
+          className="td-queue-btn"
+          onClick={openProjectQueueDialog}
+          title="Open detailed project queue"
+        >
+          <ClipboardList size={16} />
+          Project Queue
+        </button>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 32 }}>
+        <button
+          className="td-queue-btn"
+          onClick={openProjectQueueDialog}
+          title="Open detailed project queue"
+        >
+          <ClipboardList size={16} />
+          Gate Standards
+        </button>
+      </div>
     </div>
   );
 }

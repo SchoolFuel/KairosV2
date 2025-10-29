@@ -300,7 +300,7 @@ async function processWorkshop() {
                 <ClipboardList className={`icon ${getWSStatusClass()}`} />
                 <div className={`status-dot ${getWSStatusDot()}`} />
               </div>
-              <div>
+              <div className="workshop-container">
                 <div className="title">Workshop Designer</div>
                 <div className="subtitle" style={{ color: getWSSubtitleColor() }}>
                   {getWSSubtitle()}
