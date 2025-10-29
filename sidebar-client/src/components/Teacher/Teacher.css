@@ -31,10 +31,36 @@ input, select, textarea { font: inherit; }
 /* ---------- Wrapper & headings ---------- */
 .td-wrapper{ padding:12px; }
 
+.td-header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
 .td-heading{
   font-size:20px; line-height:1.2;
   font-weight:700; color:var(--ink);
-  margin:8px 0 14px;
+  margin:8px 0 0;
+}
+
+.td-queue-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--indigo-700);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.td-queue-btn:hover {
+  background: var(--indigo-900);
 }
 
 /* ---------- Feedback blocks ---------- */

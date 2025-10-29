@@ -2,6 +2,8 @@ function onOpen() {
     DocumentApp.getUi()
       .createMenu('Kairos')
       .addItem('Open Sidebar', 'showSidebar')
+      .addSeparator()
+      .addItem('Teacher Project Queue', 'openTeacherProjectQueue')
       .addToUi();
   }
   
@@ -144,6 +146,11 @@ function openDialog(dialogType, title){
     .setHeight(700);
   
   DocumentApp.getUi().showModalDialog(modifiedHtml, title);
+}
+
+// Specific function to open Teacher Project Queue dialog
+function openTeacherProjectQueue() {
+  openDialog('teacher-project-queue', 'Teacher Project Queue');
 }
 
 function clearUserCache() {
