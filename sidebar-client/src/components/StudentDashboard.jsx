@@ -6,7 +6,7 @@ import GuideMe from './Student/GuideMe/GuideMe';
 import StudentProjects from './Student/StudentProjects/StudentProjects';
 import SidebarMorningPulse from './Student/MorningPulse/MorningPulse';
 import CreateProject from './Student/CreateProject/CreateProject';
-import SidebarWorkshop from './WorkshopBuilder';
+import SidebarWorkshop from './Student/Workshopbuilder/Workshopbuilder';
 import ExpertFinderComponent from './Student/FindExperts/ExpertFinderComponent';
 import StandardsSelector from './Student/StandardsSelector';
 

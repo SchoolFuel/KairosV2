@@ -155,8 +155,10 @@ export default function AboutMe() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <User className={`w-5 h-5 ${getStatusColor()}`} />
-                <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${getStatusDot()}`}></div>
+                <User className={`w-6 h-6 ${getStatusColor()}`} />
+                <div className={`absolute -top-1 w-2 h-2 rounded-full ${getStatusDot()}`}
+                      style={{ right: '-0.05rem' }}
+                ></div>
               </div>
               <div>
                 <div className="font-medium text-gray-900 text-base">About Me</div>
