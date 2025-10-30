@@ -6,8 +6,8 @@ import {
   ChevronRight,
   Download,
 } from "lucide-react";
-import "../styles/Workshop.css";
-import standardsData from "../data/learning-standards.json";
+import "../../../styles/Workshop.css";
+import standardsData from "../../../data/learning-standards.json";
 import Select from "react-select";
 
 const STEPS = ["Topic", "Standards", "Group", "Artifacts", "Review", "Results"];
@@ -301,7 +301,7 @@ async function processWorkshop() {
     });
 
   return (
-    <div className="workshop-wrapper">
+    <div className="w-full font-sans">
       <div className={`workshop-card status-${procStatus}`}>
         <div onClick={toggleExpanded} className="workshop-toggle">
           <div className="workshop-header">
@@ -311,8 +311,8 @@ async function processWorkshop() {
                 <div className={`status-dot ${getWSStatusDot()}`} />
               </div>
               <div>
-                <div className="title">Workshop Designer</div>
-                <div className="subtitle" style={{ color: getWSSubtitleColor() }}>
+                <div className="font-medium text-gray-900 text-base">Workshop Designer</div>
+                <div className="text-sm text-gray-500" style={{ color: getWSSubtitleColor() }}>
                   {getWSSubtitle()}
                 </div>
               </div>
@@ -519,9 +519,9 @@ async function processWorkshop() {
                 {/* Step 5: Review */}
                 {step === 4 && (
                   <Section>
-                    <h4 className="title" style={{ marginBottom: 8 }}>
+                    <h3 className="font-medium text-gray-800 text-lg" style={{ marginBottom: 8 }}>
                       Preview
-                    </h4>
+                    </h3>
                     <div className="markdown">
                       <h5>🧩 Topic & Duration</h5>
                       <p>{data.topic || "—"}</p>
@@ -592,7 +592,7 @@ async function processWorkshop() {
                 {/* Step 6: Results */}
                 {step === 5 && (
                   <Section>
-                    <h4 className="title" style={{ marginBottom: 8 }}>
+                    <h4 className="font-medium text-gray-800 text-lg" style={{ marginBottom: 8 }}>
                       Processed Results
                     </h4>
 
