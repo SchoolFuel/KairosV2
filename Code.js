@@ -147,6 +147,11 @@ function openDialog(dialogType, title){
   DocumentApp.getUi().showModalDialog(modifiedHtml, title);
 }
 
+// Specific function to open Teacher Project Queue dialog
+function openTeacherProjectQueue() {
+  openDialog('teacher-project-queue', 'Teacher Project Queue');
+}
+
 function clearUserCache() {
   const p = PropertiesService.getUserProperties();
   ['LEARNING_STANDARDS','USER_ID','USER_ROLE','CACHE_TIMESTAMP','USER_EMAIL','SELECTED_STANDARDS','DIALOG_STATUS']
