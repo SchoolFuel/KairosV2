@@ -152,6 +152,11 @@ function openTeacherProjectQueue() {
   openDialog('teacher-project-queue', 'Teacher Project Queue');
 }
 
+// Specific function to open Teacher Gate Assessment dialog
+function openTeacherGateAssessment() {
+  openDialog('teacher-gate-assessment', 'Gate Assessment');
+}
+
 function clearUserCache() {
   const p = PropertiesService.getUserProperties();
   ['LEARNING_STANDARDS','USER_ID','USER_ROLE','CACHE_TIMESTAMP','USER_EMAIL','SELECTED_STANDARDS','DIALOG_STATUS']

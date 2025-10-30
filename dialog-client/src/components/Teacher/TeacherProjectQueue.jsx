@@ -181,6 +181,18 @@ export default function TeacherProjectQueue() {
   const [showDetails, setShowDetails] = useState(false);
   const [selectedProjects, setSelectedProjects] = useState(new Set()); // For bulk selection
   const [bulkMode, setBulkMode] = useState(false);
+  const [isGateMode, setIsGateMode] = useState(false);
+  const [showWorkflow, setShowWorkflow] = useState(false);
+  const [stepIdx, setStepIdx] = useState(0);
+  const [aiText, setAiText] = useState("");
+  const [imageViewer, setImageViewer] = useState({ open: false, src: "", alt: "" });
+
+  function openImage(src, alt = "Artifact") {
+    setImageViewer({ open: true, src, alt });
+  }
+  function closeImage() {
+    setImageViewer({ open: false, src: "", alt: "" });
+  }
   
   // Detailed project review state
   const [projectDetails, setProjectDetails] = useState(null);
@@ -213,6 +225,14 @@ export default function TeacherProjectQueue() {
   // Load projects on component mount
   useEffect(() => {
     loadProjects();
+  }, []);
+
+  // Detect dialog type from hash once (teacher-gate-assessment vs teacher-project-queue)
+  useEffect(() => {
+    const hash = (window.location && window.location.hash || "").replace('#','');
+    const gate = hash === 'teacher-gate-assessment';
+    setIsGateMode(gate);
+    if (gate) setActiveTab('gate');
   }, []);
 
   // Calculate analytics when projects change
@@ -511,6 +531,7 @@ export default function TeacherProjectQueue() {
 
   // Tab configuration
   const tabs = [
+    ...(isGateMode ? [{ key: "gate", label: "Gate Planner", sub: "Assessment" }] : []),
     { key: "inbox", label: "Inbox", sub: "Under Review" },
     { key: "rubrics", label: "Rubrics & Gates", sub: "Step-by-step" },
     { key: "calendar", label: "Calendar", sub: "Scheduling" },
@@ -522,9 +543,369 @@ export default function TeacherProjectQueue() {
     <div className="tpq-container">
       {/* Header */}
       <div className="tpq-header">
-        <h1>Teacher Project Queue</h1>
-        <p>Review and manage student project submissions</p>
+        <h1>{isGateMode ? 'Gate Assessment' : 'Teacher Project Queue'}</h1>
+        <p>{isGateMode ? 'Plan, send, and record gate assessments' : 'Review and manage student project submissions'}</p>
       </div>
+      {/* GATE PLANNER TAB (shown only in gate mode) */}
+      {isGateMode && activeTab === "gate" && (
+        <div className="tpq-panel">
+          <div className="tpq-panel-head">
+            <h3>Assessment Planner</h3>
+            <span className="tpq-chip">Step-by-step</span>
+          </div>
+
+          <div className="tpq-grid-2" style={{ alignItems: 'stretch' }}>
+            {/* Left stepper */}
+            <div className="tpq-card" style={{ minWidth: 220, maxWidth: 260 }}>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>Steps</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[
+                  'Upcoming Assessment Notice',
+                  'Review Details & Mastery',
+                  'Assessment Type & Materials',
+                  'Delivery Details',
+                  'Summary & Approval',
+                  'Send to Student & RDS',
+                  'Completion & Evaluation',
+                  'Finalize & Feedback',
+                ].map((t, i) => (
+                  <button
+                    key={t}
+                    className={`tpq-btn ${i === stepIdx ? 'tpq-btn--primary' : ''}`}
+                    style={{ justifyContent: 'flex-start' }}
+                    onClick={() => setStepIdx(i)}
+                  >
+                    <span style={{ display: 'inline-block', width: 18 }}>{i + 1}</span> {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Main content per step */}
+            <div className="tpq-stack" style={{ flex: 1 }}>
+              {/* Step title/sub */}
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{`${stepIdx + 1}) `}{[
+                  'Upcoming Assessment Notice',
+                  'Review Details & Mastery',
+                  'Assessment Type & Materials',
+                  'Delivery Details',
+                  'Summary & Approval',
+                  'Send to Student & RDS',
+                  'Completion & Evaluation',
+                  'Finalize & Feedback',
+                ][stepIdx]}</div>
+                <div className="tpq-muted" style={{ marginBottom: 8 }}>{[
+                  'Teacher sees alert and key facts.',
+                  'Standards, % mastery, due date.',
+                  'Select type, attach files, or request AI help.',
+                  'Time, duration, online/in-person, requirements.',
+                  'Review + confirm or edit.',
+                  'Submit plan to backend and notify.',
+                  'Teacher receives artifacts for grading.',
+                  'Assign grade, update standards, notify student.',
+                ][stepIdx]}</div>
+              </div>
+
+              {/* Step body */}
+              {stepIdx === 0 && (
+                <div className="tpq-card">
+                  <div className="tpq-inline" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 700 }}>Student: <span className="tpq-chip">Billy Johnson</span></div>
+                      <div className="tpq-muted">Unit: Water Conservation · Due: 2025-11-05</div>
+                    </div>
+                    <span className="tpq-status-pill is-pending">Upcoming</span>
+                  </div>
+                </div>
+              )}
+
+              {stepIdx === 1 && (
+                <div className="tpq-grid-2">
+                  <div className="tpq-card">
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>Academic Standards</div>
+                    <ul className="tpq-muted" style={{ marginLeft: 16 }}>
+                      <li>HS.E1U1.13 — Analyze environmental data (mastery 20%)</li>
+                      <li>HS.E2U1.15 — Evaluate solutions for water issues (mastery 10%)</li>
+                    </ul>
+                  </div>
+                  <div className="tpq-card">
+                    <div className="tpq-field">
+                      <label>Due Date</label>
+                      <input type="datetime-local" defaultValue="2025-11-05T10:00" />
+                    </div>
+                    <div className="tpq-field">
+                      <label>Notes</label>
+                      <textarea rows={3} placeholder="Any special considerations" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {stepIdx === 2 && (
+                <div className="tpq-grid-2">
+                  <div className="tpq-card">
+                    <div className="tpq-field">
+                      <label>Assessment Type</label>
+                      <select>
+                        <option>Performance Task</option>
+                        <option>Oral Defense</option>
+                        <option>Project Artifact Review</option>
+                        <option>Written Exam</option>
+                      </select>
+                    </div>
+                    <div className="tpq-field">
+                      <label>Context / Objectives</label>
+                      <textarea rows={4} placeholder="Describe the assessment goal and constraints" />
+                    </div>
+                    <div className="tpq-inline" style={{ gap: 8 }}>
+                      <button className="tpq-btn">Attach Files</button>
+                      <button className="tpq-btn" onClick={() => setAiText('AI draft prepared: 3-step performance task, rubric (4 criteria), and sample answer key.')}>Ask AI to Draft Materials</button>
+                    </div>
+                  </div>
+                  <div className="tpq-card">
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>AI Suggestions</div>
+                    <div className="tpq-muted">{aiText || 'No draft requested yet.'}</div>
+                  </div>
+                </div>
+              )}
+
+              {stepIdx === 3 && (
+                <div className="tpq-grid-2">
+                  <div className="tpq-card">
+                    <div className="tpq-field">
+                      <label>Delivery Mode</label>
+                      <select>
+                        <option>In-person</option>
+                        <option>Online (proctored)</option>
+                        <option>Online (asynchronous)</option>
+                      </select>
+                    </div>
+                    <div className="tpq-field">
+                      <label>Start</label>
+                      <input type="datetime-local" />
+                    </div>
+                    <div className="tpq-field">
+                      <label>Duration (minutes)</label>
+                      <input type="text" placeholder="e.g., 45" />
+                    </div>
+                  </div>
+                  <div className="tpq-card">
+                    <div className="tpq-field">
+                      <label>Requirements</label>
+                      <textarea rows={3} placeholder="Devices, materials, accommodations, proctoring, group/individual, etc." />
+                    </div>
+                    <div className="tpq-field">
+                      <label>Special Conditions</label>
+                      <textarea rows={3} placeholder="Make‑up policy, late submissions, etc." />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {stepIdx === 4 && (
+                <div className="tpq-card">
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Plan Summary</div>
+                  <ul className="tpq-muted" style={{ marginLeft: 18 }}>
+                    <li><b>Type:</b> Performance Task</li>
+                    <li><b>Standards:</b> HS.E1U1.13, HS.E2U1.15</li>
+                    <li><b>When:</b> Nov 5, 10:00–10:45</li>
+                    <li><b>Mode:</b> In‑person</li>
+                    <li><b>Materials:</b> Prompt + rubric (attached)</li>
+                  </ul>
+                </div>
+              )}
+
+              {stepIdx === 5 && (
+                <div className="tpq-card">
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Sending to Student…</div>
+                  <div className="tpq-muted">Plan will be persisted to RDS, and the student notified via in‑app + email.</div>
+                  <div style={{ marginTop: 8 }}>Status: <span className="tpq-status-pill is-pending">Queued</span></div>
+                </div>
+              )}
+
+              {stepIdx === 6 && (
+                <div className="tpq-card">
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Assessment Completed</div>
+                  <div className="tpq-muted">Artifacts available: report.pdf, presentation.pptx, observation-notes.md</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 10 }}>
+                    {/* Sample image thumbnails; replace src with real artifact thumbnails when available */}
+                    <img src="https://via.placeholder.com/200x120.png?text=Artifact+1" alt="Artifact 1" style={{ width: '100%', borderRadius: 8, cursor: 'pointer', border: '1px solid #e5e7eb' }} onClick={() => openImage('https://via.placeholder.com/1200x800.png?text=Artifact+1','Artifact 1')} />
+                    <img src="https://via.placeholder.com/200x120.png?text=Artifact+2" alt="Artifact 2" style={{ width: '100%', borderRadius: 8, cursor: 'pointer', border: '1px solid #e5e7eb' }} onClick={() => openImage('https://via.placeholder.com/1200x800.png?text=Artifact+2','Artifact 2')} />
+                    <img src="https://via.placeholder.com/200x120.png?text=Artifact+3" alt="Artifact 3" style={{ width: '100%', borderRadius: 8, cursor: 'pointer', border: '1px solid #e5e7eb' }} onClick={() => openImage('https://via.placeholder.com/1200x800.png?text=Artifact+3','Artifact 3')} />
+                  </div>
+                  <div className="tpq-inline" style={{ marginTop: 10, gap: 8 }}>
+                    <button className="tpq-btn">Open Rubric</button>
+                  </div>
+                </div>
+              )}
+
+              {stepIdx === 7 && (
+                <div className="tpq-grid-2">
+                  <div className="tpq-card">
+                    <div className="tpq-field">
+                      <label>Final Grade</label>
+                      <select>
+                        <option>A</option><option>B</option><option>C</option><option>D</option><option>Incomplete</option>
+                      </select>
+                    </div>
+                    <div className="tpq-field">
+                      <label>Evidence → Standards Mapping</label>
+                      <textarea rows={4} placeholder="Describe how evidence meets each standard" />
+                    </div>
+                  </div>
+                  <div className="tpq-card">
+                    <div className="tpq-field">
+                      <label>Feedback to Student</label>
+                      <textarea rows={4} placeholder="Strengths, next steps, and mastery guidance" />
+                    </div>
+                    <div className="tpq-inline" style={{ gap: 8 }}>
+                      <button className="tpq-btn tpq-btn--approve">Publish Feedback</button>
+                      <button className="tpq-btn tpq-btn--reject">Request Revision</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="tpq-inline" style={{ justifyContent: 'space-between' }}>
+                <div className="tpq-inline" style={{ gap: 8 }}>
+                  <button className="tpq-btn" onClick={() => setStepIdx(Math.max(0, stepIdx - 1))}>Back</button>
+                  <button className="tpq-btn">Save Draft</button>
+                </div>
+                <div className="tpq-inline" style={{ gap: 8 }}>
+                  {stepIdx < 4 && (
+                    <button className="tpq-btn tpq-btn--primary" onClick={() => setStepIdx(Math.min(7, stepIdx + 1))}>Next</button>
+                  )}
+                  {stepIdx === 4 && (
+                    <button className="tpq-btn tpq-btn--approve" onClick={() => setStepIdx(5)}>Approve & Send</button>
+                  )}
+                </div>
+              </div>
+
+              {/* Workflow table toggle */}
+              <div
+                className="tpq-muted"
+                style={{ cursor: 'pointer', fontSize: 12, marginTop: 8 }}
+                onClick={() => setShowWorkflow(v => !v)}
+              >
+                {showWorkflow ? '▼ Hide step-by-step workflow table' : '▶ Show step-by-step workflow table'}
+              </div>
+
+              {showWorkflow && (
+                <div className="tpq-card" style={{ padding: 0 }}>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #e5e7eb', background: '#fafafa' }}>#</th>
+                          <th style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #e5e7eb', background: '#fafafa' }}>Step</th>
+                          <th style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #e5e7eb', background: '#fafafa' }}>Owner</th>
+                          <th style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #e5e7eb', background: '#fafafa' }}>Key Fields/UI</th>
+                          <th style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #e5e7eb', background: '#fafafa' }}>Backend Action</th>
+                          <th style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #e5e7eb', background: '#fafafa' }}>Outputs/Events</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>1</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Notification of upcoming gate</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>System → Teacher</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Banner + card (Student, Unit, Standards, Due date)</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Fetch gate data from RDS via API (/gate/upcoming)</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Teacher alerted and dialog launched</td>
+                        </tr>
+                        <tr>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>2</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Review details & mastery</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Teacher</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Read-only card showing academic standards, % mastery, and due date</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>None (view-only)</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Teacher reviews and proceeds</td>
+                        </tr>
+                        <tr>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>3</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Define Assessment Type & Materials</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Teacher</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Dropdown for type, textarea for context, file upload, “Ask AI” button</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Optional API call to /ai/generate for materials and rubrics</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Draft assessment plan saved</td>
+                        </tr>
+                        <tr>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>4</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Specify Delivery Details</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Teacher</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Date/time picker, mode, duration, requirements textarea</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Validate calendar conflicts, save to draft table</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Draft updated</td>
+                        </tr>
+                        <tr>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>5</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Review & Approve Assessment Plan</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Teacher</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Auto-generated summary view with editable fields</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>POST /gate/plan/finalize</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Plan locked and ready to send</td>
+                        </tr>
+                        <tr>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>6</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Send to Student & Update Backend</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>System</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Progress status display</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Write finalized plan to RDS; trigger notification service</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Student receives assignment notification</td>
+                        </tr>
+                        <tr>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>7</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Assessment Completion Notice</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>System → Teacher</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Notification card with artifact links and rubric</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Pull assessment artifacts (S3) and attach rubric reference</td>
+                          <td style={{ padding: 10, borderBottom: '1px solid #e5e7eb' }}>Teacher opens evaluation screen</td>
+                        </tr>
+                        <tr>
+                          <td style={{ padding: 10 }}>8</td>
+                          <td style={{ padding: 10 }}>Grade & Feedback Submission</td>
+                          <td style={{ padding: 10 }}>Teacher</td>
+                          <td style={{ padding: 10 }}>Grade dropdown, evidence-to-standards textarea, feedback field</td>
+                          <td style={{ padding: 10 }}>POST /gate/grade → update RDS + standards mastery</td>
+                          <td style={{ padding: 10 }}>Student notified with final feedback and mastery update</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image dialog (lightbox) */}
+      {imageViewer.open && (
+        <div
+          className="tpq-modal-overlay"
+          onClick={closeImage}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+          }}
+        >
+          <div
+            className="tpq-modal tpq-modal--image"
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#fff', padding: 8, borderRadius: 12, maxWidth: '90vw', maxHeight: '90vh', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}
+          >
+            <div className="tpq-inline" style={{ justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px' }}>
+              <div style={{ fontWeight: 700 }}>{imageViewer.alt}</div>
+              <button className="tpq-btn" onClick={closeImage} aria-label="Close image">×</button>
+            </div>
+            <div style={{ overflow: 'auto' }}>
+              <img src={imageViewer.src} alt={imageViewer.alt} style={{ display: 'block', maxWidth: '88vw', maxHeight: '80vh', borderRadius: 8 }} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Section Switcher */}
       <div className="tpq-section-switch">

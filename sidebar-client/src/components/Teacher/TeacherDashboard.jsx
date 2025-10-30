@@ -201,6 +201,11 @@ export default function TeacherDashboard() {
     google.script.run.openTeacherProjectQueue();
   };
 
+  // Function to open Gate Assessment dialog
+  const openGateAssessmentDialog = () => {
+    google.script.run.openTeacherGateAssessment();
+  };
+
   return (
     <div className="td-wrapper">
       <div className="td-header-section">
@@ -381,8 +386,8 @@ export default function TeacherDashboard() {
       <div style={{ display: "flex", justifyContent: "center", marginTop: 32 }}>
         <button
           className="td-queue-btn"
-          onClick={openProjectQueueDialog}
-          title="Open detailed project queue"
+          onClick={openGateAssessmentDialog}
+          title="Open Gate Assessment planner"
         >
           <ClipboardList size={16} />
           Gate Standards

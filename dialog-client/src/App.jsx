@@ -3,11 +3,13 @@ import "./App.css";
 import LearningStandardsDialog from "./components/Shared/LearningStandards/LearningStandardsDialog";
 import CreateProject from "./components/Student/CreateProject/CreateProject";
 import TeacherProjectQueue from "./components/Teacher/TeacherProjectQueue";
+import GateStandards from "./components/Teacher/GateStandards";
 
 const DIALOGS = {
   "student-standards": LearningStandardsDialog,
   "create-project": CreateProject,
   "teacher-project-queue": TeacherProjectQueue,
+  "teacher-gate-assessment": GateStandards,
   "add-standard": LearningStandardsDialog,
 };
 function App() {
