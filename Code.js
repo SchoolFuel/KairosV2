@@ -80,7 +80,7 @@ function validateUser() {
   }
 
   //  Cache is missing or expired → fetch fresh data
-  const user_email = "teacher1@gmail.com"; //currentUser();
+  const user_email = currentUser();
   const identity_url = 'https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/dev/identity-fetch';
   const payload = {
     email_id: user_email,
