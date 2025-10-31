@@ -6,11 +6,27 @@ import {
   ChevronRight,
   Download,
 } from "lucide-react";
-import "../styles/Workshop.css";
-import standardsData from "../data/learning-standards.json";
+import "../../../styles/Workshop.css";
+import standardsData from "../../../data/learning-standards.json";
 import Select from "react-select";
 
 const STEPS = ["Topic", "Standards", "Group", "Artifacts", "Review", "Results"];
+
+const INITIAL_DATA = {
+  topic: "",
+  duration: 20,
+  standards: "",
+  standard: "",
+  grade: "",
+  subject: "",
+  keywords: "",
+  students: "",
+  demographics: [],
+  personas: [],
+  notes: "",
+  artifacts: [],
+  resources: [],
+};
 
 export default function SidebarWorkshop() {
 
@@ -24,21 +40,7 @@ export default function SidebarWorkshop() {
 
   const [processed, setProcessed] = useState(null);
 
-  const [data, setData] = useState({
-    topic: "",
-    duration: 20,
-    standards: "",
-    standard: "",
-    grade: "",
-    subject: "",
-    keywords: "",
-    students: "",
-    demographics: [],
-    personas: [],
-    notes: "",
-    artifacts: [],
-    resources: [], 
-  });
+  const [data, setData] = useState(INITIAL_DATA);
 
  const formatWorkshopForCopy = useCallback((processed, data) => {
     if (!processed?.body?.action_response) return "";
@@ -72,6 +74,14 @@ export default function SidebarWorkshop() {
       set.has(value) ? set.delete(value) : set.add(value);
       return { ...d, [k]: Array.from(set) };
     });
+
+  const handleStartOver = () => {
+    setData(INITIAL_DATA);
+    setStep(0);
+    setProcessed(null);
+    setProcStatus("idle");
+    setCopySuccess("");
+  };
 
   // Header status helpers (mirrors Advice styling)
   const getWSStatusClass = () => {
@@ -291,7 +301,7 @@ async function processWorkshop() {
     });
 
   return (
-    <div className="workshop-wrapper">
+    <div className="w-full font-sans">
       <div className={`workshop-card status-${procStatus}`}>
         <div onClick={toggleExpanded} className="workshop-toggle">
           <div className="workshop-header">
@@ -300,9 +310,9 @@ async function processWorkshop() {
                 <ClipboardList className={`icon ${getWSStatusClass()}`} />
                 <div className={`status-dot ${getWSStatusDot()}`} />
               </div>
-              <div className="workshop-container">
-                <div className="title">Workshop Designer</div>
-                <div className="subtitle" style={{ color: getWSSubtitleColor() }}>
+              <div>
+                <div className="font-medium text-gray-900 text-base">Workshop Designer</div>
+                <div className="text-sm text-gray-500" style={{ color: getWSSubtitleColor() }}>
                   {getWSSubtitle()}
                 </div>
               </div>
@@ -509,9 +519,9 @@ async function processWorkshop() {
                 {/* Step 5: Review */}
                 {step === 4 && (
                   <Section>
-                    <h4 className="title" style={{ marginBottom: 8 }}>
+                    <h3 className="font-medium text-gray-800 text-lg" style={{ marginBottom: 8 }}>
                       Preview
-                    </h4>
+                    </h3>
                     <div className="markdown">
                       <h5>🧩 Topic & Duration</h5>
                       <p>{data.topic || "—"}</p>
@@ -582,7 +592,7 @@ async function processWorkshop() {
                 {/* Step 6: Results */}
                 {step === 5 && (
                   <Section>
-                    <h4 className="title" style={{ marginBottom: 8 }}>
+                    <h4 className="font-medium text-gray-800 text-lg" style={{ marginBottom: 8 }}>
                       Processed Results
                     </h4>
 
@@ -638,10 +648,15 @@ async function processWorkshop() {
                         </div>
 
                         {/* Buttons */}
-                        <div className="btn-group" style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+                        <div className="btn-group" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", marginTop: 16}}>
                           <button className="submit-btn process-btn" onClick={insertResultsIntoDoc}>
                             Copy to clipboard
                           </button>
+
+                          <button className="nav-btn" onClick={handleStartOver}>
+                            Start Over
+                          </button>
+
                         </div>
                         {copySuccess && (
                           <div style={{ marginTop: 10, color: "green", fontSize: "0.9rem" }}>
