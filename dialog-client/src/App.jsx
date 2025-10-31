@@ -18,11 +18,15 @@ function App() {
   useEffect(() => {
     // Get dialog type from URL hash
     const hash = window.location.hash.slice(1); // Remove the '#'
+    const hash = window.location.hash.slice(1); // Remove the '#'
     if (hash && DIALOGS[hash]) {
+      setDialogType(hash);
       setDialogType(hash);
     }
   }, []);
+  }, []);
 
+  const DialogComponent = DIALOGS[dialogType];
   const DialogComponent = DIALOGS[dialogType];
 
   if (!DialogComponent) {
@@ -31,8 +35,15 @@ function App() {
         Error: Dialog type "{dialogType}" not found
       </div>
     );
+    return (
+      <div style={{ padding: "20px", color: "red" }}>
+        Error: Dialog type "{dialogType}" not found
+      </div>
+    );
   }
+  return <DialogComponent />;
   return <DialogComponent />;
 }
 
+export default App;
 export default App;
