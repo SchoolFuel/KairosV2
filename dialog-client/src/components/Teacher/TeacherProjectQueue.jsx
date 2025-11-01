@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Loader2, CheckCircle, XCircle, Clock, User, BookOpen } from "lucide-react";
 import Badge from "../Shared/LearningStandards/Badge";
 import Checkbox from "../Shared/LearningStandards/Checkbox";
+import ReviewStageTab from "./ReviewStageTab";
+import ReviewTaskCard from "./ReviewTaskCard";
+import ReviewAssessmentGate from "./ReviewAssessmentGate";
 import "./TeacherProjectQueue.css";
 
 const parseMaybeJSON = (v) => {
@@ -175,7 +178,7 @@ export default function TeacherProjectQueue() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("all"); // all, pending, approved, rejected
+  const [filter, setFilter] = useState("all"); // all, pending
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -199,17 +202,17 @@ export default function TeacherProjectQueue() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState("");
   const [selectedStageId, setSelectedStageId] = useState(null);
+  const [currentStageIndex, setCurrentStageIndex] = useState(0);
+  const [stageStatuses, setStageStatuses] = useState({}); // Track individual stage approval/rejection
   const [overallComment, setOverallComment] = useState("");
   
   // Advanced features state
-  const [activeTab, setActiveTab] = useState('inbox'); // inbox, rubrics, calendar, comments, analytics
+  const [activeTab, setActiveTab] = useState('inbox'); // inbox, rubrics, calendar, analytics
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [projectComments, setProjectComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
   const [rubrics, setRubrics] = useState([]);
   const [rubricVals, setRubricVals] = useState({ align: 0, evidence: 0, clarity: 0, complete: 0 });
-  const [compose, setCompose] = useState("");
+  const [partialMarks, setPartialMarks] = useState({ align: '', evidence: '', clarity: '', complete: '' });
   const [analytics, setAnalytics] = useState({
     totalProjects: 0,
     approvedProjects: 0,
@@ -253,29 +256,6 @@ export default function TeacherProjectQueue() {
       }));
     }
   }, [projects]);
-
-  // Load mock comments for selected project
-  useEffect(() => {
-    if (selectedProject) {
-      const mockComments = [
-        {
-          id: 1,
-          author: "Teacher",
-          comment: "Great work on the research phase!",
-          timestamp: "2024-01-15T10:30:00Z",
-          type: "feedback"
-        },
-        {
-          id: 2,
-          author: "Student",
-          comment: "Thank you! I'll work on the design phase next.",
-          timestamp: "2024-01-15T11:00:00Z",
-          type: "response"
-        }
-      ];
-      setProjectComments(mockComments);
-    }
-  }, [selectedProject]);
 
   // Load mock rubrics
   useEffect(() => {
@@ -325,9 +305,26 @@ export default function TeacherProjectQueue() {
               stage_order: 1,
               title: "Research Phase",
               status: "Completed",
+              tasks: [
+                {
+                  title: "Research planetary data",
+                  description: "Gather accurate information about each planet including size, distance from sun, and orbital period.",
+                  academic_standard: "HS.E1U1.13 — Analyze environmental data",
+                  resource_id: {
+                    label: "NASA Solar System Data",
+                    url: "https://nasa.gov"
+                  }
+                },
+                {
+                  title: "Create reference materials",
+                  description: "Compile notes and create a reference guide for the project.",
+                  academic_standard: "HS.E1U1.13 — Analyze environmental data"
+                }
+              ],
               gate: {
                 gate_id: "gate1",
                 title: "Research Gate",
+                description: "Complete research phase before moving to design",
                 checklist: ["Research completed", "Sources verified", "Notes organized"]
               }
             },
@@ -336,9 +333,22 @@ export default function TeacherProjectQueue() {
               stage_order: 2,
               title: "Design Phase",
               status: "In Progress",
+              tasks: [
+                {
+                  title: "Sketch model layout",
+                  description: "Design the physical structure and layout of the solar system model.",
+                  academic_standard: "HS.E2U1.15 — Evaluate solutions"
+                },
+                {
+                  title: "Select materials",
+                  description: "Choose appropriate materials for representing each planet accurately.",
+                  academic_standard: "HS.E2U1.15 — Evaluate solutions"
+                }
+              ],
               gate: {
                 gate_id: "gate2",
                 title: "Design Gate", 
+                description: "Complete design phase before construction",
                 checklist: ["Design sketches", "Materials list", "Timeline created"]
               }
             }
@@ -361,9 +371,22 @@ export default function TeacherProjectQueue() {
               stage_order: 1,
               title: "Historical Research",
               status: "Completed",
+              tasks: [
+                {
+                  title: "Research key events",
+                  description: "Identify and document major events in Ancient Roman history.",
+                  academic_standard: "HS.H1U1.8 — Analyze historical events"
+                },
+                {
+                  title: "Organize timeline structure",
+                  description: "Plan the chronological organization of events.",
+                  academic_standard: "HS.H1U1.8 — Analyze historical events"
+                }
+              ],
               gate: {
                 gate_id: "gate3",
                 title: "Research Gate",
+                description: "Complete historical research before creating timeline",
                 checklist: ["Primary sources found", "Timeline structure planned"]
               }
             }
@@ -386,9 +409,27 @@ export default function TeacherProjectQueue() {
               stage_order: 1,
               title: "Problem Creation",
               status: "Completed",
+              tasks: [
+                {
+                  title: "Write algebra problems",
+                  description: "Create 5 word problems covering linear equations and inequalities.",
+                  academic_standard: "HS.M1U1.12 — Solve algebraic equations"
+                },
+                {
+                  title: "Write geometry problems",
+                  description: "Create 5 word problems covering area, perimeter, and volume.",
+                  academic_standard: "HS.M2U1.15 — Apply geometric formulas"
+                },
+                {
+                  title: "Create answer key",
+                  description: "Provide detailed solutions for all problems.",
+                  academic_standard: "HS.M1U1.12 — Solve algebraic equations"
+                }
+              ],
               gate: {
                 gate_id: "gate4",
                 title: "Problem Gate",
+                description: "Complete problem set before submission",
                 checklist: ["Problems written", "Solutions provided", "Difficulty levels set"]
               }
             }
@@ -424,6 +465,11 @@ export default function TeacherProjectQueue() {
   const handleReview = (project) => {
     setSelectedProject(project);
     setShowDetails(true);
+    setCurrentStageIndex(0);
+    setStageStatuses({}); // Reset stage statuses for new project
+    setRubricVals({ align: 0, evidence: 0, clarity: 0, complete: 0 }); // Reset rubric
+    setPartialMarks({ align: '', evidence: '', clarity: '', complete: '' }); // Reset partial marks
+    setOverallComment(""); // Reset comments
     
     // Use the project data directly from the mock data (which includes stages)
     setProjectDetails(project);
@@ -535,7 +581,6 @@ export default function TeacherProjectQueue() {
     { key: "inbox", label: "Inbox", sub: "Under Review" },
     { key: "rubrics", label: "Rubrics & Gates", sub: "Step-by-step" },
     { key: "calendar", label: "Calendar", sub: "Scheduling" },
-    { key: "comments", label: "Comments", sub: "Canned + notes" },
     { key: "analytics", label: "Analytics", sub: "SLA & trends" },
   ];
 
@@ -942,18 +987,6 @@ export default function TeacherProjectQueue() {
               >
                 Pending ({projects.filter(p => p.status.toLowerCase().includes("pending")).length})
               </button>
-              <button 
-                className={`tpq-filter-btn ${filter === "approved" ? "active" : ""}`}
-                onClick={() => setFilter("approved")}
-              >
-                Approved ({projects.filter(p => p.status.toLowerCase().includes("approve")).length})
-              </button>
-              <button 
-                className={`tpq-filter-btn ${filter === "rejected" ? "active" : ""}`}
-                onClick={() => setFilter("rejected")}
-              >
-                Revision ({projects.filter(p => p.status.toLowerCase().includes("revision")).length})
-              </button>
             </div>
 
             <div className="tpq-search">
@@ -1152,48 +1185,6 @@ export default function TeacherProjectQueue() {
         </div>
       )}
 
-      {/* COMMENTS TAB */}
-      {activeTab === "comments" && (
-        <div className="tpq-panel">
-          <div className="tpq-panel-head">
-            <h3>Canned Comments</h3>
-            <span className="tpq-chip">Merge fields</span>
-          </div>
-          
-          <div className="tpq-stack">
-            <div className="tpq-card">
-              <div style={{ fontWeight: 700 }}>Templates</div>
-              <div className="tpq-stack" style={{ marginTop: 6 }}>
-                <button className="tpq-btn" onClick={() => setCompose("Great work – proceed to the next step. ✅")}>
-                  Great
-                </button>
-                <button className="tpq-btn" onClick={() => setCompose("Please revise: clarify sources and attach citations.")}>
-                  Revise
-                </button>
-                <button className="tpq-btn" onClick={() => setCompose("Please propose 2 time slots for your gate review.")}>
-                  Schedule
-                </button>
-              </div>
-            </div>
-            <div className="tpq-card">
-              <div style={{ fontWeight: 700 }}>Compose</div>
-              <div className="tpq-stack" style={{ marginTop: 6 }}>
-                <textarea 
-                  rows={4} 
-                  placeholder="Type feedback…" 
-                  value={compose} 
-                  onChange={(e) => setCompose(e.target.value)} 
-                />
-                <div className="tpq-inline" style={{ justifyContent: "flex-end", gap: 8 }}>
-                  <button className="tpq-btn">Preview</button>
-                  <button className="tpq-btn tpq-btn--primary">Send to Student</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ANALYTICS TAB */}
       {activeTab === "analytics" && (
         <div className="tpq-panel">
@@ -1254,7 +1245,12 @@ export default function TeacherProjectQueue() {
 
       {/* Enhanced Project Details Modal */}
       {showDetails && selectedProject && (
-        <div className="tpq-modal-overlay" onClick={handleCloseDetails}>
+        <div className="tpq-modal-overlay" onClick={(e) => {
+          // Only close if clicking the overlay background, not modal content
+          if (e.target === e.currentTarget) {
+            handleCloseDetails();
+          }
+        }}>
           <div className="tpq-modal tpq-modal--large" onClick={(e) => e.stopPropagation()}>
             <div className="tpq-modal-header">
               <h2>{selectedProject.title}</h2>
@@ -1295,101 +1291,277 @@ export default function TeacherProjectQueue() {
                 <p>{selectedProject.description}</p>
               </div>
 
-              {/* Stages Section */}
-              {projectDetails && projectDetails.stages && projectDetails.stages.length > 0 && (
-                <div className="tpq-modal-section">
-                  <h4>Project Stages</h4>
-                  <div className="tpq-stages-container">
-                    {projectDetails.stages
-                      .slice()
-                      .sort((a, b) => (a?.stage_order || 0) - (b?.stage_order || 0))
-                      .map((stage) => (
-                        <div 
-                          key={stage.stage_id}
-                          className={`tpq-stage-card ${selectedStageId === stage.stage_id ? 'active' : ''}`}
-                          onClick={() => setSelectedStageId(stage.stage_id)}
-                        >
-                          <div className="tpq-stage-header">
-                            <h5>Stage {stage.stage_order}: {stage.title}</h5>
-                            <span className={`tpq-status-pill ${pillClass(stage.status)}`}>
-                              {stage.status}
-                            </span>
+              {/* Stages Section - Replicated from CreateProject */}
+              <div className="tpq-modal-section">
+                <h4>Project Stages</h4>
+                {projectDetails && projectDetails.stages && projectDetails.stages.length > 0 ? (
+                  <>
+                  
+                  {/* Stage Tabs Navigation */}
+                  <div className="border-b border-gray-200 bg-gray-50">
+                    <div className="flex gap-1">
+                      {projectDetails.stages
+                        .slice()
+                        .sort((a, b) => (a?.stage_order || 0) - (b?.stage_order || 0))
+                        .map((stage, index) => (
+                          <ReviewStageTab
+                            key={stage.stage_id}
+                            index={index}
+                            isActive={currentStageIndex === index}
+                            onClick={() => setCurrentStageIndex(index)}
+                            stage={stage}
+                          />
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Stage Content */}
+                  <div className="mt-4 max-h-[50vh] overflow-y-auto">
+                    {(() => {
+                      const sortedStages = projectDetails.stages
+                        .slice()
+                        .sort((a, b) => (a?.stage_order || 0) - (b?.stage_order || 0));
+                      const currentStage = sortedStages[currentStageIndex];
+                      
+                      if (!currentStage) return null;
+                      
+                      return (
+                        <div className="space-y-6">
+                          {/* Stage Title */}
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-2">
+                              STAGE TITLE
+                            </label>
+                            <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-semibold text-lg text-gray-900">
+                              {currentStage.title || 'Untitled Stage'}
+                            </div>
                           </div>
-                          
-                          {stage.gate && (
-                            <div className="tpq-gate-info">
-                              <div className="tpq-gate-title">
-                                <strong>Gate:</strong> {stage.gate.title}
+
+                          {/* Tasks */}
+                          {currentStage.tasks && currentStage.tasks.length > 0 && (
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-900 mb-4">Tasks</h3>
+                              <div className="space-y-4">
+                                {currentStage.tasks.map((task, taskIndex) => (
+                                  <ReviewTaskCard
+                                    key={taskIndex}
+                                    task={task}
+                                    taskIndex={taskIndex}
+                                  />
+                                ))}
                               </div>
-                              {stage.gate.checklist && stage.gate.checklist.length > 0 && (
-                                <div className="tpq-checklist">
-                                  <strong>Checklist:</strong>
-                                  <ul>
-                                    {stage.gate.checklist.map((item, index) => (
-                                      <li key={index}>{item}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
                             </div>
                           )}
+
+                          {/* Assessment Gate */}
+                          {currentStage.gate && (
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-900 mb-4">Assessment Gate</h3>
+                              <ReviewAssessmentGate gate={currentStage.gate} />
+                            </div>
+                          )}
+
+                          {/* Stage Actions */}
+                          <div className="flex gap-3 pt-4 border-t border-gray-200">
+                            <button
+                              onClick={() => {
+                                const stageId = currentStage.stage_id;
+                                setStageStatuses(prev => ({ ...prev, [stageId]: 'approved' }));
+                              }}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                                stageStatuses[currentStage.stage_id] === 'approved'
+                                  ? 'bg-green-600 text-white'
+                                  : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
+                              }`}
+                            >
+                              <CheckCircle size={16} />
+                              Approve Stage
+                            </button>
+                            <button
+                              onClick={() => {
+                                const stageId = currentStage.stage_id;
+                                setStageStatuses(prev => ({ ...prev, [stageId]: 'revision' }));
+                              }}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                                stageStatuses[currentStage.stage_id] === 'revision'
+                                  ? 'bg-yellow-600 text-white'
+                                  : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200'
+                              }`}
+                            >
+                              <XCircle size={16} />
+                              Request Revision
+                            </button>
+                            {stageStatuses[currentStage.stage_id] && (
+                              <span className="ml-auto px-3 py-2 text-sm font-medium text-gray-600">
+                                Status: <span className={`font-semibold ${
+                                  stageStatuses[currentStage.stage_id] === 'approved' ? 'text-green-600' : 'text-yellow-600'
+                                }`}>
+                                  {stageStatuses[currentStage.stage_id] === 'approved' ? 'Approved' : 'Revision Requested'}
+                                </span>
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      ))}
+                      );
+                    })()}
                   </div>
-                </div>
-              )}
+                  </>
+                ) : (
+                  <div className="tpq-empty-state" style={{ padding: '32px', textAlign: 'center', color: '#6b7280' }}>
+                    <BookOpen size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+                    <p>No stages available for this project.</p>
+                    <p style={{ fontSize: '14px', marginTop: '8px' }}>Stages will appear here once the project structure is defined.</p>
+                  </div>
+                )}
+              </div>
 
               {/* Rubric Section */}
               <div className="tpq-modal-section">
                 <h4>Rubric Assessment</h4>
                 <div className="tpq-rubric">
                   <div className="tpq-rubric-item">
-                    <div>Alignment to Standard</div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="4" 
-                      value={rubricVals.align}
-                      onChange={(e) => setRubricVals(prev => ({ ...prev, align: parseInt(e.target.value) }))}
-                      className="tpq-rubric-meter"
+                    <div className="tpq-rubric-label">Alignment to Standard</div>
+                    <div className="tpq-rubric-buttons">
+                      {[0, 1, 2, 3, 4].map((score) => (
+                        <button
+                          key={score}
+                          type="button"
+                          onClick={() => {
+                            setRubricVals(prev => ({ ...prev, align: score }));
+                            setPartialMarks(prev => ({ ...prev, align: '' }));
+                          }}
+                          className={`tpq-rubric-btn ${Math.floor(rubricVals.align) === score ? 'active' : ''}`}
+                        >
+                          {score}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      max="4"
+                      step="0.1"
+                      value={partialMarks.align}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPartialMarks(prev => ({ ...prev, align: val }));
+                        const numVal = parseFloat(val);
+                        if (!isNaN(numVal) && numVal >= 0 && numVal <= 4) {
+                          setRubricVals(prev => ({ ...prev, align: numVal }));
+                        }
+                      }}
+                      placeholder="0.0"
+                      className="tpq-rubric-input"
                     />
-                    <span className="tpq-rubric-score">{rubricVals.align}/4</span>
+                    <span className="tpq-rubric-score">{typeof rubricVals.align === 'number' ? rubricVals.align.toFixed(1) : rubricVals.align}/4</span>
                   </div>
                   <div className="tpq-rubric-item">
-                    <div>Evidence & Sources</div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="4" 
-                      value={rubricVals.evidence}
-                      onChange={(e) => setRubricVals(prev => ({ ...prev, evidence: parseInt(e.target.value) }))}
-                      className="tpq-rubric-meter"
+                    <div className="tpq-rubric-label">Evidence & Sources</div>
+                    <div className="tpq-rubric-buttons">
+                      {[0, 1, 2, 3, 4].map((score) => (
+                        <button
+                          key={score}
+                          type="button"
+                          onClick={() => {
+                            setRubricVals(prev => ({ ...prev, evidence: score }));
+                            setPartialMarks(prev => ({ ...prev, evidence: '' }));
+                          }}
+                          className={`tpq-rubric-btn ${Math.floor(rubricVals.evidence) === score ? 'active' : ''}`}
+                        >
+                          {score}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      max="4"
+                      step="0.1"
+                      value={partialMarks.evidence}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPartialMarks(prev => ({ ...prev, evidence: val }));
+                        const numVal = parseFloat(val);
+                        if (!isNaN(numVal) && numVal >= 0 && numVal <= 4) {
+                          setRubricVals(prev => ({ ...prev, evidence: numVal }));
+                        }
+                      }}
+                      placeholder="0.0"
+                      className="tpq-rubric-input"
                     />
-                    <span className="tpq-rubric-score">{rubricVals.evidence}/4</span>
+                    <span className="tpq-rubric-score">{typeof rubricVals.evidence === 'number' ? rubricVals.evidence.toFixed(1) : rubricVals.evidence}/4</span>
                   </div>
                   <div className="tpq-rubric-item">
-                    <div>Clarity & Organization</div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="4" 
-                      value={rubricVals.clarity}
-                      onChange={(e) => setRubricVals(prev => ({ ...prev, clarity: parseInt(e.target.value) }))}
-                      className="tpq-rubric-meter"
+                    <div className="tpq-rubric-label">Clarity & Organization</div>
+                    <div className="tpq-rubric-buttons">
+                      {[0, 1, 2, 3, 4].map((score) => (
+                        <button
+                          key={score}
+                          type="button"
+                          onClick={() => {
+                            setRubricVals(prev => ({ ...prev, clarity: score }));
+                            setPartialMarks(prev => ({ ...prev, clarity: '' }));
+                          }}
+                          className={`tpq-rubric-btn ${Math.floor(rubricVals.clarity) === score ? 'active' : ''}`}
+                        >
+                          {score}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      max="4"
+                      step="0.1"
+                      value={partialMarks.clarity}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPartialMarks(prev => ({ ...prev, clarity: val }));
+                        const numVal = parseFloat(val);
+                        if (!isNaN(numVal) && numVal >= 0 && numVal <= 4) {
+                          setRubricVals(prev => ({ ...prev, clarity: numVal }));
+                        }
+                      }}
+                      placeholder="0.0"
+                      className="tpq-rubric-input"
                     />
-                    <span className="tpq-rubric-score">{rubricVals.clarity}/4</span>
+                    <span className="tpq-rubric-score">{typeof rubricVals.clarity === 'number' ? rubricVals.clarity.toFixed(1) : rubricVals.clarity}/4</span>
                   </div>
                   <div className="tpq-rubric-item">
-                    <div>Completeness</div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="4" 
-                      value={rubricVals.complete}
-                      onChange={(e) => setRubricVals(prev => ({ ...prev, complete: parseInt(e.target.value) }))}
-                      className="tpq-rubric-meter"
+                    <div className="tpq-rubric-label">Completeness</div>
+                    <div className="tpq-rubric-buttons">
+                      {[0, 1, 2, 3, 4].map((score) => (
+                        <button
+                          key={score}
+                          type="button"
+                          onClick={() => {
+                            setRubricVals(prev => ({ ...prev, complete: score }));
+                            setPartialMarks(prev => ({ ...prev, complete: '' }));
+                          }}
+                          className={`tpq-rubric-btn ${Math.floor(rubricVals.complete) === score ? 'active' : ''}`}
+                        >
+                          {score}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      max="4"
+                      step="0.1"
+                      value={partialMarks.complete}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPartialMarks(prev => ({ ...prev, complete: val }));
+                        const numVal = parseFloat(val);
+                        if (!isNaN(numVal) && numVal >= 0 && numVal <= 4) {
+                          setRubricVals(prev => ({ ...prev, complete: numVal }));
+                        }
+                      }}
+                      placeholder="0.0"
+                      className="tpq-rubric-input"
                     />
-                    <span className="tpq-rubric-score">{rubricVals.complete}/4</span>
+                    <span className="tpq-rubric-score">{typeof rubricVals.complete === 'number' ? rubricVals.complete.toFixed(1) : rubricVals.complete}/4</span>
                   </div>
                 </div>
               </div>
@@ -1430,7 +1602,10 @@ export default function TeacherProjectQueue() {
               </button>
               <button 
                 className="tpq-btn tpq-btn--secondary"
-                onClick={handleCloseDetails}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloseDetails();
+                }}
               >
                 Close
               </button>

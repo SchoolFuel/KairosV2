@@ -390,7 +390,7 @@ export default function TeacherDashboard() {
           title="Open Gate Assessment planner"
         >
           <ClipboardList size={16} />
-          Gate Standards
+          Gate Assessment
         </button>
       </div>
     </div>
