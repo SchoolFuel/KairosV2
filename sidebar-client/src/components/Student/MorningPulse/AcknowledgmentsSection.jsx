@@ -16,6 +16,14 @@ export const AcknowledgmentsSection = ({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const baseClasses = "flex items-center justify-center px-4 py-2 font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 text-sm";
+  const submitClasses = `${baseClasses} bg-purple-600 text-white hover:bg-purple-700 disabled:bg-gray-300`;
+  const clearClasses = `${baseClasses} bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 disabled:bg-gray-50`;
+
+  const handleSubmit = () => {
+    console.log("Submit button clicked!");
+  };
+
   if (acknowledgments.length === 0) {
     return null;
   }
@@ -27,7 +35,7 @@ export const AcknowledgmentsSection = ({
         <h4 className={`font-semibold ${titleColor}`}>Acknowledgments</h4>
       </div>
 
-      <div className="space-y-2 pb-8">
+      <div className="space-y-2 pb-3">
         {acknowledgments.map((ack, index) => (
           <div key={index} className="flex items-center space-x-2 p-2 bg-white bg-opacity-50 rounded-lg">
             <span className="text-lg">{ack.emoji}</span>
@@ -44,15 +52,24 @@ export const AcknowledgmentsSection = ({
         ))}
       </div>
 
-      {/* Clear button positioned at bottom right */}
-      <button
-        onClick={onClear}
-        className="absolute bottom-2 right-2 flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors duration-200"
-        title="Clear all acknowledgments"
-      >
-        <X className="w-3 h-3" />
-        <span>Clear</span>
-      </button>
+      <div className="flex space-x-2">
+        <button
+          onClick={handleSubmit}
+          className={submitClasses}
+          title="Submit all selected reactions"
+        >
+          <span>Submit</span>
+        </button>
+
+        <button
+          onClick={onClear}
+          className={clearClasses}
+          title="Clear all reactions"
+        >
+          <span>Clear</span>
+        </button>
+      </div>
+
     </div>
   );
 };
