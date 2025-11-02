@@ -191,7 +191,7 @@ export default function GateStandards({ onCancel }) {
         .ga-bubble{width:22px;height:22px;border-radius:999px;display:grid;place-items:center;background:#fff;border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--ink)}
         .ga-step.active .ga-bubble{background:var(--accent);color:#fff;border-color:var(--accent)}
         .ga-step-sub{font-size:11px;color:var(--muted);line-height:1.3}
-        .ga-main{padding:16px;overflow:auto}
+        .ga-main{padding:16px;overflow:auto;display:flex;flex-direction:column}
         .ga-h2{font-size:18px;margin:0 0 6px;font-weight:600;color:var(--ink)}
         .ga-sub{font-size:12px;color:var(--muted);margin-bottom:12px}
         .ga-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -204,7 +204,7 @@ export default function GateStandards({ onCancel }) {
         .ga-card-head-left{font-weight:600;font-size:13px;color:var(--ink);line-height:1.3}
         .ga-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:#eef2ff;border:1px solid #e0e7ff;color:#374151}
         .ga-mini-badge{display:inline-block;font-size:10px;padding:2px 6px;border-radius:999px;background:#f3f4f6;border:1px solid #e5e7eb;color:#4b5563;line-height:1.2}
-        .ga-actions{display:flex;justify-content:space-between;gap:8px;position:sticky;bottom:0;background:#fff;border-top:1px solid var(--border);padding:12px;margin-top:10px;z-index:20}
+        .ga-actions{display:flex;justify-content:space-between;gap:8px;position:sticky;bottom:0;background:#fff;border-top:1px solid var(--border);padding:10px 16px;margin-top:auto;z-index:20}
         .ga-btn{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;line-height:1.2}
         .ga-ghost{background:#fff;border:1px solid var(--border)}
         .ga-primary{background:var(--accent);color:#fff}
@@ -414,9 +414,9 @@ export default function GateStandards({ onCancel }) {
 
             {/* STEP 3: Assessment Details, Materials and Delivery */}
             {stepIdx === 2 && (
-              <div>
+              <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
                 {/* Assessment Tabs Navigation */}
-                <div style={{ borderBottom: "1px solid var(--border)", background: "#f9fafb", padding: "0 16px" }}>
+                <div style={{ borderBottom: "1px solid var(--border)", background: "#f9fafb", padding: "0 16px", flexShrink: 0 }}>
                   <div style={{ display: "flex", gap: "4px" }}>
                     <button
                       onClick={() => setAssessmentTabIndex(0)}
@@ -480,11 +480,11 @@ export default function GateStandards({ onCancel }) {
                 </div>
 
                 {/* Tab Content */}
-                <div style={{ padding: "20px", maxHeight: "calc(90vh - 350px)", overflowY: "auto" }} className="ga-scrollable">
+                <div style={{ padding: "16px", flex: "1 1 auto", overflowY: "auto", display: "flex", flexDirection: "column", minHeight: 0 }} className="ga-scrollable">
                   {/* Tab 1: Assessment & Materials */}
                   {assessmentTabIndex === 0 && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                      <div className="ga-field">
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: "1 1 auto", minHeight: 0 }}>
+                      <div className="ga-field" style={{ flexShrink: 0 }}>
                         <label>Assessment Type</label>
                         <select id="assessType" className="ga-select">
                           <option>Performance Task</option>
@@ -493,16 +493,16 @@ export default function GateStandards({ onCancel }) {
                           <option>Written Exam</option>
                         </select>
                       </div>
-                      <div className="ga-field">
+                      <div className="ga-field" style={{ flexShrink: 0 }}>
                         <label>Context / Objectives</label>
                         <textarea 
                           id="context" 
                           className="ga-textarea" 
                           placeholder="What are you assessing? Why now? Any constraints?"
-                          style={{ minHeight: "120px" }}
+                          style={{ minHeight: "90px" }}
                         />
                       </div>
-                      <div className="ga-field">
+                      <div className="ga-field" style={{ flexShrink: 0 }}>
                         <label>Materials</label>
                         <div className="ga-flex-row" style={{ marginBottom: "6px" }}>
                           <button className="ga-btn ga-ghost" style={{ fontSize: 13 }} onClick={() => alert("Drive Picker opens here in production.")}>
@@ -514,7 +514,7 @@ export default function GateStandards({ onCancel }) {
                         </div>
                         <div className="ga-tiny">Rubrics, prompts, exemplars.</div>
                       </div>
-                      <div className="ga-field">
+                      <div className="ga-field" style={{ flex: "1 1 auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
                         <label>AI Suggestions</label>
                         <pre
                           className="ga-tiny ga-scrollable"
@@ -523,8 +523,8 @@ export default function GateStandards({ onCancel }) {
                             border: "1px solid var(--border)", 
                             borderRadius: 8, 
                             padding: 12, 
-                            minHeight: 120,
-                            maxHeight: 300,
+                            minHeight: 80,
+                            flex: "1 1 auto",
                             overflowY: "auto",
                             backgroundColor: "#f9fafb",
                             margin: 0
@@ -538,8 +538,8 @@ export default function GateStandards({ onCancel }) {
 
                   {/* Tab 2: Delivery Plan */}
                   {assessmentTabIndex === 1 && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: "1 1 auto", minHeight: 0 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", flexShrink: 0 }}>
                         <div className="ga-field">
                           <label>Delivery Mode</label>
                           <select id="mode" className="ga-select">
@@ -553,7 +553,7 @@ export default function GateStandards({ onCancel }) {
                           <input type="text" id="duration" className="ga-input" placeholder="45" />
                         </div>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", flexShrink: 0 }}>
                         <div className="ga-field">
                           <label>Start</label>
                           <input type="datetime-local" id="start" className="ga-input" />
@@ -563,22 +563,22 @@ export default function GateStandards({ onCancel }) {
                           <input type="datetime-local" id="dueDate" className="ga-input" />
                         </div>
                       </div>
-                      <div className="ga-field">
+                      <div className="ga-field" style={{ flex: "1 1 auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
                         <label>Requirements</label>
                         <textarea 
                           id="reqs" 
                           className="ga-textarea" 
                           placeholder="Devices, materials, accommodations, proctoring, group/individual, etc."
-                          style={{ minHeight: "120px" }}
+                          style={{ minHeight: "80px", flex: "1 1 auto" }}
                         />
                       </div>
-                      <div className="ga-field">
+                      <div className="ga-field" style={{ flex: "1 1 auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
                         <label>Special Conditions</label>
                         <textarea 
                           id="special" 
                           className="ga-textarea" 
                           placeholder="Make‑up policy, late submissions, extensions, etc."
-                          style={{ minHeight: "120px" }}
+                          style={{ minHeight: "80px", flex: "1 1 auto" }}
                         />
                       </div>
                     </div>
