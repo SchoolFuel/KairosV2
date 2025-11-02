@@ -1,23 +1,87 @@
-function getStudentProjectsForTeacher() {
-  return [
-    {
-      title: 'Climate Change Research',
-      studentEmail: 'student1@example.com',
-      summary: 'A summary of key climate change challenges and mitigation strategies.',
-      docLink: 'https://docs.google.com/document/d/xxxxxxx',
+function getTeacherProjectDetails(projectId, userId) {
+  if (!projectId) throw new Error("Missing projectId");
+  if (!userId) throw new Error("Missing userId");
+
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+  const payload = {
+    action: "myprojects",
+    payload: {
+      project_id: String(projectId),
+      user_id: String(userId),
+      email_id: "teacher1@gmail.com",
+      request: "project_details",
     },
-    {
-      title: 'AI in Healthcare',
-      studentEmail: 'student2@example.com',
-      summary: 'Exploring applications of machine learning in medical diagnosis.',
-      docLink: 'https://docs.google.com/document/d/yyyyyyy',
-    },
-  ];
+  };
+
+  const res = UrlFetchApp.fetch(url, {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true,
+  });
+
+  const code = res.getResponseCode();
+  const text = res.getContentText();
+  if (code < 200 || code >= 300) throw new Error("API " + code + ": " + text);
+
+  let out = {};
+  try {
+    out = JSON.parse(text);
+  } catch (e) {
+    throw new Error("Bad JSON: " + text);
+  }
+
+  const body =
+    out && typeof out.body === "string" ? JSON.parse(out.body) : out.body;
+
+  let project =
+    (body && body.project) ||
+    (Array.isArray(body && body.projects) ? body.projects[0] : null) ||
+    out.project ||
+    (Array.isArray(out.projects) ? out.projects[0] : null) ||
+    (body &&
+      body.data &&
+      (body.data.project ||
+        (Array.isArray(body.data.projects) ? body.data.projects[0] : null))) ||
+    null;
+
+  if (!project) {
+    (function findProject(o) {
+      if (!o || typeof o !== "object" || project) return;
+      const looks =
+        (o.project_id || o.id) &&
+        (o.project_title || o.title) &&
+        Array.isArray(o.stages);
+      if (looks) {
+        project = o;
+        return;
+      }
+      for (const k in o) {
+        const v = o[k];
+        if (Array.isArray(v)) v.forEach(findProject);
+        else findProject(v);
+        if (project) return;
+      }
+    })(body || out);
+  }
+
+  if (!project) {
+    return {
+      statusCode: out.statusCode || 200,
+      body: { project: null, debug: body || out },
+    };
+  }
+  if (project && !project.user_id && out.action_response?.user_id) {
+    project.user_id = out.action_response.user_id;
+  }
+
+  return { statusCode: out.statusCode || 200, body: { project } };
 }
 
 
 function createStudentTab(studentName, projectContent) {
-  Logger.log(studentName)
+  Logger.log(studentName);
   
   try {
     
@@ -40,16 +104,16 @@ function createStudentTab(studentName, projectContent) {
                        .setBold(true)
                        .setFontSize(18);
     } catch (headingError) {
-      console.error('Error formatting heading:', headingError);
-      console.error('Heading error details:', headingError.toString());
-      console.error('Heading error stack:', headingError.stack);
+      Logger.log('Error formatting heading: ' + headingError);
+      Logger.log('Heading error details: ' + headingError.toString());
+      Logger.log('Heading error stack: ' + headingError.stack);
     }
     
     try {
       body.appendHorizontalRule();
     } catch (ruleError) {
-      console.error('Error adding horizontal rule:', ruleError);
-      console.error('Rule error details:', ruleError.toString());
+      Logger.log('Error adding horizontal rule: ' + ruleError);
+      Logger.log('Rule error details: ' + ruleError.toString());
     }
     
     
@@ -115,9 +179,9 @@ function createStudentTab(studentName, projectContent) {
                   }
                   
                 } catch (boldError) {
-                  console.error('Error processing bold formatting:', boldError);
-                  console.error('Bold error details:', boldError.toString());
-                  console.error('Bold error stack:', boldError.stack);
+                  Logger.log('Error processing bold formatting: ' + boldError);
+                  Logger.log('Bold error details: ' + boldError.toString());
+                  Logger.log('Bold error stack: ' + boldError.stack);
                 }
               }
               
@@ -128,14 +192,14 @@ function createStudentTab(studentName, projectContent) {
                     .setSpacingAfter(8)
                     .setLineSpacing(1.15);
               } catch (formatError) {
-                console.error('Error applying paragraph formatting:', formatError);
-                console.error('Format error details:', formatError.toString());
+                Logger.log('Error applying paragraph formatting: ' + formatError);
+                Logger.log('Format error details: ' + formatError.toString());
               }
               
             } catch (paraError) {
-              console.error(`Error processing paragraph ${processedParagraphs}:`, paraError);
-              console.error('Paragraph error details:', paraError.toString());
-              console.error('Paragraph error stack:', paraError.stack);
+              Logger.log('Error processing paragraph ' + processedParagraphs + ': ' + paraError);
+              Logger.log('Paragraph error details: ' + paraError.toString());
+              Logger.log('Paragraph error stack: ' + paraError.stack);
             }
           }
         });
@@ -144,7 +208,7 @@ function createStudentTab(studentName, projectContent) {
         try {
           body.appendParagraph('');
         } catch (spacingError) {
-          console.error('Error adding section spacing:', spacingError);
+          Logger.log('Error adding section spacing: ' + spacingError);
         }
       }
     });
@@ -158,8 +222,8 @@ function createStudentTab(studentName, projectContent) {
       timestampText.setForegroundColor('#666666')
                .setItalic(true);
     } catch (timestampError) {
-      console.error('Error adding timestamp:', timestampError);
-      console.error('Timestamp error details:', timestampError.toString());
+      Logger.log('Error adding timestamp: ' + timestampError);
+      Logger.log('Timestamp error details: ' + timestampError.toString());
     }
     
   
@@ -167,23 +231,60 @@ function createStudentTab(studentName, projectContent) {
       body.appendParagraph('');
       body.appendParagraph('');
     } catch (finalSpacingError) {
-      console.error('Error adding final spacing:', finalSpacingError);
+      Logger.log('Error adding final spacing: ' + finalSpacingError);
     }
     
     return { success: true, message: `Successfully exported ${studentName}'s project` };
     
   } catch (error) {
-    console.error('=== MAJOR ERROR IN EXPORT ===');
-    console.error('Error creating student tab:', error);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error details:', error.toString());
-    console.error('Error stack:', error.stack);
-    console.error('Student name:', studentName);
-    console.error('Content type:', typeof projectContent);
-    console.error('Content length:', projectContent ? projectContent.length : 'N/A');
-    console.error('=== END ERROR DETAILS ===');
+    Logger.log('=== MAJOR ERROR IN EXPORT ===');
+    Logger.log('Error creating student tab: ' + error);
+    Logger.log('Error name: ' + error.name);
+    Logger.log('Error message: ' + error.message);
+    Logger.log('Error details: ' + error.toString());
+    Logger.log('Error stack: ' + error.stack);
+    Logger.log('Student name: ' + studentName);
+    Logger.log('Content type: ' + typeof projectContent);
+    Logger.log('Content length: ' + (projectContent ? projectContent.length : 'N/A'));
+    Logger.log('=== END ERROR DETAILS ===');
     
     throw new Error(`Failed to export ${studentName}: ${error.message} (${error.name})`);
   }
+}
+
+function getTeacherProjectsAll() {
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+  const body = {
+    action: "myprojects",
+    payload: {
+      request: "teacher_view_all",
+      email_id: "teacher1@gmail.com",
+      subject_domain: "Science",
+    },
+  };
+
+  const res = UrlFetchApp.fetch(url, {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(body),
+    muteHttpExceptions: true,
+  });
+
+  const code = res.getResponseCode();
+  const text = res.getContentText();
+  if (code < 200 || code >= 300) throw new Error("API " + code + ": " + text);
+
+  let out;
+  try {
+    out = JSON.parse(text);
+  } catch {
+    throw new Error("Bad JSON: " + text);
+  }
+
+  let bodyLike =
+    out && typeof out.body === "string" ? JSON.parse(out.body) : out.body;
+  if (!bodyLike) bodyLike = out.action_response || out;
+
+  return { statusCode: out.statusCode || out.status || 200, body: bodyLike };
 }

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import Credentials from './components/Shared/Credentials';
 import LogoContainer from './components/Shared/LogoContainer';
-import StudentDashboard from './components/StudentDashboard';
-import TeacherDashboard from './components/TeacherDashboard';
+import StudentDashboard from './components/Student/StudentDashboard';
+import TeacherDashboard from './components/Teacher/TeacherDashboard';
 import UnauthorizedUser from './components/Shared/UnauthorizedUser';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Loader from './components/Shared/Loader';
