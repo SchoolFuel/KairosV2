@@ -37,7 +37,7 @@ export const AcknowledgmentsSection = ({
 
       <div className="space-y-2 pb-3">
         {acknowledgments.map((ack, index) => (
-          <div key={index} className="flex items-center space-x-2 p-2 bg-white bg-opacity-50 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 px-3 py-1.5 text-sm rounded">
+          <div key={index} className="flex items-center space-x-2 p-2 bg-white bg-opacity-50 rounded-lg">
             <span className="text-lg">{ack.emoji}</span>
             <div className="flex-1">
               <p className={`text-sm ${itemColor}`}>
