@@ -6,6 +6,34 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Standardized Scrollbar Styling (matching student side) */
+.tpq-container ::-webkit-scrollbar,
+.tpq-modal ::-webkit-scrollbar,
+.tpq-modal-content ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.tpq-container ::-webkit-scrollbar-track,
+.tpq-modal ::-webkit-scrollbar-track,
+.tpq-modal-content ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.tpq-container ::-webkit-scrollbar-thumb,
+.tpq-modal ::-webkit-scrollbar-thumb,
+.tpq-modal-content ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.tpq-container ::-webkit-scrollbar-thumb:hover,
+.tpq-modal ::-webkit-scrollbar-thumb:hover,
+.tpq-modal-content ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 /* Header */
 .tpq-header {
   margin-bottom: 24px;
@@ -830,6 +858,22 @@
   color: #ffffff;
   box-shadow: 0 2px 8px rgba(49, 130, 206, 0.3);
 }
+
+/* Gate Assessment Wrapper */
+.tpq-gate-assessment-wrapper {
+  margin-top: 0;
+  overflow: hidden;
+}
+
+.tpq-gate-assessment-wrapper .ga-dialog {
+  margin: 0;
+  max-width: 100%;
+  height: calc(90vh - 200px);
+  min-height: 600px;
+  border: none;
+  box-shadow: none;
+}
+
 
 .tpq-rubric-input {
   width: 70px;

@@ -6,12 +6,14 @@ import {
   Clock,
   User,
   BookOpen,
+  Save,
 } from "lucide-react";
 import Badge from "../Shared/LearningStandards/Badge";
 import Checkbox from "../Shared/LearningStandards/Checkbox";
 import ReviewStageTab from "./ReviewStageTab";
 import ReviewTaskCard from "./ReviewTaskCard";
 import ReviewAssessmentGate from "./ReviewAssessmentGate";
+import GateStandards from "./GateStandards";
 import "./TeacherProjectQueue.css";
 
 const parseMaybeJSON = (v) => {
@@ -210,6 +212,9 @@ export default function TeacherProjectQueue() {
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [stageStatuses, setStageStatuses] = useState({}); // Track individual stage approval/rejection
   const [overallComment, setOverallComment] = useState("");
+  const [editableProjectData, setEditableProjectData] = useState(null); // Editable copy of project data
+  const [isFrozen, setIsFrozen] = useState(false); // Track if changes are saved/frozen
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Advanced features state
   const [activeTab, setActiveTab] = useState("inbox"); // inbox, rubrics, calendar, analytics
@@ -273,6 +278,8 @@ export default function TeacherProjectQueue() {
       }));
     }
   }, [projects]);
+
+  // Gate Assessment is now integrated directly into this component
 
   // Load mock rubrics
   useEffect(() => {
@@ -395,6 +402,9 @@ export default function TeacherProjectQueue() {
     setRubricVals({ align: 0, evidence: 0, clarity: 0, complete: 0 }); // Reset rubric
     setPartialMarks({ align: "", evidence: "", clarity: "", complete: "" }); // Reset partial marks
     setOverallComment(""); // Reset comments
+    setIsFrozen(false); // Reset frozen state
+    setHasUnsavedChanges(false); // Reset unsaved changes
+    setEditableProjectData(null); // Will be set when projectDetails loads
 
     // Fetch detailed project data (including stages) when reviewing
     setDetailsLoading(true);
@@ -439,6 +449,9 @@ export default function TeacherProjectQueue() {
           }
 
           setProjectDetails(projectDetails);
+          // Initialize editable copy (deep clone)
+          const editableCopy = deepClone(projectDetails);
+          setEditableProjectData(editableCopy);
           setDetailsLoading(false);
         } catch (parseError) {
           console.error("Error parsing project details:", parseError);
@@ -493,8 +506,89 @@ export default function TeacherProjectQueue() {
   };
 
   const handleCloseDetails = () => {
+    if (hasUnsavedChanges) {
+      if (!confirm("You have unsaved changes. Are you sure you want to close?")) {
+        return;
+      }
+    }
     setShowDetails(false);
     setSelectedProject(null);
+    setEditableProjectData(null);
+    setIsFrozen(false);
+    setHasUnsavedChanges(false);
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      // Deep clone to ensure we're saving the current editable state
+      const dataToSave = deepClone(editableProjectData);
+      
+      // Call API to save changes
+      // In production: google.script.run.withSuccessHandler(...).saveProjectEdits(...)
+      console.log("Saving project edits:", {
+        project_id: selectedProject.project_id,
+        projectData: dataToSave,
+      });
+
+      // Update projectDetails with saved data
+      setProjectDetails(dataToSave);
+      setIsFrozen(true);
+      setHasUnsavedChanges(false);
+      
+      // Optionally show success message
+      alert("Changes saved successfully!");
+    } catch (err) {
+      console.error("Error saving changes:", err);
+      alert("Error saving changes. Please try again.");
+    }
+  };
+
+  const handleUnfreeze = () => {
+    setIsFrozen(false);
+  };
+
+  // Helper function to update editable project data
+  const updateEditableData = (path, value) => {
+    setEditableProjectData((prev) => {
+      if (!prev) return prev;
+      const newData = deepClone(prev);
+      const keys = path.split('.');
+      let current = newData;
+      
+      for (let i = 0; i < keys.length - 1; i++) {
+        const key = keys[i];
+        if (key.includes('[') && key.includes(']')) {
+          // Handle array indices like "stages[0]"
+          const match = key.match(/(\w+)\[(\d+)\]/);
+          if (match) {
+            const arrName = match[1];
+            const arrIndex = parseInt(match[2]);
+            if (!current[arrName]) current[arrName] = [];
+            if (!current[arrName][arrIndex]) current[arrName][arrIndex] = {};
+            current = current[arrName][arrIndex];
+            continue;
+          }
+        }
+        if (!current[key]) current[key] = {};
+        current = current[key];
+      }
+      
+      const lastKey = keys[keys.length - 1];
+      if (lastKey.includes('[') && lastKey.includes(']')) {
+        const match = lastKey.match(/(\w+)\[(\d+)\]/);
+        if (match) {
+          const arrName = match[1];
+          const arrIndex = parseInt(match[2]);
+          if (!current[arrName]) current[arrName] = [];
+          current[arrName][arrIndex] = value;
+        }
+      } else {
+        current[lastKey] = value;
+      }
+      
+      return newData;
+    });
+    setHasUnsavedChanges(true);
   };
 
   // Bulk selection handlers
@@ -565,7 +659,7 @@ export default function TeacherProjectQueue() {
   // Tab configuration
   const tabs = [
     { key: "inbox", label: "Inbox", sub: "Under Review" },
-    { key: "rubrics", label: "Gate Standards" },
+    { key: "rubrics", label: "Gate Assessment", sub: "Workflow" },
     { key: "calendar", label: "Calendar", sub: "Scheduling" },
     { key: "analytics", label: "Analytics", sub: "SLA & trends" },
   ];
@@ -589,7 +683,7 @@ export default function TeacherProjectQueue() {
         >
           {tabs.map((t) => (
             <option key={t.key} value={t.key}>
-              {t.label} — {t.sub}
+              {t.label}{t.sub ? ` — ${t.sub}` : ""}
             </option>
           ))}
         </select>
@@ -718,9 +812,11 @@ export default function TeacherProjectQueue() {
         </>
       )}
 
-      {/* RUBRICS & GATES TAB */}
+      {/* GATE ASSESSMENT TAB - Integrated workflow */}
       {activeTab === "rubrics" && (
-        <div className="tpq-panel">{/* Content removed */}</div>
+        <div className="tpq-gate-assessment-wrapper">
+          <GateStandards onCancel={() => setActiveTab("inbox")} />
+        </div>
       )}
 
       {/* CALENDAR TAB */}
@@ -858,109 +954,218 @@ export default function TeacherProjectQueue() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="tpq-modal-header">
-              <h2>{selectedProject.title}</h2>
-              <button className="tpq-modal-close" onClick={handleCloseDetails}>
-                ×
-              </button>
+              <div style={{ flex: 1 }}>
+                <h2>{selectedProject.title}</h2>
+                {hasUnsavedChanges && (
+                  <span style={{ fontSize: "12px", color: "#f59e0b", marginTop: "4px", display: "block" }}>
+                    ● Unsaved changes
+                  </span>
+                )}
+                {isFrozen && !hasUnsavedChanges && (
+                  <span style={{ fontSize: "12px", color: "#16a34a", marginTop: "4px", display: "block" }}>
+                    ✓ Saved
+                  </span>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                {isFrozen ? (
+                  <button
+                    className="tpq-btn tpq-btn--secondary"
+                    onClick={handleUnfreeze}
+                    style={{ fontSize: "13px" }}
+                  >
+                    Edit
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      className="tpq-btn tpq-btn--primary"
+                      onClick={handleSaveChanges}
+                      disabled={!hasUnsavedChanges}
+                      style={{ fontSize: "13px", opacity: hasUnsavedChanges ? 1 : 0.5, display: "flex", alignItems: "center", gap: "6px" }}
+                    >
+                      <Save size={14} />
+                      Save Changes
+                    </button>
+                  </>
+                )}
+                <button className="tpq-modal-close" onClick={handleCloseDetails}>
+                  ×
+                </button>
+              </div>
             </div>
 
             <div className="tpq-modal-content">
-              {/* Project Description */}
-              {projectDetails?.description && (
-                <div className="tpq-modal-section">
-                  <h4>Description</h4>
-                  <p>{projectDetails.description}</p>
+              {detailsLoading && (
+                <div className="tpq-loading">
+                  <Loader2 className="spin" size={24} />
+                  <p>Loading project details...</p>
                 </div>
               )}
+              
+              {!detailsLoading && editableProjectData && (
+                <>
+                  {/* Project Description */}
+                  <div className="tpq-modal-section">
+                    <h4>Description</h4>
+                    {!isFrozen ? (
+                      <textarea
+                        value={editableProjectData.description || ""}
+                        onChange={(e) => updateEditableData("description", e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y min-h-[100px]"
+                        placeholder="Project description"
+                      />
+                    ) : (
+                      <p>{editableProjectData.description || "No description provided"}</p>
+                    )}
+                  </div>
 
-              {/* Stages Section - Replicated from CreateProject */}
-              <div className="tpq-modal-section">
-                <h4>Project Stages</h4>
-                {projectDetails &&
-                projectDetails.stages &&
-                projectDetails.stages.length > 0 ? (
-                  <>
-                    {/* Stage Tabs Navigation */}
-                    <div className="border-b border-gray-200 bg-gray-50">
-                      <div className="flex gap-1">
-                        {projectDetails.stages
-                          .slice()
-                          .sort(
-                            (a, b) =>
-                              (a?.stage_order || 0) - (b?.stage_order || 0)
-                          )
-                          .map((stage, index) => (
-                            <ReviewStageTab
-                              key={stage.stage_id}
-                              index={index}
-                              isActive={currentStageIndex === index}
-                              onClick={() => setCurrentStageIndex(index)}
-                              stage={stage}
-                            />
-                          ))}
-                      </div>
-                    </div>
-
-                    {/* Stage Content */}
-                    <div className="mt-4 max-h-[50vh] overflow-y-auto">
-                      {(() => {
-                        const sortedStages = projectDetails.stages
-                          .slice()
-                          .sort(
-                            (a, b) =>
-                              (a?.stage_order || 0) - (b?.stage_order || 0)
-                          );
-                        const currentStage = sortedStages[currentStageIndex];
-
-                        if (!currentStage) return null;
-
-                        return (
-                          <div className="space-y-6">
-                            {/* Stage Title */}
-                            <div>
-                              <label className="block text-xs font-semibold text-gray-500 mb-2">
-                                STAGE TITLE
-                              </label>
-                              <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-semibold text-lg text-gray-900">
-                                {currentStage.title || "Untitled Stage"}
-                              </div>
-                            </div>
-
-                            {/* Tasks */}
-                            {currentStage.tasks &&
-                              currentStage.tasks.length > 0 && (
-                                <div>
-                                  <h3 className="text-lg font-bold text-gray-900 mb-4">
-                                    Tasks
-                                  </h3>
-                                  <div className="space-y-4">
-                                    {currentStage.tasks.map(
-                                      (task, taskIndex) => (
-                                        <ReviewTaskCard
-                                          key={taskIndex}
-                                          task={task}
-                                          taskIndex={taskIndex}
-                                        />
-                                      )
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                            {/* Assessment Gate */}
-                            {currentStage.gate && (
-                              <div>
-                                <h3 className="text-lg font-bold text-gray-900 mb-4">
-                                  Assessment Gate
-                                </h3>
-                                <ReviewAssessmentGate
-                                  gate={currentStage.gate}
+                  {/* Stages Section - Replicated from CreateProject */}
+                  <div className="tpq-modal-section">
+                    <h4>Project Stages</h4>
+                    {editableProjectData.stages &&
+                    editableProjectData.stages.length > 0 ? (
+                      <>
+                        {/* Stage Tabs Navigation */}
+                        <div className="border-b border-gray-200 bg-gray-50">
+                          <div className="flex gap-1">
+                            {editableProjectData.stages
+                              .slice()
+                              .sort(
+                                (a, b) =>
+                                  (a?.stage_order || 0) - (b?.stage_order || 0)
+                              )
+                              .map((stage, index) => (
+                                <ReviewStageTab
+                                  key={stage.stage_id}
+                                  index={index}
+                                  isActive={currentStageIndex === index}
+                                  onClick={() => setCurrentStageIndex(index)}
+                                  stage={stage}
                                 />
-                              </div>
-                            )}
+                              ))}
+                          </div>
+                        </div>
 
-                            {/* Stage Actions */}
-                            <div className="flex gap-3 pt-4 border-t border-gray-200">
+                        {/* Stage Content */}
+                        <div className="mt-4 max-h-[50vh] overflow-y-auto">
+                          {(() => {
+                            const sortedStages = editableProjectData.stages
+                              .slice()
+                              .sort(
+                                (a, b) =>
+                                  (a?.stage_order || 0) - (b?.stage_order || 0)
+                              );
+                            const currentStage = sortedStages[currentStageIndex];
+
+                            if (!currentStage) return null;
+
+                            return (
+                              <div className="space-y-6">
+                                {/* Stage Title */}
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-500 mb-2">
+                                    STAGE TITLE
+                                  </label>
+                                  {!isFrozen ? (
+                                    <input
+                                      type="text"
+                                      value={currentStage.title || ""}
+                                      onChange={(e) => {
+                                        const sortedStages = [...editableProjectData.stages].sort(
+                                          (a, b) => (a?.stage_order || 0) - (b?.stage_order || 0)
+                                        );
+                                        const stageIndex = editableProjectData.stages.findIndex(
+                                          s => s.stage_id === currentStage.stage_id
+                                        );
+                                        setEditableProjectData((prev) => {
+                                          const newData = deepClone(prev);
+                                          newData.stages[stageIndex].title = e.target.value;
+                                          return newData;
+                                        });
+                                        setHasUnsavedChanges(true);
+                                      }}
+                                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-semibold text-lg text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                                      placeholder="Untitled Stage"
+                                    />
+                                  ) : (
+                                    <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-semibold text-lg text-gray-900">
+                                      {currentStage.title || "Untitled Stage"}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Tasks */}
+                                {currentStage.tasks &&
+                                  currentStage.tasks.length > 0 && (
+                                    <div>
+                                      <h3 className="text-lg font-bold text-gray-900 mb-4">
+                                        Tasks
+                                      </h3>
+                                      <div className="space-y-4">
+                                        {currentStage.tasks.map(
+                                          (task, taskIndex) => {
+                                            const stageIndex = editableProjectData.stages.findIndex(
+                                              s => s.stage_id === currentStage.stage_id
+                                            );
+                                            return (
+                                              <ReviewTaskCard
+                                                key={taskIndex}
+                                                task={task}
+                                                taskIndex={taskIndex}
+                                                stageIndex={stageIndex}
+                                                isEditable={true}
+                                                isFrozen={isFrozen}
+                                                onUpdate={(field, value) => {
+                                                  setEditableProjectData((prev) => {
+                                                    const newData = deepClone(prev);
+                                                    newData.stages[stageIndex].tasks[taskIndex][field] = value;
+                                                    return newData;
+                                                  });
+                                                  setHasUnsavedChanges(true);
+                                                }}
+                                              />
+                                            );
+                                          }
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                {/* Assessment Gate */}
+                                {currentStage.gate && (
+                                  <div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                                      Assessment Gate
+                                    </h3>
+                                    <ReviewAssessmentGate
+                                      gate={currentStage.gate}
+                                      isEditable={true}
+                                      isFrozen={isFrozen}
+                                      onUpdate={(field, index, value) => {
+                                        const stageIndex = editableProjectData.stages.findIndex(
+                                          s => s.stage_id === currentStage.stage_id
+                                        );
+                                        setEditableProjectData((prev) => {
+                                          const newData = deepClone(prev);
+                                          if (field === 'checklist' && typeof index === 'number') {
+                                            if (!newData.stages[stageIndex].gate.checklist) {
+                                              newData.stages[stageIndex].gate.checklist = [];
+                                            }
+                                            newData.stages[stageIndex].gate.checklist[index] = value;
+                                          } else {
+                                            newData.stages[stageIndex].gate[field] = value;
+                                          }
+                                          return newData;
+                                        });
+                                        setHasUnsavedChanges(true);
+                                      }}
+                                    />
+                                  </div>
+                                )}
+
+                                {/* Stage Actions */}
+                                <div className="flex gap-3 pt-4 border-t border-gray-200">
                               <button
                                 onClick={() => {
                                   const stageId = currentStage.stage_id;
@@ -1021,27 +1226,29 @@ export default function TeacherProjectQueue() {
                       })()}
                     </div>
                   </>
-                ) : (
-                  <div
-                    className="tpq-empty-state"
-                    style={{
-                      padding: "32px",
-                      textAlign: "center",
-                      color: "#6b7280",
-                    }}
-                  >
-                    <BookOpen
-                      size={48}
-                      style={{ marginBottom: "16px", opacity: 0.5 }}
-                    />
-                    <p>No stages available for this project.</p>
-                    <p style={{ fontSize: "14px", marginTop: "8px" }}>
-                      Stages will appear here once the project structure is
-                      defined.
-                    </p>
+                    ) : (
+                      <div
+                        className="tpq-empty-state"
+                        style={{
+                          padding: "32px",
+                          textAlign: "center",
+                          color: "#6b7280",
+                        }}
+                      >
+                        <BookOpen
+                          size={48}
+                          style={{ marginBottom: "16px", opacity: 0.5 }}
+                        />
+                        <p>No stages available for this project.</p>
+                        <p style={{ fontSize: "14px", marginTop: "8px" }}>
+                          Stages will appear here once the project structure is
+                          defined.
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
 
             <div className="tpq-modal-actions">
