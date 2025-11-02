@@ -24,8 +24,26 @@ const ReviewTaskCard = ({ task, taskIndex }) => {
           <strong>Standard:</strong> {task.academic_standard}
         </div>
       )}
-      {task.resource_id && (
-        <div className="mt-2">
+      {task.evidence_link && (
+        <div className="mb-3">
+          <label className="block text-xs font-semibold text-gray-500 mb-1">
+            RESOURCE LINK
+          </label>
+          <a
+            href={task.evidence_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-600 hover:text-blue-800 underline break-all"
+          >
+            🔗 {task.evidence_link}
+          </a>
+        </div>
+      )}
+      {task.resource_id && !task.evidence_link && (
+        <div className="mb-3">
+          <label className="block text-xs font-semibold text-gray-500 mb-1">
+            RESOURCE
+          </label>
           <a
             href={task.resource_id.url}
             target="_blank"
