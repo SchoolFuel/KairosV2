@@ -3,11 +3,13 @@ import './App.css'
 import DialogDashboard from './components/Student/Dashboard'
 import LearningStandardsDialog from './components/Shared/LearningStandards/LearningStandardsDialog'
 import CreateProject from './components/Student/CreateProject/CreateProject'
+import ProjectDashboard from './components/Student/MyProjects/projectdashboard';
 
 const DIALOGS = {
     "dashboard":DialogDashboard,
     "student-standards":LearningStandardsDialog,
-    "create-project":CreateProject
+    "create-project":CreateProject,
+    "project-dashboard": ProjectDashboard
   }
 function App() {
   

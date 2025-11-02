@@ -9,6 +9,7 @@ import CreateProject from './Student/CreateProject/CreateProject';
 import SidebarWorkshop from './WorkshopBuilder';
 import ExpertFinderComponent from './Student/FindExperts/ExpertFinderComponent';
 import StandardsSelector from './Student/StandardsSelector';
+import StudentPrototype from './Student/MyProjectsPrototype/StudentProjectsProt';
 
 export default function StudentDashboard({ email }) {
   return (
@@ -17,6 +18,7 @@ export default function StudentDashboard({ email }) {
       <SidebarMorningPulse />
       <CreateProject />
       <StudentProjects />
+      <StudentPrototype />
       <GuideMe />
       <SidebarWorkshop />
       <SidebarAdvice />
