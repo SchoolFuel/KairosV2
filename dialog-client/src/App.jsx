@@ -10,6 +10,7 @@ const DIALOGS = {
   "create-project": CreateProject,
   "project-dashboard": ProjectDashboard,
   "teacher-project-queue": TeacherProjectQueue,
+  "teacher-gate-assessment": GateStandards,
   "add-standard": LearningStandardsDialog,
 };
 function App() {

@@ -76,12 +76,12 @@ function validateUser() {
     return {
       statusCode: 200,
       email: currentUser(),
-      role: cachedRole,
+      role: 'cachedRole'
     };
   }
 
   //  Cache is missing or expired → fetch fresh data
-  const user_email = currentUser();
+  const user_email =  "teacher1@gmail.com";
   const identity_url = 'https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/dev/identity-fetch';
   const payload = {
     email_id: user_email,
@@ -172,6 +172,11 @@ function openPrototypeDialog(projectId) {
 // Specific function to open Teacher Project Queue dialog
 function openTeacherProjectQueue() {
   openDialog('teacher-project-queue', 'Teacher Project Queue');
+}
+
+// Specific function to open Teacher Gate Assessment dialog
+function openTeacherGateAssessment() {
+  openDialog('teacher-gate-assessment', 'Gate Assessment');
 }
 
 function clearUserCache() {
