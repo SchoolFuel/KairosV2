@@ -9,7 +9,6 @@ import {
   Save,
 } from "lucide-react";
 import Badge from "../Shared/LearningStandards/Badge";
-import Checkbox from "../Shared/LearningStandards/Checkbox";
 import ReviewStageTab from "./ReviewStageTab";
 import ReviewTaskCard from "./ReviewTaskCard";
 import ReviewAssessmentGate from "./ReviewAssessmentGate";
@@ -58,14 +57,7 @@ function getStatusIcon(status) {
 }
 
 /* ---------- Project Card Component using shared components ---------- */
-function ProjectCard({
-  project,
-  onReview,
-  onApprove,
-  onReject,
-  isSelected,
-  onToggle,
-}) {
+function ProjectCard({ project, onReview, onApprove, onReject }) {
   const title = project.title || project.project_title || "Untitled";
   const subject = project.subject_domain || "—";
   const status = (project.status || "—").trim();
@@ -73,24 +65,8 @@ function ProjectCard({
   const description = project.description || "";
   const createdAt = project.created_at || project.createdAt || "";
 
-  const handleCardClick = () => {
-    if (onToggle) {
-      onToggle(project.project_id);
-    }
-  };
-
-  const handleCheckboxChange = (e) => {
-    e.stopPropagation();
-    if (onToggle) {
-      onToggle(project.project_id);
-    }
-  };
-
   return (
-    <div
-      className={`tpq-card ${isSelected ? "selected" : ""}`}
-      onClick={handleCardClick}
-    >
+    <div className="tpq-card">
       <div className="tpq-card-header">
         <div className="tpq-card-title-section">
           <h3 className="tpq-card-title" title={title}>
@@ -176,17 +152,6 @@ function ProjectCard({
           Request Revision
         </button>
       </div>
-
-      {/* Checkbox for bulk selection */}
-      {onToggle && (
-        <div className="tpq-checkbox" onClick={(e) => e.stopPropagation()}>
-          <Checkbox
-            checked={isSelected}
-            onChange={handleCheckboxChange}
-            id={`project-${project.project_id}`}
-          />
-        </div>
-      )}
     </div>
   );
 }
@@ -201,8 +166,6 @@ export default function TeacherProjectQueue() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [selectedProjects, setSelectedProjects] = useState(new Set()); // For bulk selection
-  const [bulkMode, setBulkMode] = useState(false);
 
   // Detailed project review state
   const [projectDetails, setProjectDetails] = useState(null);
@@ -315,27 +278,71 @@ export default function TeacherProjectQueue() {
         google.script.run
           .withSuccessHandler((response) => {
             try {
+              console.log(
+                "Raw API response:",
+                JSON.stringify(response, null, 2)
+              );
+
               // Handle the response structure: { statusCode, body: { action_response: { projects: [...] } } }
               let projects = [];
 
               if (response && response.body) {
                 const body = response.body;
-                // Check if projects are in action_response
-                if (body.action_response && body.action_response.projects) {
-                  projects = body.action_response.projects;
-                } else if (Array.isArray(body.projects)) {
+                console.log("Response body:", JSON.stringify(body, null, 2));
+
+                // Try multiple paths to find projects array
+                // Path 1: body.projects (direct)
+                if (Array.isArray(body.projects)) {
                   projects = body.projects;
-                } else if (body.projects && Array.isArray(body.projects)) {
-                  projects = body.projects;
+                  console.log(
+                    `Found ${projects.length} projects in body.projects`
+                  );
                 }
-              } else if (
+                // Path 2: body.action_response.projects
+                else if (
+                  body.action_response &&
+                  Array.isArray(body.action_response.projects)
+                ) {
+                  projects = body.action_response.projects;
+                  console.log(
+                    `Found ${projects.length} projects in body.action_response.projects`
+                  );
+                }
+                // Path 3: body.projects (if it's an object with projects property)
+                else if (body.projects && Array.isArray(body.projects)) {
+                  projects = body.projects;
+                  console.log(
+                    `Found ${projects.length} projects in body.projects (nested)`
+                  );
+                }
+              }
+              // Path 4: response.action_response.projects (direct on response)
+              else if (
                 response &&
                 response.action_response &&
-                response.action_response.projects
+                Array.isArray(response.action_response.projects)
               ) {
                 projects = response.action_response.projects;
-              } else if (Array.isArray(response)) {
+                console.log(
+                  `Found ${projects.length} projects in response.action_response.projects`
+                );
+              }
+              // Path 5: response is directly an array
+              else if (Array.isArray(response)) {
                 projects = response;
+                console.log(
+                  `Found ${projects.length} projects in response array`
+                );
+              }
+
+              console.log(`Total projects found: ${projects.length}`);
+
+              if (projects.length === 0) {
+                console.warn(
+                  "No projects found in response. Full response structure:",
+                  response
+                );
+                // Don't set error, just let empty state show naturally
               }
 
               // Map API response to component expected format
@@ -353,14 +360,15 @@ export default function TeacherProjectQueue() {
                 stages: project.stages || [], // Keep stages if available, otherwise empty array
               }));
 
+              console.log(`Mapped ${mappedProjects.length} projects`);
               setProjects(mappedProjects);
+              setLoading(false); // Set loading to false AFTER setting projects
               resolve(mappedProjects);
             } catch (parseError) {
               console.error("Error parsing projects response:", parseError);
               setError("Error parsing project data: " + parseError.message);
-              reject(parseError);
-            } finally {
               setLoading(false);
+              reject(parseError);
             }
           })
           .withFailureHandler((error) => {
@@ -372,8 +380,8 @@ export default function TeacherProjectQueue() {
           .getTeacherProjectsAll();
       });
     } catch (err) {
+      console.error("Error in loadProjects:", err);
       setError(err?.message || "Failed to load projects");
-    } finally {
       setLoading(false);
     }
   };
@@ -446,6 +454,12 @@ export default function TeacherProjectQueue() {
                 fetchedProject.description || project.description || "",
               stages: fetchedProject.stages || project.stages || [],
             };
+          } else {
+            // If no fetched project but we have basic project, use it with empty stages array
+            projectDetails = {
+              ...project,
+              stages: project.stages || [],
+            };
           }
 
           setProjectDetails(projectDetails);
@@ -456,17 +470,23 @@ export default function TeacherProjectQueue() {
         } catch (parseError) {
           console.error("Error parsing project details:", parseError);
           setDetailsError("Error loading project details");
-          setDetailsLoading(false);
           // Fallback to basic project data if detailed fetch fails
           setProjectDetails(project);
+          // Initialize editable copy with basic project data
+          const editableCopy = deepClone(project);
+          setEditableProjectData(editableCopy);
+          setDetailsLoading(false);
         }
       })
       .withFailureHandler((error) => {
         console.error("Error fetching project details:", error);
         setDetailsError("Failed to load project details");
-        setDetailsLoading(false);
         // Fallback to basic project data
         setProjectDetails(project);
+        // Initialize editable copy with basic project data
+        const editableCopy = deepClone(project);
+        setEditableProjectData(editableCopy);
+        setDetailsLoading(false);
       })
       .getTeacherProjectDetails(project.project_id, project.user_id);
   };
@@ -507,7 +527,9 @@ export default function TeacherProjectQueue() {
 
   const handleCloseDetails = () => {
     if (hasUnsavedChanges) {
-      if (!confirm("You have unsaved changes. Are you sure you want to close?")) {
+      if (
+        !confirm("You have unsaved changes. Are you sure you want to close?")
+      ) {
         return;
       }
     }
@@ -522,7 +544,7 @@ export default function TeacherProjectQueue() {
     try {
       // Deep clone to ensure we're saving the current editable state
       const dataToSave = deepClone(editableProjectData);
-      
+
       // Call API to save changes
       // In production: google.script.run.withSuccessHandler(...).saveProjectEdits(...)
       console.log("Saving project edits:", {
@@ -534,7 +556,7 @@ export default function TeacherProjectQueue() {
       setProjectDetails(dataToSave);
       setIsFrozen(true);
       setHasUnsavedChanges(false);
-      
+
       // Optionally show success message
       alert("Changes saved successfully!");
     } catch (err) {
@@ -552,12 +574,12 @@ export default function TeacherProjectQueue() {
     setEditableProjectData((prev) => {
       if (!prev) return prev;
       const newData = deepClone(prev);
-      const keys = path.split('.');
+      const keys = path.split(".");
       let current = newData;
-      
+
       for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
-        if (key.includes('[') && key.includes(']')) {
+        if (key.includes("[") && key.includes("]")) {
           // Handle array indices like "stages[0]"
           const match = key.match(/(\w+)\[(\d+)\]/);
           if (match) {
@@ -572,9 +594,9 @@ export default function TeacherProjectQueue() {
         if (!current[key]) current[key] = {};
         current = current[key];
       }
-      
+
       const lastKey = keys[keys.length - 1];
-      if (lastKey.includes('[') && lastKey.includes(']')) {
+      if (lastKey.includes("[") && lastKey.includes("]")) {
         const match = lastKey.match(/(\w+)\[(\d+)\]/);
         if (match) {
           const arrName = match[1];
@@ -585,48 +607,10 @@ export default function TeacherProjectQueue() {
       } else {
         current[lastKey] = value;
       }
-      
+
       return newData;
     });
     setHasUnsavedChanges(true);
-  };
-
-  // Bulk selection handlers
-  const handleToggleProject = (projectId) => {
-    setSelectedProjects((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(projectId)) {
-        newSet.delete(projectId);
-      } else {
-        newSet.add(projectId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleSelectAll = () => {
-    const allProjectIds = filteredProjects.map((p) => p.project_id);
-    setSelectedProjects(new Set(allProjectIds));
-  };
-
-  const handleClearSelection = () => {
-    setSelectedProjects(new Set());
-  };
-
-  const handleBulkApprove = () => {
-    const projectsToApprove = filteredProjects.filter((p) =>
-      selectedProjects.has(p.project_id)
-    );
-    projectsToApprove.forEach((project) => handleApprove(project));
-    setSelectedProjects(new Set());
-  };
-
-  const handleBulkReject = () => {
-    const projectsToReject = filteredProjects.filter((p) =>
-      selectedProjects.has(p.project_id)
-    );
-    projectsToReject.forEach((project) => handleReject(project));
-    setSelectedProjects(new Set());
   };
 
   // Loading state
@@ -634,8 +618,10 @@ export default function TeacherProjectQueue() {
     return (
       <div className="tpq-container">
         <div className="tpq-loading">
-          <Loader2 className="spin" size={24} />
-          <p>Loading projects...</p>
+          <Loader2 className="spin" size={32} style={{ color: "#3182ce" }} />
+          <p style={{ fontSize: "16px", marginTop: "16px", color: "#4a5568" }}>
+            Loading projects...
+          </p>
         </div>
       </div>
     );
@@ -683,7 +669,8 @@ export default function TeacherProjectQueue() {
         >
           {tabs.map((t) => (
             <option key={t.key} value={t.key}>
-              {t.label}{t.sub ? ` — ${t.sub}` : ""}
+              {t.label}
+              {t.sub ? ` — ${t.sub}` : ""}
             </option>
           ))}
         </select>
@@ -728,61 +715,6 @@ export default function TeacherProjectQueue() {
             </div>
           </div>
 
-          {/* Bulk Actions */}
-          <div className="tpq-bulk-controls">
-            <div className="tpq-bulk-toggle">
-              <button
-                className={`tpq-btn tpq-btn--secondary ${
-                  bulkMode ? "active" : ""
-                }`}
-                onClick={() => {
-                  setBulkMode(!bulkMode);
-                  if (bulkMode) setSelectedProjects(new Set());
-                }}
-              >
-                {bulkMode ? "Exit Bulk Mode" : "Bulk Actions"}
-              </button>
-            </div>
-
-            {bulkMode && (
-              <div className="tpq-bulk-actions">
-                <span className="tpq-selection-count">
-                  {selectedProjects.size} selected
-                </span>
-                <button
-                  className="tpq-btn tpq-btn--secondary"
-                  onClick={handleSelectAll}
-                  disabled={filteredProjects.length === 0}
-                >
-                  Select All ({filteredProjects.length})
-                </button>
-                <button
-                  className="tpq-btn tpq-btn--secondary"
-                  onClick={handleClearSelection}
-                  disabled={selectedProjects.size === 0}
-                >
-                  Clear Selection
-                </button>
-                <button
-                  className="tpq-btn tpq-btn--approve"
-                  onClick={handleBulkApprove}
-                  disabled={selectedProjects.size === 0}
-                >
-                  <CheckCircle size={14} />
-                  Bulk Approve
-                </button>
-                <button
-                  className="tpq-btn tpq-btn--reject"
-                  onClick={handleBulkReject}
-                  disabled={selectedProjects.size === 0}
-                >
-                  <XCircle size={14} />
-                  Bulk Reject
-                </button>
-              </div>
-            )}
-          </div>
-
           {/* Projects List */}
           <div className="tpq-projects">
             {filteredProjects.length === 0 ? (
@@ -792,7 +724,11 @@ export default function TeacherProjectQueue() {
                 <p>
                   {searchTerm || filter !== "all"
                     ? "Try adjusting your search or filter criteria"
-                    : "No projects have been submitted yet"}
+                    : projects.length === 0
+                    ? "No projects have been submitted yet"
+                    : `No projects match your filters. Showing ${
+                        projects.length
+                      } total project${projects.length !== 1 ? "s" : ""}.`}
                 </p>
               </div>
             ) : (
@@ -803,8 +739,6 @@ export default function TeacherProjectQueue() {
                   onReview={handleReview}
                   onApprove={handleApprove}
                   onReject={handleReject}
-                  isSelected={selectedProjects.has(project.project_id)}
-                  onToggle={bulkMode ? handleToggleProject : undefined}
                 />
               ))
             )}
@@ -957,17 +891,33 @@ export default function TeacherProjectQueue() {
               <div style={{ flex: 1 }}>
                 <h2>{selectedProject.title}</h2>
                 {hasUnsavedChanges && (
-                  <span style={{ fontSize: "12px", color: "#f59e0b", marginTop: "4px", display: "block" }}>
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#f59e0b",
+                      marginTop: "4px",
+                      display: "block",
+                    }}
+                  >
                     ● Unsaved changes
                   </span>
                 )}
                 {isFrozen && !hasUnsavedChanges && (
-                  <span style={{ fontSize: "12px", color: "#16a34a", marginTop: "4px", display: "block" }}>
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#16a34a",
+                      marginTop: "4px",
+                      display: "block",
+                    }}
+                  >
                     ✓ Saved
                   </span>
                 )}
               </div>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div
+                style={{ display: "flex", gap: "8px", alignItems: "center" }}
+              >
                 {isFrozen ? (
                   <button
                     className="tpq-btn tpq-btn--secondary"
@@ -982,27 +932,49 @@ export default function TeacherProjectQueue() {
                       className="tpq-btn tpq-btn--primary"
                       onClick={handleSaveChanges}
                       disabled={!hasUnsavedChanges}
-                      style={{ fontSize: "13px", opacity: hasUnsavedChanges ? 1 : 0.5, display: "flex", alignItems: "center", gap: "6px" }}
+                      style={{
+                        fontSize: "13px",
+                        opacity: hasUnsavedChanges ? 1 : 0.5,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
                     >
                       <Save size={14} />
                       Save Changes
                     </button>
                   </>
                 )}
-                <button className="tpq-modal-close" onClick={handleCloseDetails}>
+                <button
+                  className="tpq-modal-close"
+                  onClick={handleCloseDetails}
+                >
                   ×
                 </button>
               </div>
             </div>
 
             <div className="tpq-modal-content">
-              {detailsLoading && (
+              {detailsLoading ? (
                 <div className="tpq-loading">
                   <Loader2 className="spin" size={24} />
                   <p>Loading project details...</p>
                 </div>
-              )}
-              
+              ) : detailsError ? (
+                <div className="tpq-error">
+                  <p>{detailsError}</p>
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      marginTop: "8px",
+                      color: "#718096",
+                    }}
+                  >
+                    Showing basic project information.
+                  </p>
+                </div>
+              ) : null}
+
               {!detailsLoading && editableProjectData && (
                 <>
                   {/* Project Description */}
@@ -1011,19 +983,25 @@ export default function TeacherProjectQueue() {
                     {!isFrozen ? (
                       <textarea
                         value={editableProjectData.description || ""}
-                        onChange={(e) => updateEditableData("description", e.target.value)}
+                        onChange={(e) =>
+                          updateEditableData("description", e.target.value)
+                        }
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y min-h-[100px]"
                         placeholder="Project description"
                       />
                     ) : (
-                      <p>{editableProjectData.description || "No description provided"}</p>
+                      <p>
+                        {editableProjectData.description ||
+                          "No description provided"}
+                      </p>
                     )}
                   </div>
 
                   {/* Stages Section - Replicated from CreateProject */}
                   <div className="tpq-modal-section">
                     <h4>Project Stages</h4>
-                    {editableProjectData.stages &&
+                    {editableProjectData?.stages &&
+                    Array.isArray(editableProjectData.stages) &&
                     editableProjectData.stages.length > 0 ? (
                       <>
                         {/* Stage Tabs Navigation */}
@@ -1056,7 +1034,8 @@ export default function TeacherProjectQueue() {
                                 (a, b) =>
                                   (a?.stage_order || 0) - (b?.stage_order || 0)
                               );
-                            const currentStage = sortedStages[currentStageIndex];
+                            const currentStage =
+                              sortedStages[currentStageIndex];
 
                             if (!currentStage) return null;
 
@@ -1072,15 +1051,23 @@ export default function TeacherProjectQueue() {
                                       type="text"
                                       value={currentStage.title || ""}
                                       onChange={(e) => {
-                                        const sortedStages = [...editableProjectData.stages].sort(
-                                          (a, b) => (a?.stage_order || 0) - (b?.stage_order || 0)
+                                        const sortedStages = [
+                                          ...editableProjectData.stages,
+                                        ].sort(
+                                          (a, b) =>
+                                            (a?.stage_order || 0) -
+                                            (b?.stage_order || 0)
                                         );
-                                        const stageIndex = editableProjectData.stages.findIndex(
-                                          s => s.stage_id === currentStage.stage_id
-                                        );
+                                        const stageIndex =
+                                          editableProjectData.stages.findIndex(
+                                            (s) =>
+                                              s.stage_id ===
+                                              currentStage.stage_id
+                                          );
                                         setEditableProjectData((prev) => {
                                           const newData = deepClone(prev);
-                                          newData.stages[stageIndex].title = e.target.value;
+                                          newData.stages[stageIndex].title =
+                                            e.target.value;
                                           return newData;
                                         });
                                         setHasUnsavedChanges(true);
@@ -1105,9 +1092,12 @@ export default function TeacherProjectQueue() {
                                       <div className="space-y-4">
                                         {currentStage.tasks.map(
                                           (task, taskIndex) => {
-                                            const stageIndex = editableProjectData.stages.findIndex(
-                                              s => s.stage_id === currentStage.stage_id
-                                            );
+                                            const stageIndex =
+                                              editableProjectData.stages.findIndex(
+                                                (s) =>
+                                                  s.stage_id ===
+                                                  currentStage.stage_id
+                                              );
                                             return (
                                               <ReviewTaskCard
                                                 key={taskIndex}
@@ -1117,11 +1107,18 @@ export default function TeacherProjectQueue() {
                                                 isEditable={true}
                                                 isFrozen={isFrozen}
                                                 onUpdate={(field, value) => {
-                                                  setEditableProjectData((prev) => {
-                                                    const newData = deepClone(prev);
-                                                    newData.stages[stageIndex].tasks[taskIndex][field] = value;
-                                                    return newData;
-                                                  });
+                                                  setEditableProjectData(
+                                                    (prev) => {
+                                                      const newData =
+                                                        deepClone(prev);
+                                                      newData.stages[
+                                                        stageIndex
+                                                      ].tasks[taskIndex][
+                                                        field
+                                                      ] = value;
+                                                      return newData;
+                                                    }
+                                                  );
                                                   setHasUnsavedChanges(true);
                                                 }}
                                               />
@@ -1143,18 +1140,33 @@ export default function TeacherProjectQueue() {
                                       isEditable={true}
                                       isFrozen={isFrozen}
                                       onUpdate={(field, index, value) => {
-                                        const stageIndex = editableProjectData.stages.findIndex(
-                                          s => s.stage_id === currentStage.stage_id
-                                        );
+                                        const stageIndex =
+                                          editableProjectData.stages.findIndex(
+                                            (s) =>
+                                              s.stage_id ===
+                                              currentStage.stage_id
+                                          );
                                         setEditableProjectData((prev) => {
                                           const newData = deepClone(prev);
-                                          if (field === 'checklist' && typeof index === 'number') {
-                                            if (!newData.stages[stageIndex].gate.checklist) {
-                                              newData.stages[stageIndex].gate.checklist = [];
+                                          if (
+                                            field === "checklist" &&
+                                            typeof index === "number"
+                                          ) {
+                                            if (
+                                              !newData.stages[stageIndex].gate
+                                                .checklist
+                                            ) {
+                                              newData.stages[
+                                                stageIndex
+                                              ].gate.checklist = [];
                                             }
-                                            newData.stages[stageIndex].gate.checklist[index] = value;
+                                            newData.stages[
+                                              stageIndex
+                                            ].gate.checklist[index] = value;
                                           } else {
-                                            newData.stages[stageIndex].gate[field] = value;
+                                            newData.stages[stageIndex].gate[
+                                              field
+                                            ] = value;
                                           }
                                           return newData;
                                         });
@@ -1166,66 +1178,68 @@ export default function TeacherProjectQueue() {
 
                                 {/* Stage Actions */}
                                 <div className="flex gap-3 pt-4 border-t border-gray-200">
-                              <button
-                                onClick={() => {
-                                  const stageId = currentStage.stage_id;
-                                  setStageStatuses((prev) => ({
-                                    ...prev,
-                                    [stageId]: "approved",
-                                  }));
-                                }}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                                  stageStatuses[currentStage.stage_id] ===
-                                  "approved"
-                                    ? "bg-green-600 text-white"
-                                    : "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
-                                }`}
-                              >
-                                <CheckCircle size={16} />
-                                Approve Stage
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const stageId = currentStage.stage_id;
-                                  setStageStatuses((prev) => ({
-                                    ...prev,
-                                    [stageId]: "revision",
-                                  }));
-                                }}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                                  stageStatuses[currentStage.stage_id] ===
-                                  "revision"
-                                    ? "bg-yellow-600 text-white"
-                                    : "bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200"
-                                }`}
-                              >
-                                <XCircle size={16} />
-                                Request Revision
-                              </button>
-                              {stageStatuses[currentStage.stage_id] && (
-                                <span className="ml-auto px-3 py-2 text-sm font-medium text-gray-600">
-                                  Status:{" "}
-                                  <span
-                                    className={`font-semibold ${
+                                  <button
+                                    onClick={() => {
+                                      const stageId = currentStage.stage_id;
+                                      setStageStatuses((prev) => ({
+                                        ...prev,
+                                        [stageId]: "approved",
+                                      }));
+                                    }}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                                       stageStatuses[currentStage.stage_id] ===
                                       "approved"
-                                        ? "text-green-600"
-                                        : "text-yellow-600"
+                                        ? "bg-green-600 text-white"
+                                        : "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
                                     }`}
                                   >
-                                    {stageStatuses[currentStage.stage_id] ===
-                                    "approved"
-                                      ? "Approved"
-                                      : "Revision Requested"}
-                                  </span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </>
+                                    <CheckCircle size={16} />
+                                    Approve Stage
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const stageId = currentStage.stage_id;
+                                      setStageStatuses((prev) => ({
+                                        ...prev,
+                                        [stageId]: "revision",
+                                      }));
+                                    }}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                                      stageStatuses[currentStage.stage_id] ===
+                                      "revision"
+                                        ? "bg-yellow-600 text-white"
+                                        : "bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200"
+                                    }`}
+                                  >
+                                    <XCircle size={16} />
+                                    Request Revision
+                                  </button>
+                                  {stageStatuses[currentStage.stage_id] && (
+                                    <span className="ml-auto px-3 py-2 text-sm font-medium text-gray-600">
+                                      Status:{" "}
+                                      <span
+                                        className={`font-semibold ${
+                                          stageStatuses[
+                                            currentStage.stage_id
+                                          ] === "approved"
+                                            ? "text-green-600"
+                                            : "text-yellow-600"
+                                        }`}
+                                      >
+                                        {stageStatuses[
+                                          currentStage.stage_id
+                                        ] === "approved"
+                                          ? "Approved"
+                                          : "Revision Requested"}
+                                      </span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </>
                     ) : (
                       <div
                         className="tpq-empty-state"
