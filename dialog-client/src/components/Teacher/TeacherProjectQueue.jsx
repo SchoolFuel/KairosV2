@@ -125,7 +125,6 @@ function ProjectCard({ project, onReview, onApprove, onReject }) {
           <BookOpen size={14} />
           Review
         </button>
-
         <button
           className="tpq-btn tpq-btn--approve"
           onClick={(e) => {
@@ -138,7 +137,6 @@ function ProjectCard({ project, onReview, onApprove, onReject }) {
           <CheckCircle size={14} />
           Approve
         </button>
-
         <button
           className="tpq-btn tpq-btn--reject"
           onClick={(e) => {
@@ -760,7 +758,6 @@ export default function TeacherProjectQueue() {
             <h3>Scheduling Assistant</h3>
             <span className="tpq-chip">Proposes slots</span>
           </div>
-
           <div className="tpq-stack">
             <div className="tpq-card">
               <div className="tpq-inline">
@@ -803,7 +800,6 @@ export default function TeacherProjectQueue() {
             <h3>Review Analytics</h3>
             <span className="tpq-chip">Last 14 days</span>
           </div>
-
           <div className="tpq-stack">
             <div className="tpq-card">
               <div className="tpq-inline">
