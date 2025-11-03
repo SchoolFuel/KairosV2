@@ -147,6 +147,28 @@ function openDialog(dialogType, title){
   DocumentApp.getUi().showModalDialog(modifiedHtml, title);
 }
 
+function openPrototypeDialog(projectId) {
+  const html = HtmlService.createHtmlOutputFromFile('Dialog')
+    .setWidth(900)
+    .setHeight(700);
+
+  const htmlWithHash = html.getContent();
+  const modifiedHtml = HtmlService.createHtmlOutput(
+    htmlWithHash.replace(
+      '<body>',
+      `<body><script>
+        window.location.hash = 'project-dashboard';
+        window.PROJECT_ID = '${projectId || ''}';
+      </script>`
+    )
+  )
+    .setWidth(900)
+    .setHeight(700);
+
+  DocumentApp.getUi().showModalDialog(modifiedHtml, 'Project Prototype');
+}
+
+
 // Specific function to open Teacher Project Queue dialog
 function openTeacherProjectQueue() {
   openDialog('teacher-project-queue', 'Teacher Project Queue');
