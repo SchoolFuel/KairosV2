@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { Loader2, CheckCircle, XCircle, Clock, User, BookOpen } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Clock,
+  User,
+  BookOpen,
+  Save,
+} from "lucide-react";
 import Badge from "../Shared/LearningStandards/Badge";
-import Checkbox from "../Shared/LearningStandards/Checkbox";
+import ReviewStageTab from "./ReviewStageTab";
+import ReviewTaskCard from "./ReviewTaskCard";
+import ReviewAssessmentGate from "./ReviewAssessmentGate";
+import GateStandards from "./GateStandards";
 import "./TeacherProjectQueue.css";
 
 const parseMaybeJSON = (v) => {
@@ -37,14 +48,16 @@ function pillClass(status) {
 
 function getStatusIcon(status) {
   const s = (status || "").toLowerCase();
-  if (s.includes("approve")) return <CheckCircle className="status-icon approved" />;
-  if (s.includes("reject") || s.includes("revision")) return <XCircle className="status-icon rejected" />;
+  if (s.includes("approve"))
+    return <CheckCircle className="status-icon approved" />;
+  if (s.includes("reject") || s.includes("revision"))
+    return <XCircle className="status-icon rejected" />;
   if (s.includes("pending")) return <Clock className="status-icon pending" />;
   return <Clock className="status-icon neutral" />;
 }
 
 /* ---------- Project Card Component using shared components ---------- */
-function ProjectCard({ project, onReview, onApprove, onReject, isSelected, onToggle }) {
+function ProjectCard({ project, onReview, onApprove, onReject }) {
   const title = project.title || project.project_title || "Untitled";
   const subject = project.subject_domain || "—";
   const status = (project.status || "—").trim();
@@ -52,24 +65,8 @@ function ProjectCard({ project, onReview, onApprove, onReject, isSelected, onTog
   const description = project.description || "";
   const createdAt = project.created_at || project.createdAt || "";
 
-  const handleCardClick = () => {
-    if (onToggle) {
-      onToggle(project.project_id);
-    }
-  };
-
-  const handleCheckboxChange = (e) => {
-    e.stopPropagation();
-    if (onToggle) {
-      onToggle(project.project_id);
-    }
-  };
-
   return (
-    <div 
-      className={`tpq-card ${isSelected ? 'selected' : ''}`}
-      onClick={handleCardClick}
-    >
+    <div className="tpq-card">
       <div className="tpq-card-header">
         <div className="tpq-card-title-section">
           <h3 className="tpq-card-title" title={title}>
@@ -101,10 +98,9 @@ function ProjectCard({ project, onReview, onApprove, onReject, isSelected, onTog
 
       {description && (
         <div className="tpq-description">
-          {description.length > 150 
-            ? `${description.substring(0, 150)}...` 
-            : description
-          }
+          {description.length > 150
+            ? `${description.substring(0, 150)}...`
+            : description}
         </div>
       )}
 
@@ -122,12 +118,13 @@ function ProjectCard({ project, onReview, onApprove, onReject, isSelected, onTog
             onReview(project);
           }}
           disabled={!project.project_id}
-          title={project.project_id ? "Open detailed review" : "Missing project ID"}
+          title={
+            project.project_id ? "Open detailed review" : "Missing project ID"
+          }
         >
           <BookOpen size={14} />
           Review
         </button>
-        
         <button
           className="tpq-btn tpq-btn--approve"
           onClick={(e) => {
@@ -140,7 +137,6 @@ function ProjectCard({ project, onReview, onApprove, onReject, isSelected, onTog
           <CheckCircle size={14} />
           Approve
         </button>
-        
         <button
           className="tpq-btn tpq-btn--reject"
           onClick={(e) => {
@@ -154,17 +150,6 @@ function ProjectCard({ project, onReview, onApprove, onReject, isSelected, onTog
           Request Revision
         </button>
       </div>
-
-      {/* Checkbox for bulk selection */}
-      {onToggle && (
-        <div className="tpq-checkbox" onClick={(e) => e.stopPropagation()}>
-          <Checkbox
-            checked={isSelected}
-            onChange={handleCheckboxChange}
-            id={`project-${project.project_id}`}
-          />
-        </div>
-      )}
     </div>
   );
 }
@@ -175,29 +160,42 @@ export default function TeacherProjectQueue() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("all"); // all, pending, approved, rejected
+  const [filter, setFilter] = useState("all"); // all, pending
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [selectedProjects, setSelectedProjects] = useState(new Set()); // For bulk selection
-  const [bulkMode, setBulkMode] = useState(false);
-  
+
   // Detailed project review state
   const [projectDetails, setProjectDetails] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState("");
   const [selectedStageId, setSelectedStageId] = useState(null);
+  const [currentStageIndex, setCurrentStageIndex] = useState(0);
+  const [stageStatuses, setStageStatuses] = useState({}); // Track individual stage approval/rejection
   const [overallComment, setOverallComment] = useState("");
-  
+  const [editableProjectData, setEditableProjectData] = useState(null); // Editable copy of project data
+  const [isFrozen, setIsFrozen] = useState(false); // Track if changes are saved/frozen
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
   // Advanced features state
-  const [activeTab, setActiveTab] = useState('inbox'); // inbox, rubrics, calendar, comments, analytics
+  const [activeTab, setActiveTab] = useState("inbox"); // inbox, rubrics, calendar, analytics
   const [showCalendar, setShowCalendar] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [projectComments, setProjectComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [rubrics, setRubrics] = useState([]);
-  const [rubricVals, setRubricVals] = useState({ align: 0, evidence: 0, clarity: 0, complete: 0 });
-  const [compose, setCompose] = useState("");
+  const [rubricVals, setRubricVals] = useState({
+    align: 0,
+    evidence: 0,
+    clarity: 0,
+    complete: 0,
+  });
+  const [partialMarks, setPartialMarks] = useState({
+    align: "",
+    evidence: "",
+    clarity: "",
+    complete: "",
+  });
   const [analytics, setAnalytics] = useState({
     totalProjects: 0,
     approvedProjects: 0,
@@ -207,7 +205,7 @@ export default function TeacherProjectQueue() {
     completionRate: 0,
     medianReviewTime: "2.4h",
     declineRate: "18%",
-    throughput: 126
+    throughput: 126,
   });
 
   // Load projects on component mount
@@ -219,43 +217,30 @@ export default function TeacherProjectQueue() {
   useEffect(() => {
     if (projects.length > 0) {
       const total = projects.length;
-      const approved = projects.filter(p => p.status.toLowerCase().includes('approve')).length;
-      const pending = projects.filter(p => p.status.toLowerCase().includes('pending')).length;
-      const rejected = projects.filter(p => p.status.toLowerCase().includes('reject') || p.status.toLowerCase().includes('revision')).length;
-      
-      setAnalytics(prev => ({
+      const approved = projects.filter((p) =>
+        p.status.toLowerCase().includes("approve")
+      ).length;
+      const pending = projects.filter((p) =>
+        p.status.toLowerCase().includes("pending")
+      ).length;
+      const rejected = projects.filter(
+        (p) =>
+          p.status.toLowerCase().includes("reject") ||
+          p.status.toLowerCase().includes("revision")
+      ).length;
+
+      setAnalytics((prev) => ({
         ...prev,
         totalProjects: total,
         approvedProjects: approved,
         pendingProjects: pending,
         rejectedProjects: rejected,
-        completionRate: Math.round((approved / total) * 100)
+        completionRate: Math.round((approved / total) * 100),
       }));
     }
   }, [projects]);
 
-  // Load mock comments for selected project
-  useEffect(() => {
-    if (selectedProject) {
-      const mockComments = [
-        {
-          id: 1,
-          author: "Teacher",
-          comment: "Great work on the research phase!",
-          timestamp: "2024-01-15T10:30:00Z",
-          type: "feedback"
-        },
-        {
-          id: 2,
-          author: "Student",
-          comment: "Thank you! I'll work on the design phase next.",
-          timestamp: "2024-01-15T11:00:00Z",
-          type: "response"
-        }
-      ];
-      setProjectComments(mockComments);
-    }
-  }, [selectedProject]);
+  // Gate Assessment is now integrated directly into this component
 
   // Load mock rubrics
   useEffect(() => {
@@ -266,17 +251,17 @@ export default function TeacherProjectQueue() {
         criteria: [
           { name: "Sources", weight: 30, score: 0 },
           { name: "Accuracy", weight: 40, score: 0 },
-          { name: "Depth", weight: 30, score: 0 }
-        ]
+          { name: "Depth", weight: 30, score: 0 },
+        ],
       },
       {
         id: 2,
         name: "Presentation",
         criteria: [
           { name: "Clarity", weight: 50, score: 0 },
-          { name: "Organization", weight: 50, score: 0 }
-        ]
-      }
+          { name: "Organization", weight: 50, score: 0 },
+        ],
+      },
     ];
     setRubrics(mockRubrics);
   }, []);
@@ -285,118 +270,132 @@ export default function TeacherProjectQueue() {
     try {
       setLoading(true);
       setError("");
-      
-      // Mock data with more detailed project information
-      const mockProjects = [
-        {
-          project_id: "1",
-          user_id: "user1",
-          title: "Solar System Model",
-          project_title: "Solar System Model",
-          subject_domain: "Science",
-          status: "Pending Approval",
-          owner_name: "John Doe",
-          owner_email: "john@example.com",
-          description: "A detailed model of our solar system with accurate planetary positions and sizes.",
-          created_at: "2024-01-15T10:30:00Z",
-          stages: [
-            {
-              stage_id: "1",
-              stage_order: 1,
-              title: "Research Phase",
-              status: "Completed",
-              gate: {
-                gate_id: "gate1",
-                title: "Research Gate",
-                checklist: ["Research completed", "Sources verified", "Notes organized"]
-              }
-            },
-            {
-              stage_id: "2", 
-              stage_order: 2,
-              title: "Design Phase",
-              status: "In Progress",
-              gate: {
-                gate_id: "gate2",
-                title: "Design Gate", 
-                checklist: ["Design sketches", "Materials list", "Timeline created"]
-              }
-            }
-          ]
-        },
-        {
-          project_id: "2",
-          user_id: "user2",
-          title: "Ancient Rome Timeline",
-          project_title: "Ancient Rome Timeline",
-          subject_domain: "History",
-          status: "Approved",
-          owner_name: "Jane Smith",
-          owner_email: "jane@example.com",
-          description: "Interactive timeline showing key events in Ancient Roman history.",
-          created_at: "2024-01-14T14:20:00Z",
-          stages: [
-            {
-              stage_id: "3",
-              stage_order: 1,
-              title: "Historical Research",
-              status: "Completed",
-              gate: {
-                gate_id: "gate3",
-                title: "Research Gate",
-                checklist: ["Primary sources found", "Timeline structure planned"]
-              }
-            }
-          ]
-        },
-        {
-          project_id: "3",
-          user_id: "user3",
-          title: "Math Word Problems",
-          project_title: "Math Word Problems",
-          subject_domain: "Mathematics",
-          status: "Pending Revision",
-          owner_name: "Mike Johnson",
-          owner_email: "mike@example.com",
-          description: "Collection of word problems covering algebra and geometry concepts.",
-          created_at: "2024-01-13T09:15:00Z",
-          stages: [
-            {
-              stage_id: "4",
-              stage_order: 1,
-              title: "Problem Creation",
-              status: "Completed",
-              gate: {
-                gate_id: "gate4",
-                title: "Problem Gate",
-                checklist: ["Problems written", "Solutions provided", "Difficulty levels set"]
-              }
-            }
-          ]
-        }
-      ];
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setProjects(mockProjects);
+      // Call Google Apps Script function to fetch all teacher projects
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler((response) => {
+            try {
+              console.log(
+                "Raw API response:",
+                JSON.stringify(response, null, 2)
+              );
+
+              // Handle the response structure: { statusCode, body: { action_response: { projects: [...] } } }
+              let projects = [];
+
+              if (response && response.body) {
+                const body = response.body;
+                console.log("Response body:", JSON.stringify(body, null, 2));
+
+                // Try multiple paths to find projects array
+                // Path 1: body.projects (direct)
+                if (Array.isArray(body.projects)) {
+                  projects = body.projects;
+                  console.log(
+                    `Found ${projects.length} projects in body.projects`
+                  );
+                }
+                // Path 2: body.action_response.projects
+                else if (
+                  body.action_response &&
+                  Array.isArray(body.action_response.projects)
+                ) {
+                  projects = body.action_response.projects;
+                  console.log(
+                    `Found ${projects.length} projects in body.action_response.projects`
+                  );
+                }
+                // Path 3: body.projects (if it's an object with projects property)
+                else if (body.projects && Array.isArray(body.projects)) {
+                  projects = body.projects;
+                  console.log(
+                    `Found ${projects.length} projects in body.projects (nested)`
+                  );
+                }
+              }
+              // Path 4: response.action_response.projects (direct on response)
+              else if (
+                response &&
+                response.action_response &&
+                Array.isArray(response.action_response.projects)
+              ) {
+                projects = response.action_response.projects;
+                console.log(
+                  `Found ${projects.length} projects in response.action_response.projects`
+                );
+              }
+              // Path 5: response is directly an array
+              else if (Array.isArray(response)) {
+                projects = response;
+                console.log(
+                  `Found ${projects.length} projects in response array`
+                );
+              }
+
+              console.log(`Total projects found: ${projects.length}`);
+
+              if (projects.length === 0) {
+                console.warn(
+                  "No projects found in response. Full response structure:",
+                  response
+                );
+                // Don't set error, just let empty state show naturally
+              }
+
+              // Map API response to component expected format
+              const mappedProjects = projects.map((project) => ({
+                project_id: project.project_id || project.id,
+                user_id: project.user_id,
+                title: project.title || project.project_title || "",
+                project_title: project.title || project.project_title || "",
+                subject_domain: project.subject_domain || "",
+                status: project.status || "Pending",
+                owner_name: project.Student_Name || project.owner_name || "",
+                owner_email: project.owner_email || "",
+                description: project.description || "",
+                created_at: project.created_at || new Date().toISOString(),
+                stages: project.stages || [], // Keep stages if available, otherwise empty array
+              }));
+
+              console.log(`Mapped ${mappedProjects.length} projects`);
+              setProjects(mappedProjects);
+              setLoading(false); // Set loading to false AFTER setting projects
+              resolve(mappedProjects);
+            } catch (parseError) {
+              console.error("Error parsing projects response:", parseError);
+              setError("Error parsing project data: " + parseError.message);
+              setLoading(false);
+              reject(parseError);
+            }
+          })
+          .withFailureHandler((error) => {
+            console.error("Error loading projects:", error);
+            setError(error?.message || "Failed to load projects");
+            setLoading(false);
+            reject(error);
+          })
+          .getTeacherProjectsAll();
+      });
     } catch (err) {
+      console.error("Error in loadProjects:", err);
       setError(err?.message || "Failed to load projects");
-    } finally {
       setLoading(false);
     }
   };
 
   // Filter projects based on status and search term
-  const filteredProjects = projects.filter(project => {
-    const matchesFilter = filter === "all" || 
+  const filteredProjects = projects.filter((project) => {
+    const matchesFilter =
+      filter === "all" ||
       project.status.toLowerCase().includes(filter.toLowerCase());
-    
-    const matchesSearch = !searchTerm || 
+
+    const matchesSearch =
+      !searchTerm ||
       project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.subject_domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.owner_name.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     return matchesFilter && matchesSearch;
   });
 
@@ -404,22 +403,101 @@ export default function TeacherProjectQueue() {
   const handleReview = (project) => {
     setSelectedProject(project);
     setShowDetails(true);
-    
-    // Use the project data directly from the mock data (which includes stages)
-    setProjectDetails(project);
-    setDetailsLoading(false);
+    setCurrentStageIndex(0);
+    setStageStatuses({}); // Reset stage statuses for new project
+    setRubricVals({ align: 0, evidence: 0, clarity: 0, complete: 0 }); // Reset rubric
+    setPartialMarks({ align: "", evidence: "", clarity: "", complete: "" }); // Reset partial marks
+    setOverallComment(""); // Reset comments
+    setIsFrozen(false); // Reset frozen state
+    setHasUnsavedChanges(false); // Reset unsaved changes
+    setEditableProjectData(null); // Will be set when projectDetails loads
+
+    // Fetch detailed project data (including stages) when reviewing
+    setDetailsLoading(true);
     setDetailsError("");
+
+    google.script.run
+      .withSuccessHandler((response) => {
+        try {
+          let projectDetails = project; // Start with basic project data
+          let fetchedProject = null;
+
+          // Handle nested response structure: response.body.action_response.json.project
+          if (response?.body?.action_response?.json?.project) {
+            fetchedProject = response.body.action_response.json.project;
+          } else if (response?.body?.project) {
+            fetchedProject = response.body.project;
+          } else if (response?.project) {
+            fetchedProject = response.project;
+          } else if (response?.body?.action_response?.project) {
+            fetchedProject = response.body.action_response.project;
+          }
+
+          if (fetchedProject) {
+            // Merge detailed project data with basic data
+            projectDetails = {
+              ...project,
+              ...fetchedProject,
+              // Ensure required fields are present
+              project_id: fetchedProject.project_id || project.project_id,
+              title:
+                fetchedProject.title ||
+                fetchedProject.project_title ||
+                project.title,
+              project_title:
+                fetchedProject.project_title ||
+                fetchedProject.title ||
+                project.project_title,
+              description:
+                fetchedProject.description || project.description || "",
+              stages: fetchedProject.stages || project.stages || [],
+            };
+          } else {
+            // If no fetched project but we have basic project, use it with empty stages array
+            projectDetails = {
+              ...project,
+              stages: project.stages || [],
+            };
+          }
+
+          setProjectDetails(projectDetails);
+          // Initialize editable copy (deep clone)
+          const editableCopy = deepClone(projectDetails);
+          setEditableProjectData(editableCopy);
+          setDetailsLoading(false);
+        } catch (parseError) {
+          console.error("Error parsing project details:", parseError);
+          setDetailsError("Error loading project details");
+          // Fallback to basic project data if detailed fetch fails
+          setProjectDetails(project);
+          // Initialize editable copy with basic project data
+          const editableCopy = deepClone(project);
+          setEditableProjectData(editableCopy);
+          setDetailsLoading(false);
+        }
+      })
+      .withFailureHandler((error) => {
+        console.error("Error fetching project details:", error);
+        setDetailsError("Failed to load project details");
+        // Fallback to basic project data
+        setProjectDetails(project);
+        // Initialize editable copy with basic project data
+        const editableCopy = deepClone(project);
+        setEditableProjectData(editableCopy);
+        setDetailsLoading(false);
+      })
+      .getTeacherProjectDetails(project.project_id, project.user_id);
   };
 
   const handleApprove = async (project) => {
     try {
       // Update project status locally
-      setProjects(prev => prev.map(p => 
-        p.project_id === project.project_id 
-          ? { ...p, status: "Approved" }
-          : p
-      ));
-      
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.project_id === project.project_id ? { ...p, status: "Approved" } : p
+        )
+      );
+
       // Here you would call the actual API
       console.log("Approving project:", project.project_id);
     } catch (err) {
@@ -430,12 +508,14 @@ export default function TeacherProjectQueue() {
   const handleReject = async (project) => {
     try {
       // Update project status locally
-      setProjects(prev => prev.map(p => 
-        p.project_id === project.project_id 
-          ? { ...p, status: "Pending Revision" }
-          : p
-      ));
-      
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.project_id === project.project_id
+            ? { ...p, status: "Pending Revision" }
+            : p
+        )
+      );
+
       // Here you would call the actual API
       console.log("Requesting revision for project:", project.project_id);
     } catch (err) {
@@ -444,42 +524,91 @@ export default function TeacherProjectQueue() {
   };
 
   const handleCloseDetails = () => {
+    if (hasUnsavedChanges) {
+      if (
+        !confirm("You have unsaved changes. Are you sure you want to close?")
+      ) {
+        return;
+      }
+    }
     setShowDetails(false);
     setSelectedProject(null);
+    setEditableProjectData(null);
+    setIsFrozen(false);
+    setHasUnsavedChanges(false);
   };
 
-  // Bulk selection handlers
-  const handleToggleProject = (projectId) => {
-    setSelectedProjects(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(projectId)) {
-        newSet.delete(projectId);
-      } else {
-        newSet.add(projectId);
+  const handleSaveChanges = async () => {
+    try {
+      // Deep clone to ensure we're saving the current editable state
+      const dataToSave = deepClone(editableProjectData);
+
+      // Call API to save changes
+      // In production: google.script.run.withSuccessHandler(...).saveProjectEdits(...)
+      console.log("Saving project edits:", {
+        project_id: selectedProject.project_id,
+        projectData: dataToSave,
+      });
+
+      // Update projectDetails with saved data
+      setProjectDetails(dataToSave);
+      setIsFrozen(true);
+      setHasUnsavedChanges(false);
+
+      // Optionally show success message
+      alert("Changes saved successfully!");
+    } catch (err) {
+      console.error("Error saving changes:", err);
+      alert("Error saving changes. Please try again.");
+    }
+  };
+
+  const handleUnfreeze = () => {
+    setIsFrozen(false);
+  };
+
+  // Helper function to update editable project data
+  const updateEditableData = (path, value) => {
+    setEditableProjectData((prev) => {
+      if (!prev) return prev;
+      const newData = deepClone(prev);
+      const keys = path.split(".");
+      let current = newData;
+
+      for (let i = 0; i < keys.length - 1; i++) {
+        const key = keys[i];
+        if (key.includes("[") && key.includes("]")) {
+          // Handle array indices like "stages[0]"
+          const match = key.match(/(\w+)\[(\d+)\]/);
+          if (match) {
+            const arrName = match[1];
+            const arrIndex = parseInt(match[2]);
+            if (!current[arrName]) current[arrName] = [];
+            if (!current[arrName][arrIndex]) current[arrName][arrIndex] = {};
+            current = current[arrName][arrIndex];
+            continue;
+          }
+        }
+        if (!current[key]) current[key] = {};
+        current = current[key];
       }
-      return newSet;
+
+      const lastKey = keys[keys.length - 1];
+      if (lastKey.includes("[") && lastKey.includes("]")) {
+        const match = lastKey.match(/(\w+)\[(\d+)\]/);
+        if (match) {
+          const arrName = match[1];
+          const arrIndex = parseInt(match[2]);
+          if (!current[arrName]) current[arrName] = [];
+          current[arrName][arrIndex] = value;
+        }
+      } else {
+        current[lastKey] = value;
+      }
+
+      return newData;
     });
-  };
-
-  const handleSelectAll = () => {
-    const allProjectIds = filteredProjects.map(p => p.project_id);
-    setSelectedProjects(new Set(allProjectIds));
-  };
-
-  const handleClearSelection = () => {
-    setSelectedProjects(new Set());
-  };
-
-  const handleBulkApprove = () => {
-    const projectsToApprove = filteredProjects.filter(p => selectedProjects.has(p.project_id));
-    projectsToApprove.forEach(project => handleApprove(project));
-    setSelectedProjects(new Set());
-  };
-
-  const handleBulkReject = () => {
-    const projectsToReject = filteredProjects.filter(p => selectedProjects.has(p.project_id));
-    projectsToReject.forEach(project => handleReject(project));
-    setSelectedProjects(new Set());
+    setHasUnsavedChanges(true);
   };
 
   // Loading state
@@ -487,8 +616,10 @@ export default function TeacherProjectQueue() {
     return (
       <div className="tpq-container">
         <div className="tpq-loading">
-          <Loader2 className="spin" size={24} />
-          <p>Loading projects...</p>
+          <Loader2 className="spin" size={32} style={{ color: "#3182ce" }} />
+          <p style={{ fontSize: "16px", marginTop: "16px", color: "#4a5568" }}>
+            Loading projects...
+          </p>
         </div>
       </div>
     );
@@ -512,9 +643,8 @@ export default function TeacherProjectQueue() {
   // Tab configuration
   const tabs = [
     { key: "inbox", label: "Inbox", sub: "Under Review" },
-    { key: "rubrics", label: "Rubrics & Gates", sub: "Step-by-step" },
+    { key: "rubrics", label: "Gate Assessment", sub: "Workflow" },
     { key: "calendar", label: "Calendar", sub: "Scheduling" },
-    { key: "comments", label: "Comments", sub: "Canned + notes" },
     { key: "analytics", label: "Analytics", sub: "SLA & trends" },
   ];
 
@@ -537,7 +667,8 @@ export default function TeacherProjectQueue() {
         >
           {tabs.map((t) => (
             <option key={t.key} value={t.key}>
-              {t.label} — {t.sub}
+              {t.label}
+              {t.sub ? ` — ${t.sub}` : ""}
             </option>
           ))}
         </select>
@@ -549,29 +680,25 @@ export default function TeacherProjectQueue() {
           {/* Filters and Search */}
           <div className="tpq-controls">
             <div className="tpq-filters">
-              <button 
+              <button
                 className={`tpq-filter-btn ${filter === "all" ? "active" : ""}`}
                 onClick={() => setFilter("all")}
               >
                 All ({projects.length})
               </button>
-              <button 
-                className={`tpq-filter-btn ${filter === "pending" ? "active" : ""}`}
+              <button
+                className={`tpq-filter-btn ${
+                  filter === "pending" ? "active" : ""
+                }`}
                 onClick={() => setFilter("pending")}
               >
-                Pending ({projects.filter(p => p.status.toLowerCase().includes("pending")).length})
-              </button>
-              <button 
-                className={`tpq-filter-btn ${filter === "approved" ? "active" : ""}`}
-                onClick={() => setFilter("approved")}
-              >
-                Approved ({projects.filter(p => p.status.toLowerCase().includes("approve")).length})
-              </button>
-              <button 
-                className={`tpq-filter-btn ${filter === "rejected" ? "active" : ""}`}
-                onClick={() => setFilter("rejected")}
-              >
-                Revision ({projects.filter(p => p.status.toLowerCase().includes("revision")).length})
+                Pending (
+                {
+                  projects.filter((p) =>
+                    p.status.toLowerCase().includes("pending")
+                  ).length
+                }
+                )
               </button>
             </div>
 
@@ -586,152 +713,41 @@ export default function TeacherProjectQueue() {
             </div>
           </div>
 
-      {/* Bulk Actions */}
-      <div className="tpq-bulk-controls">
-        <div className="tpq-bulk-toggle">
-          <button 
-            className={`tpq-btn tpq-btn--secondary ${bulkMode ? 'active' : ''}`}
-            onClick={() => {
-              setBulkMode(!bulkMode);
-              if (bulkMode) setSelectedProjects(new Set());
-            }}
-          >
-            {bulkMode ? 'Exit Bulk Mode' : 'Bulk Actions'}
-          </button>
-        </div>
-
-        {bulkMode && (
-          <div className="tpq-bulk-actions">
-            <span className="tpq-selection-count">
-              {selectedProjects.size} selected
-            </span>
-            <button 
-              className="tpq-btn tpq-btn--secondary"
-              onClick={handleSelectAll}
-              disabled={filteredProjects.length === 0}
-            >
-              Select All ({filteredProjects.length})
-            </button>
-            <button 
-              className="tpq-btn tpq-btn--secondary"
-              onClick={handleClearSelection}
-              disabled={selectedProjects.size === 0}
-            >
-              Clear Selection
-            </button>
-            <button 
-              className="tpq-btn tpq-btn--approve"
-              onClick={handleBulkApprove}
-              disabled={selectedProjects.size === 0}
-            >
-              <CheckCircle size={14} />
-              Bulk Approve
-            </button>
-            <button 
-              className="tpq-btn tpq-btn--reject"
-              onClick={handleBulkReject}
-              disabled={selectedProjects.size === 0}
-            >
-              <XCircle size={14} />
-              Bulk Reject
-            </button>
+          {/* Projects List */}
+          <div className="tpq-projects">
+            {filteredProjects.length === 0 ? (
+              <div className="tpq-empty">
+                <BookOpen size={48} />
+                <h3>No projects found</h3>
+                <p>
+                  {searchTerm || filter !== "all"
+                    ? "Try adjusting your search or filter criteria"
+                    : projects.length === 0
+                    ? "No projects have been submitted yet"
+                    : `No projects match your filters. Showing ${
+                        projects.length
+                      } total project${projects.length !== 1 ? "s" : ""}.`}
+                </p>
+              </div>
+            ) : (
+              filteredProjects.map((project) => (
+                <ProjectCard
+                  key={project.project_id}
+                  project={project}
+                  onReview={handleReview}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                />
+              ))
+            )}
           </div>
-        )}
-      </div>
-
-      {/* Projects List */}
-      <div className="tpq-projects">
-        {filteredProjects.length === 0 ? (
-          <div className="tpq-empty">
-            <BookOpen size={48} />
-            <h3>No projects found</h3>
-            <p>
-              {searchTerm || filter !== "all" 
-                ? "Try adjusting your search or filter criteria"
-                : "No projects have been submitted yet"
-              }
-            </p>
-          </div>
-        ) : (
-          filteredProjects.map(project => (
-            <ProjectCard
-              key={project.project_id}
-              project={project}
-              onReview={handleReview}
-              onApprove={handleApprove}
-              onReject={handleReject}
-              isSelected={selectedProjects.has(project.project_id)}
-              onToggle={bulkMode ? handleToggleProject : undefined}
-            />
-          ))
-        )}
-      </div>
         </>
       )}
 
-      {/* RUBRICS & GATES TAB */}
+      {/* GATE ASSESSMENT TAB - Integrated workflow */}
       {activeTab === "rubrics" && (
-        <div className="tpq-panel">
-          <div className="tpq-panel-head">
-            <h3>Rubrics & Gate Steps</h3>
-            <span className="tpq-chip">Step: <strong>Prep</strong></span>
-          </div>
-          
-          <div className="tpq-stack">
-            <div className="tpq-card">
-              <div className="tpq-inline">
-                <div>
-                  <div style={{ fontWeight: 700 }}>Selected Item</div>
-                  <div className="tpq-muted">
-                    {selectedProjects.size ? 
-                      `${projects.find(p => selectedProjects.has(p.project_id))?.title} — ${projects.find(p => selectedProjects.has(p.project_id))?.owner_name}` : 
-                      "None"
-                    }
-                  </div>
-                </div>
-                <button 
-                  className="tpq-btn"
-                  onClick={() => {
-                    if (!selectedProjects.size) return;
-                    const first = projects.find(p => selectedProjects.has(p.project_id));
-                    handleReview(first);
-                  }}
-                >
-                  Open Rubric
-                </button>
-              </div>
-            </div>
-
-            <div className="tpq-card">
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>Gate Stepper</div>
-              <div className="tpq-inline" style={{ flexWrap: "wrap", gap: 8 }}>
-                {['Prep','Schedule','Notify','Complete','Review/Evaluate','Final Report','Feedback/Reflection'].map((s) => (
-                  <span key={s} className="tpq-chip">{s}</span>
-                ))}
-              </div>
-            </div>
-
-            <div className="tpq-card">
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>Required Fields</div>
-              <div className="tpq-stack">
-                <div className="tpq-field">
-                  <label>Reviewer</label>
-                  <input type="text" placeholder="teacher@example.org" defaultValue="teacher@example.org" />
-                </div>
-                <div className="tpq-field">
-                  <label>Due Date</label>
-                  <input type="text" placeholder="YYYY-MM-DD" />
-                </div>
-                <div className="tpq-field">
-                  <label>Notes</label>
-                  <textarea rows={3} placeholder="Internal notes" />
-                </div>
-                <div className="tpq-inline" style={{ justifyContent: "flex-end" }}>
-                  <button className="tpq-btn tpq-btn--primary">Save Step</button>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="tpq-gate-assessment-wrapper">
+          <GateStandards onCancel={() => setActiveTab("inbox")} />
         </div>
       )}
 
@@ -742,13 +758,14 @@ export default function TeacherProjectQueue() {
             <h3>Scheduling Assistant</h3>
             <span className="tpq-chip">Proposes slots</span>
           </div>
-          
           <div className="tpq-stack">
             <div className="tpq-card">
               <div className="tpq-inline">
                 <div>
                   <div style={{ fontWeight: 700 }}>Proposed Times</div>
-                  <div className="tpq-muted">Synced from Google Calendar (placeholder)</div>
+                  <div className="tpq-muted">
+                    Synced from Google Calendar (placeholder)
+                  </div>
                 </div>
                 <button className="tpq-btn">Refresh</button>
               </div>
@@ -763,50 +780,13 @@ export default function TeacherProjectQueue() {
                   <input type="radio" name="slot" /> Thu 10/09 09:00–09:20
                 </label>
               </div>
-              <div className="tpq-inline" style={{ justifyContent: "flex-end", marginTop: 8 }}>
-                <button className="tpq-btn tpq-btn--primary">Send Invite</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* COMMENTS TAB */}
-      {activeTab === "comments" && (
-        <div className="tpq-panel">
-          <div className="tpq-panel-head">
-            <h3>Canned Comments</h3>
-            <span className="tpq-chip">Merge fields</span>
-          </div>
-          
-          <div className="tpq-stack">
-            <div className="tpq-card">
-              <div style={{ fontWeight: 700 }}>Templates</div>
-              <div className="tpq-stack" style={{ marginTop: 6 }}>
-                <button className="tpq-btn" onClick={() => setCompose("Great work – proceed to the next step. ✅")}>
-                  Great
+              <div
+                className="tpq-inline"
+                style={{ justifyContent: "flex-end", marginTop: 8 }}
+              >
+                <button className="tpq-btn tpq-btn--primary">
+                  Send Invite
                 </button>
-                <button className="tpq-btn" onClick={() => setCompose("Please revise: clarify sources and attach citations.")}>
-                  Revise
-                </button>
-                <button className="tpq-btn" onClick={() => setCompose("Please propose 2 time slots for your gate review.")}>
-                  Schedule
-                </button>
-              </div>
-            </div>
-            <div className="tpq-card">
-              <div style={{ fontWeight: 700 }}>Compose</div>
-              <div className="tpq-stack" style={{ marginTop: 6 }}>
-                <textarea 
-                  rows={4} 
-                  placeholder="Type feedback…" 
-                  value={compose} 
-                  onChange={(e) => setCompose(e.target.value)} 
-                />
-                <div className="tpq-inline" style={{ justifyContent: "flex-end", gap: 8 }}>
-                  <button className="tpq-btn">Preview</button>
-                  <button className="tpq-btn tpq-btn--primary">Send to Student</button>
-                </div>
               </div>
             </div>
           </div>
@@ -820,21 +800,30 @@ export default function TeacherProjectQueue() {
             <h3>Review Analytics</h3>
             <span className="tpq-chip">Last 14 days</span>
           </div>
-          
           <div className="tpq-stack">
             <div className="tpq-card">
               <div className="tpq-inline">
                 <div>
                   <div className="tpq-muted">Median Review Time</div>
-                  <div style={{ fontSize: 22, fontWeight: 800 }}>{analytics.medianReviewTime}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800 }}>
+                    {analytics.medianReviewTime}
+                  </div>
                 </div>
                 <div>
                   <div className="tpq-muted">Decline Rate</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#e53e3e" }}>{analytics.declineRate}</div>
+                  <div
+                    style={{ fontSize: 22, fontWeight: 800, color: "#e53e3e" }}
+                  >
+                    {analytics.declineRate}
+                  </div>
                 </div>
                 <div>
                   <div className="tpq-muted">Throughput</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#38a169" }}>{analytics.throughput}</div>
+                  <div
+                    style={{ fontSize: 22, fontWeight: 800, color: "#38a169" }}
+                  >
+                    {analytics.throughput}
+                  </div>
                 </div>
               </div>
             </div>
@@ -850,19 +839,27 @@ export default function TeacherProjectQueue() {
               <div style={{ fontWeight: 700 }}>Project Statistics</div>
               <div className="tpq-stats-grid">
                 <div className="tpq-stat-item">
-                  <div className="tpq-stat-value">{analytics.totalProjects}</div>
+                  <div className="tpq-stat-value">
+                    {analytics.totalProjects}
+                  </div>
                   <div className="tpq-stat-label">Total Projects</div>
                 </div>
                 <div className="tpq-stat-item">
-                  <div className="tpq-stat-value" style={{ color: "#38a169" }}>{analytics.approvedProjects}</div>
+                  <div className="tpq-stat-value" style={{ color: "#38a169" }}>
+                    {analytics.approvedProjects}
+                  </div>
                   <div className="tpq-stat-label">Approved</div>
                 </div>
                 <div className="tpq-stat-item">
-                  <div className="tpq-stat-value" style={{ color: "#d69e2e" }}>{analytics.pendingProjects}</div>
+                  <div className="tpq-stat-value" style={{ color: "#d69e2e" }}>
+                    {analytics.pendingProjects}
+                  </div>
                   <div className="tpq-stat-label">Pending</div>
                 </div>
                 <div className="tpq-stat-item">
-                  <div className="tpq-stat-value" style={{ color: "#e53e3e" }}>{analytics.rejectedProjects}</div>
+                  <div className="tpq-stat-value" style={{ color: "#e53e3e" }}>
+                    {analytics.rejectedProjects}
+                  </div>
                   <div className="tpq-stat-label">Rejected</div>
                 </div>
               </div>
@@ -873,161 +870,399 @@ export default function TeacherProjectQueue() {
 
       {/* Enhanced Project Details Modal */}
       {showDetails && selectedProject && (
-        <div className="tpq-modal-overlay" onClick={handleCloseDetails}>
-          <div className="tpq-modal tpq-modal--large" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="tpq-modal-overlay"
+          onClick={(e) => {
+            // Only close if clicking the overlay background, not modal content
+            if (e.target === e.currentTarget) {
+              handleCloseDetails();
+            }
+          }}
+        >
+          <div
+            className="tpq-modal tpq-modal--large"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="tpq-modal-header">
-              <h2>{selectedProject.title}</h2>
-              <button 
-                className="tpq-modal-close"
-                onClick={handleCloseDetails}
+              <div style={{ flex: 1 }}>
+                <h2>{selectedProject.title}</h2>
+                {hasUnsavedChanges && (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#f59e0b",
+                      marginTop: "4px",
+                      display: "block",
+                    }}
+                  >
+                    ● Unsaved changes
+                  </span>
+                )}
+                {isFrozen && !hasUnsavedChanges && (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#16a34a",
+                      marginTop: "4px",
+                      display: "block",
+                    }}
+                  >
+                    ✓ Saved
+                  </span>
+                )}
+              </div>
+              <div
+                style={{ display: "flex", gap: "8px", alignItems: "center" }}
               >
-                ×
-              </button>
+                {isFrozen ? (
+                  <button
+                    className="tpq-btn tpq-btn--secondary"
+                    onClick={handleUnfreeze}
+                    style={{ fontSize: "13px" }}
+                  >
+                    Edit
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      className="tpq-btn tpq-btn--primary"
+                      onClick={handleSaveChanges}
+                      disabled={!hasUnsavedChanges}
+                      style={{
+                        fontSize: "13px",
+                        opacity: hasUnsavedChanges ? 1 : 0.5,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <Save size={14} />
+                      Save Changes
+                    </button>
+                  </>
+                )}
+                <button
+                  className="tpq-modal-close"
+                  onClick={handleCloseDetails}
+                >
+                  ×
+                </button>
+              </div>
             </div>
-            
+
             <div className="tpq-modal-content">
-              {/* Project Overview */}
-              <div className="tpq-modal-section">
-                <h4>Project Overview</h4>
-                <div className="tpq-overview-grid">
-                  <div className="tpq-overview-item">
-                    <strong>Subject:</strong> {selectedProject.subject_domain}
-                  </div>
-                  <div className="tpq-overview-item">
-                    <strong>Student:</strong> {selectedProject.owner_name}
-                  </div>
-                  <div className="tpq-overview-item">
-                    <strong>Status:</strong> 
-                    <span className={`tpq-status-pill ${pillClass(selectedProject.status)}`}>
-                      {selectedProject.status}
-                    </span>
-                  </div>
-                  <div className="tpq-overview-item">
-                    <strong>Submitted:</strong> {new Date(selectedProject.created_at).toLocaleString()}
-                  </div>
+              {detailsLoading ? (
+                <div className="tpq-loading">
+                  <Loader2 className="spin" size={24} />
+                  <p>Loading project details...</p>
                 </div>
-              </div>
-              
-              {/* Project Description */}
-              <div className="tpq-modal-section">
-                <h4>Description</h4>
-                <p>{selectedProject.description}</p>
-              </div>
+              ) : detailsError ? (
+                <div className="tpq-error">
+                  <p>{detailsError}</p>
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      marginTop: "8px",
+                      color: "#718096",
+                    }}
+                  >
+                    Showing basic project information.
+                  </p>
+                </div>
+              ) : null}
 
-              {/* Stages Section */}
-              {projectDetails && projectDetails.stages && projectDetails.stages.length > 0 && (
-                <div className="tpq-modal-section">
-                  <h4>Project Stages</h4>
-                  <div className="tpq-stages-container">
-                    {projectDetails.stages
-                      .slice()
-                      .sort((a, b) => (a?.stage_order || 0) - (b?.stage_order || 0))
-                      .map((stage) => (
-                        <div 
-                          key={stage.stage_id}
-                          className={`tpq-stage-card ${selectedStageId === stage.stage_id ? 'active' : ''}`}
-                          onClick={() => setSelectedStageId(stage.stage_id)}
-                        >
-                          <div className="tpq-stage-header">
-                            <h5>Stage {stage.stage_order}: {stage.title}</h5>
-                            <span className={`tpq-status-pill ${pillClass(stage.status)}`}>
-                              {stage.status}
-                            </span>
+              {!detailsLoading && editableProjectData && (
+                <>
+                  {/* Project Description */}
+                  <div className="tpq-modal-section">
+                    <h4>Description</h4>
+                    {!isFrozen ? (
+                      <textarea
+                        value={editableProjectData.description || ""}
+                        onChange={(e) =>
+                          updateEditableData("description", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y min-h-[100px]"
+                        placeholder="Project description"
+                      />
+                    ) : (
+                      <p>
+                        {editableProjectData.description ||
+                          "No description provided"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Stages Section - Replicated from CreateProject */}
+                  <div className="tpq-modal-section">
+                    <h4>Project Stages</h4>
+                    {editableProjectData?.stages &&
+                    Array.isArray(editableProjectData.stages) &&
+                    editableProjectData.stages.length > 0 ? (
+                      <>
+                        {/* Stage Tabs Navigation */}
+                        <div className="border-b border-gray-200 bg-gray-50">
+                          <div className="flex gap-1">
+                            {editableProjectData.stages
+                              .slice()
+                              .sort(
+                                (a, b) =>
+                                  (a?.stage_order || 0) - (b?.stage_order || 0)
+                              )
+                              .map((stage, index) => (
+                                <ReviewStageTab
+                                  key={stage.stage_id}
+                                  index={index}
+                                  isActive={currentStageIndex === index}
+                                  onClick={() => setCurrentStageIndex(index)}
+                                  stage={stage}
+                                />
+                              ))}
                           </div>
-                          
-                          {stage.gate && (
-                            <div className="tpq-gate-info">
-                              <div className="tpq-gate-title">
-                                <strong>Gate:</strong> {stage.gate.title}
-                              </div>
-                              {stage.gate.checklist && stage.gate.checklist.length > 0 && (
-                                <div className="tpq-checklist">
-                                  <strong>Checklist:</strong>
-                                  <ul>
-                                    {stage.gate.checklist.map((item, index) => (
-                                      <li key={index}>{item}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          )}
                         </div>
-                      ))}
+
+                        {/* Stage Content */}
+                        <div className="mt-4 max-h-[50vh] overflow-y-auto">
+                          {(() => {
+                            const sortedStages = editableProjectData.stages
+                              .slice()
+                              .sort(
+                                (a, b) =>
+                                  (a?.stage_order || 0) - (b?.stage_order || 0)
+                              );
+                            const currentStage =
+                              sortedStages[currentStageIndex];
+
+                            if (!currentStage) return null;
+
+                            return (
+                              <div className="space-y-6">
+                                {/* Stage Title */}
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-500 mb-2">
+                                    STAGE TITLE
+                                  </label>
+                                  {!isFrozen ? (
+                                    <input
+                                      type="text"
+                                      value={currentStage.title || ""}
+                                      onChange={(e) => {
+                                        const sortedStages = [
+                                          ...editableProjectData.stages,
+                                        ].sort(
+                                          (a, b) =>
+                                            (a?.stage_order || 0) -
+                                            (b?.stage_order || 0)
+                                        );
+                                        const stageIndex =
+                                          editableProjectData.stages.findIndex(
+                                            (s) =>
+                                              s.stage_id ===
+                                              currentStage.stage_id
+                                          );
+                                        setEditableProjectData((prev) => {
+                                          const newData = deepClone(prev);
+                                          newData.stages[stageIndex].title =
+                                            e.target.value;
+                                          return newData;
+                                        });
+                                        setHasUnsavedChanges(true);
+                                      }}
+                                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-semibold text-lg text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                                      placeholder="Untitled Stage"
+                                    />
+                                  ) : (
+                                    <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-semibold text-lg text-gray-900">
+                                      {currentStage.title || "Untitled Stage"}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Tasks */}
+                                {currentStage.tasks &&
+                                  currentStage.tasks.length > 0 && (
+                                    <div>
+                                      <h3 className="text-lg font-bold text-gray-900 mb-4">
+                                        Tasks
+                                      </h3>
+                                      <div className="space-y-4">
+                                        {currentStage.tasks.map(
+                                          (task, taskIndex) => {
+                                            const stageIndex =
+                                              editableProjectData.stages.findIndex(
+                                                (s) =>
+                                                  s.stage_id ===
+                                                  currentStage.stage_id
+                                              );
+                                            return (
+                                              <ReviewTaskCard
+                                                key={taskIndex}
+                                                task={task}
+                                                taskIndex={taskIndex}
+                                                stageIndex={stageIndex}
+                                                isEditable={true}
+                                                isFrozen={isFrozen}
+                                                onUpdate={(field, value) => {
+                                                  setEditableProjectData(
+                                                    (prev) => {
+                                                      const newData =
+                                                        deepClone(prev);
+                                                      newData.stages[
+                                                        stageIndex
+                                                      ].tasks[taskIndex][
+                                                        field
+                                                      ] = value;
+                                                      return newData;
+                                                    }
+                                                  );
+                                                  setHasUnsavedChanges(true);
+                                                }}
+                                              />
+                                            );
+                                          }
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                {/* Assessment Gate */}
+                                {currentStage.gate && (
+                                  <div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                                      Assessment Gate
+                                    </h3>
+                                    <ReviewAssessmentGate
+                                      gate={currentStage.gate}
+                                      isEditable={true}
+                                      isFrozen={isFrozen}
+                                      onUpdate={(field, index, value) => {
+                                        const stageIndex =
+                                          editableProjectData.stages.findIndex(
+                                            (s) =>
+                                              s.stage_id ===
+                                              currentStage.stage_id
+                                          );
+                                        setEditableProjectData((prev) => {
+                                          const newData = deepClone(prev);
+                                          if (
+                                            field === "checklist" &&
+                                            typeof index === "number"
+                                          ) {
+                                            if (
+                                              !newData.stages[stageIndex].gate
+                                                .checklist
+                                            ) {
+                                              newData.stages[
+                                                stageIndex
+                                              ].gate.checklist = [];
+                                            }
+                                            newData.stages[
+                                              stageIndex
+                                            ].gate.checklist[index] = value;
+                                          } else {
+                                            newData.stages[stageIndex].gate[
+                                              field
+                                            ] = value;
+                                          }
+                                          return newData;
+                                        });
+                                        setHasUnsavedChanges(true);
+                                      }}
+                                    />
+                                  </div>
+                                )}
+
+                                {/* Stage Actions */}
+                                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                                  <button
+                                    onClick={() => {
+                                      const stageId = currentStage.stage_id;
+                                      setStageStatuses((prev) => ({
+                                        ...prev,
+                                        [stageId]: "approved",
+                                      }));
+                                    }}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                                      stageStatuses[currentStage.stage_id] ===
+                                      "approved"
+                                        ? "bg-green-600 text-white"
+                                        : "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
+                                    }`}
+                                  >
+                                    <CheckCircle size={16} />
+                                    Approve Stage
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const stageId = currentStage.stage_id;
+                                      setStageStatuses((prev) => ({
+                                        ...prev,
+                                        [stageId]: "revision",
+                                      }));
+                                    }}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                                      stageStatuses[currentStage.stage_id] ===
+                                      "revision"
+                                        ? "bg-yellow-600 text-white"
+                                        : "bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200"
+                                    }`}
+                                  >
+                                    <XCircle size={16} />
+                                    Request Revision
+                                  </button>
+                                  {stageStatuses[currentStage.stage_id] && (
+                                    <span className="ml-auto px-3 py-2 text-sm font-medium text-gray-600">
+                                      Status:{" "}
+                                      <span
+                                        className={`font-semibold ${
+                                          stageStatuses[
+                                            currentStage.stage_id
+                                          ] === "approved"
+                                            ? "text-green-600"
+                                            : "text-yellow-600"
+                                        }`}
+                                      >
+                                        {stageStatuses[
+                                          currentStage.stage_id
+                                        ] === "approved"
+                                          ? "Approved"
+                                          : "Revision Requested"}
+                                      </span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </>
+                    ) : (
+                      <div
+                        className="tpq-empty-state"
+                        style={{
+                          padding: "32px",
+                          textAlign: "center",
+                          color: "#6b7280",
+                        }}
+                      >
+                        <BookOpen
+                          size={48}
+                          style={{ marginBottom: "16px", opacity: 0.5 }}
+                        />
+                        <p>No stages available for this project.</p>
+                        <p style={{ fontSize: "14px", marginTop: "8px" }}>
+                          Stages will appear here once the project structure is
+                          defined.
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </div>
+                </>
               )}
-
-              {/* Rubric Section */}
-              <div className="tpq-modal-section">
-                <h4>Rubric Assessment</h4>
-                <div className="tpq-rubric">
-                  <div className="tpq-rubric-item">
-                    <div>Alignment to Standard</div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="4" 
-                      value={rubricVals.align}
-                      onChange={(e) => setRubricVals(prev => ({ ...prev, align: parseInt(e.target.value) }))}
-                      className="tpq-rubric-meter"
-                    />
-                    <span className="tpq-rubric-score">{rubricVals.align}/4</span>
-                  </div>
-                  <div className="tpq-rubric-item">
-                    <div>Evidence & Sources</div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="4" 
-                      value={rubricVals.evidence}
-                      onChange={(e) => setRubricVals(prev => ({ ...prev, evidence: parseInt(e.target.value) }))}
-                      className="tpq-rubric-meter"
-                    />
-                    <span className="tpq-rubric-score">{rubricVals.evidence}/4</span>
-                  </div>
-                  <div className="tpq-rubric-item">
-                    <div>Clarity & Organization</div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="4" 
-                      value={rubricVals.clarity}
-                      onChange={(e) => setRubricVals(prev => ({ ...prev, clarity: parseInt(e.target.value) }))}
-                      className="tpq-rubric-meter"
-                    />
-                    <span className="tpq-rubric-score">{rubricVals.clarity}/4</span>
-                  </div>
-                  <div className="tpq-rubric-item">
-                    <div>Completeness</div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="4" 
-                      value={rubricVals.complete}
-                      onChange={(e) => setRubricVals(prev => ({ ...prev, complete: parseInt(e.target.value) }))}
-                      className="tpq-rubric-meter"
-                    />
-                    <span className="tpq-rubric-score">{rubricVals.complete}/4</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Overall Comments */}
-              <div className="tpq-modal-section">
-                <h4>Review Comments</h4>
-                <textarea
-                  className="tpq-comment-textarea"
-                  rows={3}
-                  value={overallComment}
-                  onChange={(e) => setOverallComment(e.target.value)}
-                  placeholder="Add your review comments here..."
-                />
-              </div>
             </div>
-            
+
             <div className="tpq-modal-actions">
-              <button 
+              <button
                 className="tpq-btn tpq-btn--approve"
                 onClick={() => {
                   handleApprove(selectedProject);
@@ -1037,7 +1272,7 @@ export default function TeacherProjectQueue() {
                 <CheckCircle size={14} />
                 Approve
               </button>
-              <button 
+              <button
                 className="tpq-btn tpq-btn--reject"
                 onClick={() => {
                   handleReject(selectedProject);
@@ -1047,9 +1282,12 @@ export default function TeacherProjectQueue() {
                 <XCircle size={14} />
                 Request Revision
               </button>
-              <button 
+              <button
                 className="tpq-btn tpq-btn--secondary"
-                onClick={handleCloseDetails}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloseDetails();
+                }}
               >
                 Close
               </button>
