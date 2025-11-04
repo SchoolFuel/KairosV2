@@ -3,12 +3,18 @@ import "./App.css";
 import LearningStandardsDialog from "./components/Shared/LearningStandards/LearningStandardsDialog";
 import CreateProject from "./components/Student/CreateProject/CreateProject";
 import TeacherProjectQueue from "./components/Teacher/TeacherProjectQueue";
+<<<<<<< HEAD
 import ProjectDashboard from "./components/Student/projectdashboard";
+=======
+import ProjectDashboard from './components/Student/MyProjects/projectdashboard';
+>>>>>>> e6237fa7d6cb2d38e27fbe8097414514a25b519c
 
 const DIALOGS = {
   "student-standards": LearningStandardsDialog,
   "create-project": CreateProject,
+  "project-dashboard": ProjectDashboard,
   "teacher-project-queue": TeacherProjectQueue,
+  //"teacher-gate-assessment": GateStandards,
   "add-standard": LearningStandardsDialog,
   "project-dashboard": ProjectDashboard,
 };

@@ -75,12 +75,16 @@ function validateUser() {
     return {
       statusCode: 200,
       email: currentUser(),
-      role: cachedRole,
+      role: 'cachedRole'
     };
   }
 
   //  Cache is missing or expired → fetch fresh data
+<<<<<<< HEAD
   const user_email = "teacher1@gmail.com"; //currentUser();
+=======
+  const user_email =  currentUser();
+>>>>>>> e6237fa7d6cb2d38e27fbe8097414514a25b519c
   const identity_url = 'https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/dev/identity-fetch';
   const payload = {
     email_id: user_email,
@@ -146,17 +150,6 @@ function openDialog(dialogType, title){
   DocumentApp.getUi().showModalDialog(modifiedHtml, title);
 }
 
-// Specific function to open Teacher Project Queue dialog
-function openTeacherProjectQueue() {
-  openDialog('teacher-project-queue', 'Teacher Project Queue');
-}
-
-function clearUserCache() {
-  const p = PropertiesService.getUserProperties();
-  ['LEARNING_STANDARDS','USER_ID','USER_ROLE','CACHE_TIMESTAMP','USER_EMAIL','SELECTED_STANDARDS','DIALOG_STATUS']
-    .forEach(k => p.deleteProperty(k));
-  return true;
-}
 function openPrototypeDialog(projectId) {
   const html = HtmlService.createHtmlOutputFromFile('Dialog')
     .setWidth(900)
@@ -177,3 +170,44 @@ function openPrototypeDialog(projectId) {
 
   DocumentApp.getUi().showModalDialog(modifiedHtml, 'Project Prototype');
 }
+
+
+// Specific function to open Teacher Project Queue dialog
+function openTeacherProjectQueue() {
+  openDialog('teacher-project-queue', 'Teacher Project Queue');
+}
+
+// Specific function to open Teacher Gate Assessment dialog
+function openTeacherGateAssessment() {
+  openDialog('teacher-gate-assessment', 'Gate Assessment');
+}
+
+function clearUserCache() {
+  const p = PropertiesService.getUserProperties();
+  ['LEARNING_STANDARDS','USER_ID','USER_ROLE','CACHE_TIMESTAMP','USER_EMAIL','SELECTED_STANDARDS','DIALOG_STATUS']
+    .forEach(k => p.deleteProperty(k));
+  return true;
+}
+<<<<<<< HEAD
+function openPrototypeDialog(projectId) {
+  const html = HtmlService.createHtmlOutputFromFile('Dialog')
+    .setWidth(900)
+    .setHeight(700);
+
+  const htmlWithHash = html.getContent();
+  const modifiedHtml = HtmlService.createHtmlOutput(
+    htmlWithHash.replace(
+      '<body>',
+      `<body><script>
+        window.location.hash = 'project-dashboard';
+        window.PROJECT_ID = '${projectId || ''}';
+      </script>`
+    )
+  )
+    .setWidth(900)
+    .setHeight(700);
+
+  DocumentApp.getUi().showModalDialog(modifiedHtml, 'Project Prototype');
+}
+=======
+>>>>>>> e6237fa7d6cb2d38e27fbe8097414514a25b519c
