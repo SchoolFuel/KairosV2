@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   FolderOpen,
   Upload,
@@ -9,7 +9,10 @@ import {
   ExternalLink,
   CheckCircle,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Plus,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 
 export default function ProjectDashboard() {
@@ -20,6 +23,29 @@ export default function ProjectDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeStageIdx, setActiveStageIdx] = useState(0);
+
+  // Local UI state for quick add and resources
+  const [quickTaskTitle, setQuickTaskTitle] = useState('');
+  const [quickTaskDue, setQuickTaskDue] = useState('');
+
+  // Gate UI state
+  const DEFAULT_GATE_STEPS = ['Prep','Schedule','Notify','Complete','Review/Evaluate','Final Report','Feedback/Reflection'];
+  const [activeGateStepIdx, setActiveGateStepIdx] = useState(0);
+  const [gateObjective, setGateObjective] = useState('');
+  const [gateEvidence, setGateEvidence] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+  const addActivity = (action, details) => {
+    mutateProject((p) => {
+      p.activity = p.activity || [];
+      p.activity.unshift({
+        id: `ACT-${Math.floor(Math.random()*9000+1000)}`,
+        action,
+        details: details || '',
+        at: new Date().toISOString()
+      });
+    });
+  };
 
   // Stats derived from project
   const { taskStats, gateStats } = useMemo(() => {
@@ -77,6 +103,24 @@ export default function ProjectDashboard() {
 
   const canSubmit = (taskStats.completed >= 1) && ((project?.resources?.length || 0) >= 1);
 
+  // Normalized steps for current stage gate
+  const currentGateSteps = (() => {
+    const s = stages[activeStageIdx];
+    const steps = s?.gate?.steps && Array.isArray(s.gate.steps) && s.gate.steps.length > 0
+      ? s.gate.steps
+      : DEFAULT_GATE_STEPS;
+    return steps;
+  })();
+
+  // Load current step fields when stage/step changes
+  useEffect(() => {
+    const s = stages[activeStageIdx];
+    const stepKey = currentGateSteps[activeGateStepIdx];
+    const data = s?.gate?.step_data?.[stepKey] || {};
+    setGateObjective(data.objective || '');
+    setGateEvidence(data.evidence || '');
+  }, [activeStageIdx, activeGateStepIdx, stages.length]);
+
   // Helpers
   const getStatusColor = (status) => {
     const colors = {
@@ -89,16 +133,179 @@ export default function ProjectDashboard() {
     return colors[status] || colors.default;
   };
 
+  // Helpers to safely update project state
+  const mutateProject = (updater) => {
+    setProject(prev => {
+      if (!prev) return prev;
+      const copy = JSON.parse(JSON.stringify(prev));
+      updater(copy);
+      return copy;
+    });
+  };
+
+  // Task actions
+  const handleAddTask = () => {
+    const title = prompt('Task title?');
+    if (!title) return;
+    mutateProject((p) => {
+      const stage = p.stages?.[activeStageIdx];
+      if (!stage) return;
+      stage.tasks = stage.tasks || [];
+      stage.tasks.push({
+        task_id: `TSK-${Math.floor(Math.random()*9000+1000)}`,
+        title,
+        description: '',
+        status: 'Pending',
+        due_date: '',
+      });
+    });
+    addActivity('Task Added', title);
+  };
+  const handleQuickAddTask = () => {
+    if (!quickTaskTitle) return;
+    mutateProject((p) => {
+      const stage = p.stages?.[activeStageIdx];
+      if (!stage) return;
+      stage.tasks = stage.tasks || [];
+      stage.tasks.push({
+        task_id: `TSK-${Math.floor(Math.random()*9000+1000)}`,
+        title: quickTaskTitle,
+        description: '',
+        status: 'Pending',
+        due_date: quickTaskDue || '',
+      });
+    });
+    addActivity('Task Added', quickTaskTitle);
+    setQuickTaskTitle('');
+    setQuickTaskDue('');
+  };
+  const handleMarkTaskDone = (taskId) => {
+    let titleRef = '';
+    mutateProject((p) => {
+      const stage = p.stages?.[activeStageIdx];
+      const t = stage?.tasks?.find(t=>t.task_id===taskId);
+      if (t) {
+        t.status = 'Completed';
+        titleRef = t.title || '';
+      }
+    });
+    addActivity('Task Completed', titleRef || taskId);
+  };
+  const handleEditTask = (taskId) => {
+    let newTitleRef = '';
+    mutateProject((p) => {
+      const stage = p.stages?.[activeStageIdx];
+      const t = stage?.tasks?.find(t=>t.task_id===taskId);
+      if (!t) return;
+      const newTitle = prompt('Edit title', t.title) ?? t.title;
+      const newDesc = prompt('Edit description', t.description || '') ?? t.description;
+      t.title = newTitle;
+      t.description = newDesc;
+      newTitleRef = newTitle;
+    });
+    addActivity('Task Edited', newTitleRef || taskId);
+  };
+  const handleDeleteTask = (taskId) => {
+    if (!confirm('Delete this task?')) return;
+    mutateProject((p) => {
+      const stage = p.stages?.[activeStageIdx];
+      if (!stage?.tasks) return;
+      stage.tasks = stage.tasks.filter(t=>t.task_id!==taskId);
+    });
+    addActivity('Task Deleted', taskId);
+  };
+
+  // Gate step save/submit
+  const handleSaveGateStep = () => {
+    const stepKey = currentGateSteps[activeGateStepIdx];
+    mutateProject((p)=>{
+      const s = p.stages?.[activeStageIdx];
+      if (!s) return;
+      s.gate = s.gate || {};
+      s.gate.step_data = s.gate.step_data || {};
+      s.gate.step_data[stepKey] = {
+        ...(s.gate.step_data[stepKey] || {}),
+        objective: gateObjective,
+        evidence: gateEvidence,
+        status: 'Draft'
+      };
+    });
+    addActivity('Gate Step Saved', stepKey);
+  };
+  const handleSubmitGateStep = () => {
+    const stepKey = currentGateSteps[activeGateStepIdx];
+    mutateProject((p)=>{
+      const s = p.stages?.[activeStageIdx];
+      if (!s?.gate?.step_data?.[stepKey]) return;
+      s.gate.step_data[stepKey].status = 'Submitted';
+    });
+    alert('Step submitted.');
+    addActivity('Gate Step Submitted', stepKey);
+  };
+
+  // Gate checklist actions
+  const handleAddChecklistItem = () => {
+    let textRef = '';
+    mutateProject((p) => {
+      const stage = p.stages?.[activeStageIdx];
+      if (!stage) return;
+      stage.gate = stage.gate || {};
+      stage.gate.checklist = stage.gate.checklist || [];
+      const text = prompt('Add checklist item');
+      if (!text) return;
+      stage.gate.checklist.push(text);
+      textRef = text;
+    });
+    if (textRef) addActivity('Checklist Item Added', textRef);
+  };
+  const handleRemoveChecklistItem = (idx) => {
+    mutateProject((p) => {
+      const stage = p.stages?.[activeStageIdx];
+      if (!stage?.gate?.checklist) return;
+      stage.gate.checklist.splice(idx,1);
+    });
+    addActivity('Checklist Item Removed', String(idx));
+  };
+
+  // Resource actions (mock attach/remove)
+  const handleAttachResource = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+  const handleRemoveResource = (id) => {
+    mutateProject((p) => {
+      p.resources = (p.resources || []).filter(r=>r.id!==id);
+    });
+    addActivity('Resource Removed', id);
+  };
+
+  const handleFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = URL.createObjectURL(file);
+      mutateProject((p) => {
+        p.resources = p.resources || [];
+        p.resources.push({ id: `RES-${Math.floor(Math.random()*9000+1000)}`, title: file.name, kind: file.type || 'File', url, size: file.size });
+      });
+      addActivity('Resource Uploaded', file.name);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   // UI actions
   const handleSubmitProject = () => {
     if (!canSubmit) return;
     alert('Submitted for review.');
+    addActivity('Project Submitted', '');
   };
 
   // Loading and error states
   if (isLoading) {
     return (
-      <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 font-sans mt-6 mb-10">
+      <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 font-sans mt-4 mb-8 overflow-y-auto min-h-[85vh] pb-6">
         <div className="p-6 text-sm text-gray-600">Loading project...</div>
       </div>
     );
@@ -106,14 +313,14 @@ export default function ProjectDashboard() {
 
   if (error) {
     return (
-      <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 font-sans mt-6 mb-10">
+      <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 font-sans mt-4 mb-8 overflow-y-auto min-h-[85vh] pb-6">
         <div className="p-6 text-sm text-red-600">{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 font-sans mt-6 mb-10">
+    <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 font-sans mt-4 mb-8 overflow-y-auto min-h-[85vh] pb-6">
       {/* Header Section */}
       <div className="border-b border-gray-200 px-6 py-4 bg-gradient-to-r from-purple-100 to-purple-50">
         <h1 className="text-2xl font-semibold text-gray-900 mb-1">Project Prototype</h1>
@@ -122,49 +329,58 @@ export default function ProjectDashboard() {
         </p>
       </div>
 
+      {/* Project Header */}
+      <div className="p-6 pb-0">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {project?.project_title || 'Project Title'}
+          </h2>
+          <p className="text-gray-600 mb-4">
+            {project?.description || 'Project description goes here. This should provide a brief overview of the project.'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {project?.subject_domain && (
+              <span className="px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                {project.subject_domain}
+              </span>
+            )}
+            {project?.status && (
+              <span className="px-2.5 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                {project.status}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Tabs */}
-      <div className="p-6">
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          {['overview', 'tasks', 'gate', 'resources'].map((tab) => (
+      <div className="px-6">
+        <div className="flex items-center gap-6 border-b border-gray-300 mb-4">
+          {[
+            { id: 'overview', label: 'Overview' },
+            { id: 'tasks', label: 'Tasks' },
+            { id: 'gate', label: 'Gate Checklist' },
+            { id: 'resources', label: 'Resources & Activity' },
+          ].map((tab) => (
             <button
-              key={tab}
-              className={`py-2 px-2 text-xs rounded-lg transition-all duration-200 ${
-                activeTab === tab
-                  ? 'bg-purple-100 text-purple-800 font-medium'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+              key={tab.id}
+              className={`text-sm pb-2 transition-all duration-200 ${
+                activeTab === tab.id
+                  ? 'border-b-2 border-purple-600 text-purple-700 font-medium'
+                  : 'text-gray-500 hover:text-gray-800'
               }`}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => setActiveTab(tab.id)}
             >
-              {tab === 'overview'
-                ? 'Overview'
-                : tab === 'tasks'
-                ? 'Tasks'
-                : tab === 'gate'
-                ? 'Gate Checklist'
-                : 'Resources & Activity'}
+              {tab.label}
             </button>
           ))}
         </div>
 
+
         {/* --- Overview Tab --- */}
         {activeTab === 'overview' && (
           <div className="space-y-3">
-            {project && (
-              <div className="space-y-2">
-                <h3 className="text-lg font-medium text-gray-900">{project.project_title}</h3>
-                {project.description && (
-                  <p className="text-sm text-gray-600">{project.description}</p>
-                )}
-                <div className="flex items-center gap-2 flex-wrap">
-                  {project.subject_domain && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800">{project.subject_domain}</span>
-                  )}
-                  {project.status && (
-                    <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(project.status)}`}>{project.status}</span>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Project stats and other overview content will go here */}
 
             <div className="flex justify-between items-center">
               <h3 className="text-sm font-semibold text-gray-900">Project Snapshot</h3>
@@ -216,20 +432,22 @@ export default function ProjectDashboard() {
         {/* --- Tasks Tab --- */}
         {activeTab === 'tasks' && (
           <div className="space-y-3">
-            <div className="flex gap-2 border-b border-gray-200">
-              {stages.map((s, idx) => (
-                <button
-                  key={s.stage_id || idx}
-                  className={`px-3 py-1.5 text-xs rounded-t border-b-2 ${
-                    idx === activeStageIdx
-                      ? 'border-purple-600 text-purple-700 font-medium'
-                      : 'border-transparent text-gray-600 hover:text-gray-800'
-                  }`}
-                  onClick={() => setActiveStageIdx(idx)}
-                >
-                  Stage {s.stage_order || idx + 1}
-                </button>
-              ))}
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2 border-b border-gray-200">
+                {stages.map((s, idx) => (
+                  <button
+                    key={s.stage_id || idx}
+                    className={`px-3 py-1.5 text-xs rounded-t border-b-2 ${
+                      idx === activeStageIdx
+                        ? 'border-purple-600 text-purple-700 font-medium'
+                        : 'border-transparent text-gray-600 hover:text-gray-800'
+                    }`}
+                    onClick={() => setActiveStageIdx(idx)}
+                  >
+                    Stage {s.stage_order || idx + 1}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {stages[activeStageIdx] && (
@@ -240,37 +458,127 @@ export default function ProjectDashboard() {
                       <h4 className="text-xs font-medium text-gray-900">{stages[activeStageIdx].title}</h4>
                       <div className="text-xs text-gray-500 mt-1">{stages[activeStageIdx].tasks?.length || 0} task{(stages[activeStageIdx].tasks?.length || 0) !== 1 ? 's' : ''}</div>
                     </div>
-                    {stages[activeStageIdx].status && (
-                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(stages[activeStageIdx].status)}`}>{stages[activeStageIdx].status}</span>
-                    )}
                   </div>
                 </div>
 
-                <div className="p-2 space-y-2">
-                  {(stages[activeStageIdx].tasks || []).map(task => (
-                    <div key={task.task_id} className="p-2 bg-blue-50 rounded text-xs space-y-1">
-                      <h5 className="font-medium text-gray-900">{task.title}</h5>
-                      {task.description && <p className="text-gray-600">{task.description}</p>}
-                      <div className="flex items-center justify-between text-gray-500">
-                        <div className="flex items-center gap-3">
-                          {task.status && (
-                            <span className={`px-2 py-0.5 rounded-full ${getStatusColor(task.status)}`}>{task.status}</span>
-                          )}
-                          {task.due_date && (
-                            <span className="flex items-center gap-1"><Calendar size={10} />{new Date(task.due_date).toLocaleDateString()}</span>
-                          )}
+                <div className="p-2 space-y-3">
+                  {(stages[activeStageIdx].tasks || []).map((task) => (
+                    <div
+                      key={task.task_id}
+                      className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow transition text-sm flex justify-between items-start gap-4"
+                    >
+                      {/* Left Column: Task Info */}
+                      <div className="flex-1">
+                        <h5 className="font-semibold text-gray-900">
+                          {task.title || "Untitled Task"}
+                        </h5>
+
+                        {/* Description */}
+                        {task.description && (
+                          <p className="text-gray-700 mt-1">{task.description}</p>
+                        )}
+
+                        {/* Due + Standards row */}
+                        <div className="text-xs text-gray-600 mt-2 mb-2 flex flex-wrap gap-4">
+                          <div>
+                            <span className="font-medium">Due:</span>{' '}
+                            {task.due_date
+                              ? new Date(task.due_date).toLocaleDateString()
+                              : <span className="italic text-gray-400">N/A</span>}
+                          </div>
+                          <div>
+                            <span className="font-medium">Standards:</span>{' '}
+                            {task.standards
+                              ? (Array.isArray(task.standards)
+                                  ? task.standards.join(', ')
+                                  : task.standards)
+                              : <span className="italic text-gray-400">N/A</span>}
+                          </div>
                         </div>
+
+                        {/* Resource link */}
+                        {task.evidence_link && (
+                          <div className="mt-1">
+                            <a
+                              href={task.evidence_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline inline-flex items-center gap-1 text-xs"
+                            >
+                              <BookOpen size={12} /> View Resource <ExternalLink size={10} />
+                            </a>
+                          </div>
+                        )}
                       </div>
-                      {task.evidence_link && (
-                        <div>
-                          <a href={task.evidence_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 underline">
-                            <BookOpen size={12} /> View Resource <ExternalLink size={10} />
-                          </a>
-                        </div>
-                      )}
+
+                      {/* Right Column: Actions */}
+                      <div className="flex flex-col gap-2 flex-shrink-0">
+  <button
+    onClick={() => handleMarkTaskDone(task.task_id)}
+    className="text-xs px-3 py-1.5 rounded-md bg-green-600 text-white hover:bg-green-700 w-[90px]"
+  >
+    Complete
+  </button>
+  <button
+    onClick={() => handleEditTask(task.task_id)}
+    className="text-xs px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 inline-flex items-center justify-center gap-1 w-[90px]"
+  >
+    <Pencil size={12} /> Edit
+  </button>
+  <button
+    onClick={() => handleDeleteTask(task.task_id)}
+    className="text-xs px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 inline-flex items-center justify-center gap-1 w-[90px]"
+  >
+    <Trash2 size={12} /> Delete
+  </button>
+</div>
+
                     </div>
                   ))}
                 </div>
+
+                {/* Quick Add */}
+                <div className="p-2 space-y-3">
+                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm hover:shadow transition text-sm">
+                    <h5 className="font-semibold text-gray-900 mb-3">Quick Add</h5>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        className="text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
+                        placeholder="e.g., Draft hypothesis"
+                        value={quickTaskTitle}
+                        onChange={(e) => setQuickTaskTitle(e.target.value)}
+                      />
+                      <input
+                        type="date"
+                        className="text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
+                        value={quickTaskDue}
+                        onChange={(e) => setQuickTaskDue(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Buttons aligned bottom right */}
+                    <div className="flex justify-end gap-3 mt-4">
+                      <button
+                        onClick={() => {
+                          setQuickTaskTitle('');
+                          setQuickTaskDue('');
+                        }}
+                        className="text-sm px-4 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        onClick={handleQuickAddTask}
+                        className="text-sm px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700"
+                      >
+                        Save Task
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             )}
           </div>
@@ -279,49 +587,126 @@ export default function ProjectDashboard() {
         {/* --- Gate Checklist Tab --- */}
         {activeTab === 'gate' && (
           <div className="space-y-3">
-            <div className="flex gap-2 border-b border-gray-200">
-              {stages.map((s, idx) => (
-                <button
-                  key={s.stage_id || idx}
-                  className={`px-3 py-1.5 text-xs rounded-t border-b-2 ${
-                    idx === activeStageIdx
-                      ? 'border-purple-600 text-purple-700 font-medium'
-                      : 'border-transparent text-gray-600 hover:text-gray-800'
-                  }`}
-                  onClick={() => setActiveStageIdx(idx)}
-                >
-                  Stage {s.stage_order || idx + 1}
-                </button>
-              ))}
+            {/* Stage Tabs */}
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2 border-b border-gray-200">
+                {stages.map((s, idx) => (
+                  <button
+                    key={s.stage_id || idx}
+                    className={`px-3 py-1.5 text-xs rounded-t border-b-2 ${
+                      idx === activeStageIdx
+                        ? 'border-purple-600 text-purple-700 font-medium'
+                        : 'border-transparent text-gray-600 hover:text-gray-800'
+                    }`}
+                    onClick={() => setActiveStageIdx(idx)}
+                  >
+                    Stage {s.stage_order || idx + 1}
+                  </button>
+                ))}
+              </div>
             </div>
 
+            {/* Stage Gate Section */}
             {stages[activeStageIdx] && (
-              <div className="border border-gray-200 rounded overflow-hidden">
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                {/* Header Section - matches Tasks style */}
                 <div className="p-2 bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-medium text-gray-900">{stages[activeStageIdx].title}</h4>
-                    {stages[activeStageIdx].gate?.status && (
-                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(stages[activeStageIdx].gate.status)}`}>Gate: {stages[activeStageIdx].gate.status}</span>
-                    )}
+                    <div>
+                      <h4 className="text-xs font-medium text-gray-900">
+                        {stages[activeStageIdx].gate?.description || 'Gate Description'}
+                      </h4>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {(stages[activeStageIdx].gate?.checklist?.length || 0)} checklist item
+                        {(stages[activeStageIdx].gate?.checklist?.length || 0) !== 1 ? 's' : ''}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {stages[activeStageIdx].gate && (
-                  <div className="p-2 bg-green-50 text-xs space-y-1">
-                    {stages[activeStageIdx].gate.description && <p className="text-gray-700">{stages[activeStageIdx].gate.description}</p>}
-                    {Array.isArray(stages[activeStageIdx].gate.checklist) && stages[activeStageIdx].gate.checklist.length > 0 && (
-                      <div className="space-y-1 mt-2">
-                        <div className="text-xs font-medium text-gray-700 mb-1">Checklist:</div>
-                        {stages[activeStageIdx].gate.checklist.map((item, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-                            <span className="text-xs text-gray-700">{item}</span>
+                {/* Checklist Items */}
+                <div className="p-2 space-y-4">
+                  {(stages[activeStageIdx].gate?.checklist || []).length > 0 ? (
+                    stages[activeStageIdx].gate.checklist.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="relative border border-gray-200 rounded-lg p-3 bg-white shadow-sm hover:shadow transition text-sm"
+                      >
+                        {/* Top-right Buttons - stacked vertically */}
+                        <div className="absolute top-3 right-3 flex flex-col gap-2">
+                          <button
+                            onClick={() => handleEditGateItem(idx)}
+                            className="text-xs px-3 py-1.5 rounded-md bg-blue-500 text-white hover:bg-blue-600 w-[90px]"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleReflectionGateItem(idx)}
+                            className="text-xs px-3 py-1.5 rounded-md bg-green-500 text-white hover:bg-green-600 w-[90px]"
+                          >
+                            Reflection
+                          </button>
+                        </div>
+
+                        {/* Checklist Item Title */}
+                        <h5 className="font-semibold text-gray-900 pr-28">
+                          {item?.title || item || `Checklist Item ${idx + 1}`}
+                        </h5>
+
+                        {/* Due + Standards Row */}
+                        <div className="text-xs text-gray-600 mt-2 mb-2 flex flex-wrap gap-4">
+                          <div>
+                            <span className="font-medium">Due:</span>{' '}
+                            {item?.due_date ? (
+                              new Date(item.due_date).toLocaleDateString()
+                            ) : (
+                              <span className="italic text-gray-400">N/A</span>
+                            )}
                           </div>
-                        ))}
+                          <div>
+                            <span className="font-medium">Standards:</span>{' '}
+                            {item?.standards ? (
+                              Array.isArray(item.standards)
+                                ? item.standards.join(', ')
+                                : item.standards
+                            ) : (
+                              <span className="italic text-gray-400">N/A</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Feedback + Final Grade */}
+                        <div className="grid grid-cols-2 gap-3 mt-6 pt-2">
+                          <div className="border border-gray-100 rounded p-3 bg-gray-50">
+                            <h6 className="text-xs font-semibold text-gray-700 mb-1">FEEDBACK</h6>
+                            <p className="text-xs text-gray-600">
+                              No feedback yet. Awaiting instructor evaluation.
+                            </p>
+                          </div>
+                          <div className="border border-gray-100 rounded p-3 bg-gray-50">
+                            <h6 className="text-xs font-semibold text-gray-700 mb-1">FINAL GRADE</h6>
+                            <p className="text-xs text-gray-800 font-medium">Not Yet Proficient</p>
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    ))
+                  ) : (
+                    <p className="text-gray-600 text-sm italic mt-3">
+                      No checklist items found for this stage.
+                    </p>
+                  )}
+
+                  {/* Add Item Button */}
+                  <div className="pt-3 border-t border-gray-200">
+                    <button
+                      type="button"
+                      onClick={handleAddChecklistItem}
+                      className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                    >
+                      <Plus size={14} /> Add Item
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             )}
           </div>
@@ -332,6 +717,12 @@ export default function ProjectDashboard() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900">Resources</h3>
+              <div className="flex items-center gap-2">
+                <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelected} />
+                <button onClick={handleAttachResource} disabled={uploading} className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded ${uploading ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-purple-600 text-white hover:bg-purple-700'}`}>
+                  <Upload size={12}/>{uploading ? 'Uploading...' : 'Upload File'}
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               {(project?.resources || []).length === 0 && (
@@ -343,11 +734,30 @@ export default function ProjectDashboard() {
                     <FolderOpen size={14} className="text-gray-500" />
                     <div>
                       <div className="font-medium text-gray-900">{r.title}</div>
-                      <div className="text-gray-500">{r.kind}</div>
+                      <div className="text-gray-500">{r.kind}{r.size ? ` • ${(r.size/1024).toFixed(1)} KB` : ''}</div>
+                      {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline inline-flex items-center gap-1 mt-1">Open <ExternalLink size={10} /></a>}
                     </div>
                   </div>
+                  <button onClick={()=>handleRemoveResource(r.id)} className="text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 inline-flex items-center gap-1"><Trash2 size={12}/>Remove</button>
                 </div>
               ))}
+            </div>
+            <div className="pt-3 border-t border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">Activity</h3>
+              {!(project?.activity?.length) && (
+                <div className="text-xs text-gray-500">No activity yet.</div>
+              )}
+              <div className="space-y-2">
+                {(project?.activity || []).map(a => (
+                  <div key={a.id} className="flex items-center justify-between text-xs border border-gray-200 rounded p-2">
+                    <div>
+                      <div className="font-medium text-gray-900">{a.action}</div>
+                      <div className="text-gray-600">{a.details}</div>
+                    </div>
+                    <div className="text-gray-500">{new Date(a.at).toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

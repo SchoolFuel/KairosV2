@@ -63,6 +63,7 @@ function onOpen() {
 
 
 function validateUser() {
+  clearUserCache();
   const userProps = PropertiesService.getUserProperties();
   const cachedStandards = userProps.getProperty('LEARNING_STANDARDS');
   const cachedUserId = userProps.getProperty('USER_ID');
