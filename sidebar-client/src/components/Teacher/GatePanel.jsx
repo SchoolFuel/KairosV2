@@ -1,5 +1,5 @@
 // src/components/GatePanel.jsx
-import React from "react";
+import React, { useState } from "react";
 import { gsRun } from "./utils/gsRun"; // ← adjust path if your utils isn't here
 import "./Teacher.css";
 
@@ -32,6 +32,8 @@ async function awaitUpdate(cacheKey, getTs, doPull, tries = 8, delayMs = 150) {
 }
 
 function GatePanel({ stage }) {
+  // Remove local modal state; use Apps Script dialog
+
   if (!stage) return <div className="td-empty">No stage selected.</div>;
 
   const g = stage.gate || {};
@@ -83,33 +85,21 @@ function GatePanel({ stage }) {
   }, []);
 
   const openDialog = React.useCallback(() => {
-    if (!gateId || !checklistTitle) {
-      alert("Missing gate/checklist");
-      return;
+    if (
+      window.google &&
+      window.google.script &&
+      window.google.script.run &&
+      window.google.script.run.openDialog
+    ) {
+      window.google.script.run.openDialog("add-standard", "Add Standard");
+    } else {
+      alert(
+        "Dialog API not available. This button should be used in the sidebar or dialog context."
+      );
     }
+  }, []);
 
-    const ctx = {
-      projectId: String(stage?.project_id || "NA"),
-      stageId: String(stage?.stage_id || "NA"),
-      gateId,
-      gateTitle: String(g?.title || stage?.title || ""),
-      checklistTitle,
-    };
-
-    const run = window?.google?.script?.run;
-    if (!run) {
-      alert("google.script.run not available");
-      return;
-    }
-
-    run
-      .withFailureHandler((e) => alert("Failed to open: " + (e?.message || e)))
-      .GS_openStandardDialogWithCtx(ctx);
-
-    awaitUpdate(cacheKey, getTs, refreshFromCache).then((hit) => {
-      if (!hit) setTimeout(() => refreshFromCache(cacheKey), 400);
-    });
-  }, [gateId, checklistTitle, stage, g, cacheKey, getTs, refreshFromCache]);
+  const closeDialog = () => setShowAddStandardDialog(false);
 
   /* -------- per-checklist meta (Status/Assignee/Due/Feedback) -------- */
   const [metaByKey, setMetaByKey] = React.useState(
@@ -265,6 +255,8 @@ function GatePanel({ stage }) {
               ↻ Refresh
             </button>
           </div>
+
+          {/* No local modal; dialog is opened via Apps Script like Project Queue */}
 
           {/* Picked standards */}
           <div style={{ marginBottom: 12, minHeight: 20 }}>

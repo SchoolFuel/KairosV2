@@ -354,7 +354,7 @@ export default function ProjectDashboard() {
       </div>
 
       {/* Tabs */}
-      <div className="px-6">
+      <div className="p-6">
         <div className="flex items-center gap-6 border-b border-gray-300 mb-4">
           {[
             { id: 'overview', label: 'Overview' },
@@ -366,7 +366,7 @@ export default function ProjectDashboard() {
               key={tab.id}
               className={`text-sm pb-2 transition-all duration-200 ${
                 activeTab === tab.id
-                  ? 'border-b-2 border-purple-600 text-purple-700 font-medium'
+                  ? 'border-b-2 border-current font-medium'
                   : 'text-gray-500 hover:text-gray-800'
               }`}
               onClick={() => setActiveTab(tab.id)}
@@ -467,33 +467,31 @@ export default function ProjectDashboard() {
                       key={task.task_id}
                       className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow transition text-sm flex justify-between items-start gap-4"
                     >
-                      {/* Left Column: Task Info */}
+                      {/* Left Column: Details */}
                       <div className="flex-1">
                         <h5 className="font-semibold text-gray-900">
                           {task.title || "Untitled Task"}
                         </h5>
-
-                        {/* Description */}
                         {task.description && (
                           <p className="text-gray-700 mt-1">{task.description}</p>
                         )}
 
-                        {/* Due + Standards row */}
+                        {/* Due + Standards */}
                         <div className="text-xs text-gray-600 mt-2 mb-2 flex flex-wrap gap-4">
-                          <div>
-                            <span className="font-medium">Due:</span>{' '}
-                            {task.due_date
-                              ? new Date(task.due_date).toLocaleDateString()
-                              : <span className="italic text-gray-400">N/A</span>}
-                          </div>
-                          <div>
-                            <span className="font-medium">Standards:</span>{' '}
-                            {task.standards
-                              ? (Array.isArray(task.standards)
-                                  ? task.standards.join(', ')
-                                  : task.standards)
-                              : <span className="italic text-gray-400">N/A</span>}
-                          </div>
+                          {task.due_date && (
+                            <div>
+                              <span className="font-medium">Due:</span>{" "}
+                              {new Date(task.due_date).toLocaleDateString()}
+                            </div>
+                          )}
+                          {task.standards && (
+                            <div>
+                              <span className="font-medium">Standards:</span>{" "}
+                              {Array.isArray(task.standards)
+                                ? task.standards.join(", ")
+                                : task.standards}
+                            </div>
+                          )}
                         </div>
 
                         {/* Resource link */}
@@ -511,74 +509,56 @@ export default function ProjectDashboard() {
                         )}
                       </div>
 
-                      {/* Right Column: Actions */}
+                      {/* Right Column: Actions (vertically stacked beside text) */}
                       <div className="flex flex-col gap-2 flex-shrink-0">
-  <button
-    onClick={() => handleMarkTaskDone(task.task_id)}
-    className="text-xs px-3 py-1.5 rounded-md bg-green-600 text-white hover:bg-green-700 w-[90px]"
-  >
-    Complete
-  </button>
-  <button
-    onClick={() => handleEditTask(task.task_id)}
-    className="text-xs px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 inline-flex items-center justify-center gap-1 w-[90px]"
-  >
-    <Pencil size={12} /> Edit
-  </button>
-  <button
-    onClick={() => handleDeleteTask(task.task_id)}
-    className="text-xs px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 inline-flex items-center justify-center gap-1 w-[90px]"
-  >
-    <Trash2 size={12} /> Delete
-  </button>
-</div>
-
+                        <button
+                          onClick={() => handleMarkTaskDone(task.task_id)}
+                          className="text-xs px-3 py-1.5 rounded-md bg-green-500 text-white hover:bg-green-600 w-[100px]"
+                        >
+                          Complete
+                        </button>
+                        <button
+                          onClick={() => handleEditTask(task.task_id)}
+                          className="text-xs px-3 py-1.5 rounded-md bg-blue-500 text-white hover:bg-blue-600 inline-flex items-center justify-center gap-1 w-[100px]"
+                        >
+                          <Pencil size={12} /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTask(task.task_id)}
+                          className="text-xs px-3 py-1.5 rounded-md bg-red-500 text-white hover:bg-red-600 inline-flex items-center justify-center gap-1 w-[100px]"
+                        >
+                          <Trash2 size={12} /> Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
 
+
+
                 {/* Quick Add */}
-                <div className="p-2 space-y-3">
-                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm hover:shadow transition text-sm">
-                    <h5 className="font-semibold text-gray-900 mb-3">Quick Add</h5>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        className="text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
-                        placeholder="e.g., Draft hypothesis"
-                        value={quickTaskTitle}
-                        onChange={(e) => setQuickTaskTitle(e.target.value)}
-                      />
-                      <input
-                        type="date"
-                        className="text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
-                        value={quickTaskDue}
-                        onChange={(e) => setQuickTaskDue(e.target.value)}
-                      />
-                    </div>
-
-                    {/* Buttons aligned bottom right */}
-                    <div className="flex justify-end gap-3 mt-4">
-                      <button
-                        onClick={() => {
-                          setQuickTaskTitle('');
-                          setQuickTaskDue('');
-                        }}
-                        className="text-sm px-4 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      >
-                        Clear
-                      </button>
-                      <button
-                        onClick={handleQuickAddTask}
-                        className="text-sm px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700"
-                      >
-                        Save Task
-                      </button>
+                <div className="border-t border-gray-200 p-3 bg-gray-50">
+                  <div className="text-sm font-semibold text-gray-900 mb-2">Quick Add</div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <input
+                      type="text"
+                      className="text-xs px-2 py-2 border border-gray-300 rounded"
+                      placeholder="e.g., Draft hypothesis"
+                      value={quickTaskTitle}
+                      onChange={(e)=>setQuickTaskTitle(e.target.value)}
+                    />
+                    <input
+                      type="date"
+                      className="text-xs px-2 py-2 border border-gray-300 rounded"
+                      value={quickTaskDue}
+                      onChange={(e)=>setQuickTaskDue(e.target.value)}
+                    />
+                    <div className="flex items-center gap-2">
+                      <button onClick={()=>{setQuickTaskTitle(''); setQuickTaskDue('');}} className="text-xs px-3 py-2 rounded bg-gray-200 text-gray-700">Clear</button>
+                      <button onClick={handleQuickAddTask} className="text-xs px-3 py-2 rounded bg-purple-600 text-white hover:bg-purple-700">Save Task</button>
                     </div>
                   </div>
                 </div>
-
               </div>
             )}
           </div>
@@ -588,129 +568,90 @@ export default function ProjectDashboard() {
         {activeTab === 'gate' && (
           <div className="space-y-3">
             {/* Stage Tabs */}
-            <div className="flex items-center justify-between">
-              <div className="flex gap-2 border-b border-gray-200">
-                {stages.map((s, idx) => (
-                  <button
-                    key={s.stage_id || idx}
-                    className={`px-3 py-1.5 text-xs rounded-t border-b-2 ${
-                      idx === activeStageIdx
-                        ? 'border-purple-600 text-purple-700 font-medium'
-                        : 'border-transparent text-gray-600 hover:text-gray-800'
-                    }`}
-                    onClick={() => setActiveStageIdx(idx)}
-                  >
-                    Stage {s.stage_order || idx + 1}
-                  </button>
-                ))}
-              </div>
+            <div className="flex gap-2 border-b border-gray-200">
+              {stages.map((s, idx) => (
+                <button
+                  key={s.stage_id || idx}
+                  className={`px-3 py-1.5 text-sm rounded-t border-b-2 transition-all ${
+                    idx === activeStageIdx
+                      ? 'border-purple-600 text-purple-700 font-medium'
+                      : 'border-transparent text-gray-600 hover:text-gray-800'
+                  }`}
+                  onClick={() => setActiveStageIdx(idx)}
+                >
+                  Stage {s.stage_order || idx + 1}
+                </button>
+              ))}
             </div>
 
-            {/* Stage Gate Section */}
+            {/* Stage Content */}
             {stages[activeStageIdx] && (
               <div className="border border-gray-200 rounded-lg overflow-hidden">
-                {/* Header Section - matches Tasks style */}
-                <div className="p-2 bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-medium text-gray-900">
-                        {stages[activeStageIdx].gate?.description || 'Gate Description'}
-                      </h4>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {(stages[activeStageIdx].gate?.checklist?.length || 0)} checklist item
-                        {(stages[activeStageIdx].gate?.checklist?.length || 0) !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  </div>
+                {/* Header */}
+                <div className="p-3 bg-gray-50 flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    {stages[activeStageIdx].title || 'Untitled Stage'}
+                  </h4>
+                  {stages[activeStageIdx].gate?.status && (
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${getStatusColor(
+                        stages[activeStageIdx].gate.status
+                      )}`}
+                    >
+                      {stages[activeStageIdx].gate.status}
+                    </span>
+                  )}
                 </div>
 
-                {/* Checklist Items */}
-                <div className="p-2 space-y-4">
-                  {(stages[activeStageIdx].gate?.checklist || []).length > 0 ? (
-                    stages[activeStageIdx].gate.checklist.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="relative border border-gray-200 rounded-lg p-3 bg-white shadow-sm hover:shadow transition text-sm"
-                      >
-                        {/* Top-right Buttons - stacked vertically */}
-                        <div className="absolute top-3 right-3 flex flex-col gap-2">
-                          <button
-                            onClick={() => handleEditGateItem(idx)}
-                            className="text-xs px-3 py-1.5 rounded-md bg-blue-500 text-white hover:bg-blue-600 w-[90px]"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleReflectionGateItem(idx)}
-                            className="text-xs px-3 py-1.5 rounded-md bg-green-500 text-white hover:bg-green-600 w-[90px]"
-                          >
-                            Reflection
-                          </button>
-                        </div>
+                {/* Gate Checklist */}
+                {stages[activeStageIdx].gate && (
+                  <div className="p-4 text-sm space-y-4 bg-white">
+                    {/* Description */}
+                    {stages[activeStageIdx].gate.description && (
+                      <p className="text-gray-800">
+                        {stages[activeStageIdx].gate.description}
+                      </p>
+                    )}
 
-                        {/* Checklist Item Title */}
-                        <h5 className="font-semibold text-gray-900 pr-28">
-                          {item?.title || item || `Checklist Item ${idx + 1}`}
-                        </h5>
-
-                        {/* Due + Standards Row */}
-                        <div className="text-xs text-gray-600 mt-2 mb-2 flex flex-wrap gap-4">
-                          <div>
-                            <span className="font-medium">Due:</span>{' '}
-                            {item?.due_date ? (
-                              new Date(item.due_date).toLocaleDateString()
-                            ) : (
-                              <span className="italic text-gray-400">N/A</span>
-                            )}
-                          </div>
-                          <div>
-                            <span className="font-medium">Standards:</span>{' '}
-                            {item?.standards ? (
-                              Array.isArray(item.standards)
-                                ? item.standards.join(', ')
-                                : item.standards
-                            ) : (
-                              <span className="italic text-gray-400">N/A</span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Feedback + Final Grade */}
-                        <div className="grid grid-cols-2 gap-3 mt-6 pt-2">
-                          <div className="border border-gray-100 rounded p-3 bg-gray-50">
-                            <h6 className="text-xs font-semibold text-gray-700 mb-1">FEEDBACK</h6>
-                            <p className="text-xs text-gray-600">
-                              No feedback yet. Awaiting instructor evaluation.
-                            </p>
-                          </div>
-                          <div className="border border-gray-100 rounded p-3 bg-gray-50">
-                            <h6 className="text-xs font-semibold text-gray-700 mb-1">FINAL GRADE</h6>
-                            <p className="text-xs text-gray-800 font-medium">Not Yet Proficient</p>
-                          </div>
-                        </div>
+                    {/* Checklist */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="text-sm font-semibold text-gray-900 mb-2">
+                        Checklist:
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-600 text-sm italic mt-3">
-                      No checklist items found for this stage.
-                    </p>
-                  )}
 
-                  {/* Add Item Button */}
-                  <div className="pt-3 border-t border-gray-200">
-                    <button
-                      type="button"
-                      onClick={handleAddChecklistItem}
-                      className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
-                    >
-                      <Plus size={14} /> Add Item
-                    </button>
+                      {(stages[activeStageIdx].gate.checklist || []).length > 0 ? (
+                        <div className="space-y-2">
+                          {stages[activeStageIdx].gate.checklist.map((item, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between border-b border-green-100 last:border-none py-1"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-gray-800">{item}</span>
+                              </div>
+                              <button
+                                onClick={() => handleRemoveChecklistItem(idx)}
+                                className="text-xs px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600 inline-flex items-center gap-1"
+                              >
+                                <Trash2 size={12} /> Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-600 italic">
+                          No checklist items available.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             )}
           </div>
         )}
+
 
         {/* --- Resources & Activity Tab (light placeholder using existing state shape if provided) --- */}
         {activeTab === 'resources' && (

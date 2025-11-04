@@ -1,0 +1,1300 @@
+import React, { useEffect, useState } from "react";
+import {
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Clock,
+  User,
+  BookOpen,
+  Save,
+} from "lucide-react";
+import Badge from "../Shared/LearningStandards/Badge";
+import ReviewStageTab from "./ReviewStageTab";
+import ReviewTaskCard from "./ReviewTaskCard";
+import ReviewAssessmentGate from "./ReviewAssessmentGate";
+import GateStandards from "./GateStandards";
+import "./TeacherProjectQueue.css";
+
+const parseMaybeJSON = (v) => {
+  if (typeof v !== "string") return v;
+  try {
+    return JSON.parse(v);
+  } catch {
+    return v;
+  }
+};
+
+const safePreview = (v, n = 240) => {
+  try {
+    return JSON.stringify(parseMaybeJSON(v)).slice(0, n);
+  } catch {
+    return String(v).slice(0, n);
+  }
+};
+
+const deepClone = (obj) =>
+  typeof structuredClone === "function"
+    ? structuredClone(obj)
+    : JSON.parse(JSON.stringify(obj));
+
+/* ---------- status pill helper ---------- */
+function pillClass(status) {
+  const s = (status || "").toLowerCase();
+  if (s.includes("approve")) return "is-approve";
+  if (s.includes("reject") || s.includes("revision")) return "is-reject";
+  if (s.includes("pending")) return "is-pending";
+  return "is-neutral";
+}
+
+function getStatusIcon(status) {
+  const s = (status || "").toLowerCase();
+  if (s.includes("approve"))
+    return <CheckCircle className="status-icon approved" />;
+  if (s.includes("reject") || s.includes("revision"))
+    return <XCircle className="status-icon rejected" />;
+  if (s.includes("pending")) return <Clock className="status-icon pending" />;
+  return <Clock className="status-icon neutral" />;
+}
+
+/* ---------- Project Card Component using shared components ---------- */
+function ProjectCard({ project, onReview, onApprove, onReject }) {
+  const title = project.title || project.project_title || "Untitled";
+  const subject = project.subject_domain || "—";
+  const status = (project.status || "—").trim();
+  const owner = project.owner_name || project.owner_email || "";
+  const description = project.description || "";
+  const createdAt = project.created_at || project.createdAt || "";
+
+  return (
+    <div className="tpq-card">
+      <div className="tpq-card-header">
+        <div className="tpq-card-title-section">
+          <h3 className="tpq-card-title" title={title}>
+            {title}
+          </h3>
+          <div className="tpq-card-meta">
+            <Badge variant="subject">
+              <BookOpen size={12} />
+              {subject}
+            </Badge>
+            {owner && (
+              <>
+                <span className="tpq-separator">•</span>
+                <span className="tpq-owner">
+                  <User size={12} />
+                  {owner}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="tpq-status-section">
+          {getStatusIcon(status)}
+          <span className={`tpq-status-pill ${pillClass(status)}`}>
+            {status}
+          </span>
+        </div>
+      </div>
+
+      {description && (
+        <div className="tpq-description">
+          {description.length > 150
+            ? `${description.substring(0, 150)}...`
+            : description}
+        </div>
+      )}
+
+      {createdAt && (
+        <div className="tpq-timestamp">
+          Submitted: {new Date(createdAt).toLocaleDateString()}
+        </div>
+      )}
+
+      <div className="tpq-actions">
+        <button
+          className="tpq-btn tpq-btn--review"
+          onClick={(e) => {
+            e.stopPropagation();
+            onReview(project);
+          }}
+          disabled={!project.project_id}
+          title={
+            project.project_id ? "Open detailed review" : "Missing project ID"
+          }
+        >
+          <BookOpen size={14} />
+          Review
+        </button>
+        <button
+          className="tpq-btn tpq-btn--approve"
+          onClick={(e) => {
+            e.stopPropagation();
+            onApprove(project);
+          }}
+          disabled={!project.project_id}
+          title="Approve this project"
+        >
+          <CheckCircle size={14} />
+          Approve
+        </button>
+        <button
+          className="tpq-btn tpq-btn--reject"
+          onClick={(e) => {
+            e.stopPropagation();
+            onReject(project);
+          }}
+          disabled={!project.project_id}
+          title="Request revision"
+        >
+          <XCircle size={14} />
+          Request Revision
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Main Component ---------- */
+export default function TeacherProjectQueue() {
+  // State management
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [filter, setFilter] = useState("all"); // all, pending
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
+
+  // Detailed project review state
+  const [projectDetails, setProjectDetails] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState("");
+  const [selectedStageId, setSelectedStageId] = useState(null);
+  const [currentStageIndex, setCurrentStageIndex] = useState(0);
+  const [stageStatuses, setStageStatuses] = useState({}); // Track individual stage approval/rejection
+  const [overallComment, setOverallComment] = useState("");
+  const [editableProjectData, setEditableProjectData] = useState(null); // Editable copy of project data
+  const [isFrozen, setIsFrozen] = useState(false); // Track if changes are saved/frozen
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Advanced features state
+  const [activeTab, setActiveTab] = useState("inbox"); // inbox, rubrics, calendar, analytics
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [rubrics, setRubrics] = useState([]);
+  const [rubricVals, setRubricVals] = useState({
+    align: 0,
+    evidence: 0,
+    clarity: 0,
+    complete: 0,
+  });
+  const [partialMarks, setPartialMarks] = useState({
+    align: "",
+    evidence: "",
+    clarity: "",
+    complete: "",
+  });
+  const [analytics, setAnalytics] = useState({
+    totalProjects: 0,
+    approvedProjects: 0,
+    pendingProjects: 0,
+    rejectedProjects: 0,
+    averageReviewTime: 0,
+    completionRate: 0,
+    medianReviewTime: "2.4h",
+    declineRate: "18%",
+    throughput: 126,
+  });
+
+  // Load projects on component mount
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  // Calculate analytics when projects change
+  useEffect(() => {
+    if (projects.length > 0) {
+      const total = projects.length;
+      const approved = projects.filter((p) =>
+        p.status.toLowerCase().includes("approve")
+      ).length;
+      const pending = projects.filter((p) =>
+        p.status.toLowerCase().includes("pending")
+      ).length;
+      const rejected = projects.filter(
+        (p) =>
+          p.status.toLowerCase().includes("reject") ||
+          p.status.toLowerCase().includes("revision")
+      ).length;
+
+      setAnalytics((prev) => ({
+        ...prev,
+        totalProjects: total,
+        approvedProjects: approved,
+        pendingProjects: pending,
+        rejectedProjects: rejected,
+        completionRate: Math.round((approved / total) * 100),
+      }));
+    }
+  }, [projects]);
+
+  // Gate Assessment is now integrated directly into this component
+
+  // Load mock rubrics
+  useEffect(() => {
+    const mockRubrics = [
+      {
+        id: 1,
+        name: "Research Quality",
+        criteria: [
+          { name: "Sources", weight: 30, score: 0 },
+          { name: "Accuracy", weight: 40, score: 0 },
+          { name: "Depth", weight: 30, score: 0 },
+        ],
+      },
+      {
+        id: 2,
+        name: "Presentation",
+        criteria: [
+          { name: "Clarity", weight: 50, score: 0 },
+          { name: "Organization", weight: 50, score: 0 },
+        ],
+      },
+    ];
+    setRubrics(mockRubrics);
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      // Call Google Apps Script function to fetch all teacher projects
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler((response) => {
+            try {
+              console.log(
+                "Raw API response:",
+                JSON.stringify(response, null, 2)
+              );
+
+              // Handle the response structure: { statusCode, body: { action_response: { projects: [...] } } }
+              let projects = [];
+
+              if (response && response.body) {
+                const body = response.body;
+                console.log("Response body:", JSON.stringify(body, null, 2));
+
+                // Try multiple paths to find projects array
+                // Path 1: body.projects (direct)
+                if (Array.isArray(body.projects)) {
+                  projects = body.projects;
+                  console.log(
+                    `Found ${projects.length} projects in body.projects`
+                  );
+                }
+                // Path 2: body.action_response.projects
+                else if (
+                  body.action_response &&
+                  Array.isArray(body.action_response.projects)
+                ) {
+                  projects = body.action_response.projects;
+                  console.log(
+                    `Found ${projects.length} projects in body.action_response.projects`
+                  );
+                }
+                // Path 3: body.projects (if it's an object with projects property)
+                else if (body.projects && Array.isArray(body.projects)) {
+                  projects = body.projects;
+                  console.log(
+                    `Found ${projects.length} projects in body.projects (nested)`
+                  );
+                }
+              }
+              // Path 4: response.action_response.projects (direct on response)
+              else if (
+                response &&
+                response.action_response &&
+                Array.isArray(response.action_response.projects)
+              ) {
+                projects = response.action_response.projects;
+                console.log(
+                  `Found ${projects.length} projects in response.action_response.projects`
+                );
+              }
+              // Path 5: response is directly an array
+              else if (Array.isArray(response)) {
+                projects = response;
+                console.log(
+                  `Found ${projects.length} projects in response array`
+                );
+              }
+
+              console.log(`Total projects found: ${projects.length}`);
+
+              if (projects.length === 0) {
+                console.warn(
+                  "No projects found in response. Full response structure:",
+                  response
+                );
+                // Don't set error, just let empty state show naturally
+              }
+
+              // Map API response to component expected format
+              const mappedProjects = projects.map((project) => ({
+                project_id: project.project_id || project.id,
+                user_id: project.user_id,
+                title: project.title || project.project_title || "",
+                project_title: project.title || project.project_title || "",
+                subject_domain: project.subject_domain || "",
+                status: project.status || "Pending",
+                owner_name: project.Student_Name || project.owner_name || "",
+                owner_email: project.owner_email || "",
+                description: project.description || "",
+                created_at: project.created_at || new Date().toISOString(),
+                stages: project.stages || [], // Keep stages if available, otherwise empty array
+              }));
+
+              console.log(`Mapped ${mappedProjects.length} projects`);
+              setProjects(mappedProjects);
+              setLoading(false); // Set loading to false AFTER setting projects
+              resolve(mappedProjects);
+            } catch (parseError) {
+              console.error("Error parsing projects response:", parseError);
+              setError("Error parsing project data: " + parseError.message);
+              setLoading(false);
+              reject(parseError);
+            }
+          })
+          .withFailureHandler((error) => {
+            console.error("Error loading projects:", error);
+            setError(error?.message || "Failed to load projects");
+            setLoading(false);
+            reject(error);
+          })
+          .getTeacherProjectsAll();
+      });
+    } catch (err) {
+      console.error("Error in loadProjects:", err);
+      setError(err?.message || "Failed to load projects");
+      setLoading(false);
+    }
+  };
+
+  // Filter projects based on status and search term
+  const filteredProjects = projects.filter((project) => {
+    const matchesFilter =
+      filter === "all" ||
+      project.status.toLowerCase().includes(filter.toLowerCase());
+
+    const matchesSearch =
+      !searchTerm ||
+      project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.subject_domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.owner_name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesFilter && matchesSearch;
+  });
+
+  // Action handlers
+  const handleReview = (project) => {
+    setSelectedProject(project);
+    setShowDetails(true);
+    setCurrentStageIndex(0);
+    setStageStatuses({}); // Reset stage statuses for new project
+    setRubricVals({ align: 0, evidence: 0, clarity: 0, complete: 0 }); // Reset rubric
+    setPartialMarks({ align: "", evidence: "", clarity: "", complete: "" }); // Reset partial marks
+    setOverallComment(""); // Reset comments
+    setIsFrozen(false); // Reset frozen state
+    setHasUnsavedChanges(false); // Reset unsaved changes
+    setEditableProjectData(null); // Will be set when projectDetails loads
+
+    // Fetch detailed project data (including stages) when reviewing
+    setDetailsLoading(true);
+    setDetailsError("");
+
+    google.script.run
+      .withSuccessHandler((response) => {
+        try {
+          let projectDetails = project; // Start with basic project data
+          let fetchedProject = null;
+
+          // Handle nested response structure: response.body.action_response.json.project
+          if (response?.body?.action_response?.json?.project) {
+            fetchedProject = response.body.action_response.json.project;
+          } else if (response?.body?.project) {
+            fetchedProject = response.body.project;
+          } else if (response?.project) {
+            fetchedProject = response.project;
+          } else if (response?.body?.action_response?.project) {
+            fetchedProject = response.body.action_response.project;
+          }
+
+          if (fetchedProject) {
+            // Merge detailed project data with basic data
+            projectDetails = {
+              ...project,
+              ...fetchedProject,
+              // Ensure required fields are present
+              project_id: fetchedProject.project_id || project.project_id,
+              title:
+                fetchedProject.title ||
+                fetchedProject.project_title ||
+                project.title,
+              project_title:
+                fetchedProject.project_title ||
+                fetchedProject.title ||
+                project.project_title,
+              description:
+                fetchedProject.description || project.description || "",
+              stages: fetchedProject.stages || project.stages || [],
+            };
+          } else {
+            // If no fetched project but we have basic project, use it with empty stages array
+            projectDetails = {
+              ...project,
+              stages: project.stages || [],
+            };
+          }
+
+          setProjectDetails(projectDetails);
+          // Initialize editable copy (deep clone)
+          const editableCopy = deepClone(projectDetails);
+          setEditableProjectData(editableCopy);
+          setDetailsLoading(false);
+        } catch (parseError) {
+          console.error("Error parsing project details:", parseError);
+          setDetailsError("Error loading project details");
+          // Fallback to basic project data if detailed fetch fails
+          setProjectDetails(project);
+          // Initialize editable copy with basic project data
+          const editableCopy = deepClone(project);
+          setEditableProjectData(editableCopy);
+          setDetailsLoading(false);
+        }
+      })
+      .withFailureHandler((error) => {
+        console.error("Error fetching project details:", error);
+        setDetailsError("Failed to load project details");
+        // Fallback to basic project data
+        setProjectDetails(project);
+        // Initialize editable copy with basic project data
+        const editableCopy = deepClone(project);
+        setEditableProjectData(editableCopy);
+        setDetailsLoading(false);
+      })
+      .getTeacherProjectDetails(project.project_id, project.user_id);
+  };
+
+  const handleApprove = async (project) => {
+    try {
+      // Update project status locally
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.project_id === project.project_id ? { ...p, status: "Approved" } : p
+        )
+      );
+
+      // Here you would call the actual API
+      console.log("Approving project:", project.project_id);
+    } catch (err) {
+      console.error("Error approving project:", err);
+    }
+  };
+
+  const handleReject = async (project) => {
+    try {
+      // Update project status locally
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.project_id === project.project_id
+            ? { ...p, status: "Pending Revision" }
+            : p
+        )
+      );
+
+      // Here you would call the actual API
+      console.log("Requesting revision for project:", project.project_id);
+    } catch (err) {
+      console.error("Error requesting revision:", err);
+    }
+  };
+
+  const handleCloseDetails = () => {
+    if (hasUnsavedChanges) {
+      if (
+        !confirm("You have unsaved changes. Are you sure you want to close?")
+      ) {
+        return;
+      }
+    }
+    setShowDetails(false);
+    setSelectedProject(null);
+    setEditableProjectData(null);
+    setIsFrozen(false);
+    setHasUnsavedChanges(false);
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      // Deep clone to ensure we're saving the current editable state
+      const dataToSave = deepClone(editableProjectData);
+
+      // Call API to save changes
+      // In production: google.script.run.withSuccessHandler(...).saveProjectEdits(...)
+      console.log("Saving project edits:", {
+        project_id: selectedProject.project_id,
+        projectData: dataToSave,
+      });
+
+      // Update projectDetails with saved data
+      setProjectDetails(dataToSave);
+      setIsFrozen(true);
+      setHasUnsavedChanges(false);
+
+      // Optionally show success message
+      alert("Changes saved successfully!");
+    } catch (err) {
+      console.error("Error saving changes:", err);
+      alert("Error saving changes. Please try again.");
+    }
+  };
+
+  const handleUnfreeze = () => {
+    setIsFrozen(false);
+  };
+
+  // Helper function to update editable project data
+  const updateEditableData = (path, value) => {
+    setEditableProjectData((prev) => {
+      if (!prev) return prev;
+      const newData = deepClone(prev);
+      const keys = path.split(".");
+      let current = newData;
+
+      for (let i = 0; i < keys.length - 1; i++) {
+        const key = keys[i];
+        if (key.includes("[") && key.includes("]")) {
+          // Handle array indices like "stages[0]"
+          const match = key.match(/(\w+)\[(\d+)\]/);
+          if (match) {
+            const arrName = match[1];
+            const arrIndex = parseInt(match[2]);
+            if (!current[arrName]) current[arrName] = [];
+            if (!current[arrName][arrIndex]) current[arrName][arrIndex] = {};
+            current = current[arrName][arrIndex];
+            continue;
+          }
+        }
+        if (!current[key]) current[key] = {};
+        current = current[key];
+      }
+
+      const lastKey = keys[keys.length - 1];
+      if (lastKey.includes("[") && lastKey.includes("]")) {
+        const match = lastKey.match(/(\w+)\[(\d+)\]/);
+        if (match) {
+          const arrName = match[1];
+          const arrIndex = parseInt(match[2]);
+          if (!current[arrName]) current[arrName] = [];
+          current[arrName][arrIndex] = value;
+        }
+      } else {
+        current[lastKey] = value;
+      }
+
+      return newData;
+    });
+    setHasUnsavedChanges(true);
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="tpq-container">
+        <div className="tpq-loading">
+          <Loader2 className="spin" size={32} style={{ color: "#3182ce" }} />
+          <p style={{ fontSize: "16px", marginTop: "16px", color: "#4a5568" }}>
+            Loading projects...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="tpq-container">
+        <div className="tpq-error">
+          <XCircle size={24} />
+          <p>{error}</p>
+          <button onClick={loadProjects} className="tpq-btn tpq-btn--primary">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Tab configuration
+  const tabs = [
+    { key: "inbox", label: "Inbox", sub: "Under Review" },
+    { key: "rubrics", label: "Gate Assessment", sub: "Workflow" },
+    { key: "calendar", label: "Calendar", sub: "Scheduling" },
+    { key: "analytics", label: "Analytics", sub: "SLA & trends" },
+  ];
+
+  return (
+    <div className="tpq-container">
+      {/* Header */}
+      <div className="tpq-header">
+        <h1>Teacher Project Queue</h1>
+        <p>Review and manage student project submissions</p>
+      </div>
+
+      {/* Section Switcher */}
+      <div className="tpq-section-switch">
+        <label htmlFor="sectionSelect">Section</label>
+        <select
+          id="sectionSelect"
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value)}
+          className="tpq-section-select"
+        >
+          {tabs.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
+              {t.sub ? ` — ${t.sub}` : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* INBOX TAB */}
+      {activeTab === "inbox" && (
+        <>
+          {/* Filters and Search */}
+          <div className="tpq-controls">
+            <div className="tpq-filters">
+              <button
+                className={`tpq-filter-btn ${filter === "all" ? "active" : ""}`}
+                onClick={() => setFilter("all")}
+              >
+                All ({projects.length})
+              </button>
+              <button
+                className={`tpq-filter-btn ${
+                  filter === "pending" ? "active" : ""
+                }`}
+                onClick={() => setFilter("pending")}
+              >
+                Pending (
+                {
+                  projects.filter((p) =>
+                    p.status.toLowerCase().includes("pending")
+                  ).length
+                }
+                )
+              </button>
+            </div>
+
+            <div className="tpq-search">
+              <input
+                type="text"
+                placeholder="Search projects, subjects, or students..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="tpq-search-input"
+              />
+            </div>
+          </div>
+
+          {/* Projects List */}
+          <div className="tpq-projects">
+            {filteredProjects.length === 0 ? (
+              <div className="tpq-empty">
+                <BookOpen size={48} />
+                <h3>No projects found</h3>
+                <p>
+                  {searchTerm || filter !== "all"
+                    ? "Try adjusting your search or filter criteria"
+                    : projects.length === 0
+                    ? "No projects have been submitted yet"
+                    : `No projects match your filters. Showing ${
+                        projects.length
+                      } total project${projects.length !== 1 ? "s" : ""}.`}
+                </p>
+              </div>
+            ) : (
+              filteredProjects.map((project) => (
+                <ProjectCard
+                  key={project.project_id}
+                  project={project}
+                  onReview={handleReview}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                />
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      {/* GATE ASSESSMENT TAB - Integrated workflow */}
+      {activeTab === "rubrics" && (
+        <div className="tpq-gate-assessment-wrapper">
+          <GateStandards onCancel={() => setActiveTab("inbox")} />
+        </div>
+      )}
+
+      {/* CALENDAR TAB */}
+      {activeTab === "calendar" && (
+        <div className="tpq-panel">
+          <div className="tpq-panel-head">
+            <h3>Scheduling Assistant</h3>
+            <span className="tpq-chip">Proposes slots</span>
+          </div>
+          <div className="tpq-stack">
+            <div className="tpq-card">
+              <div className="tpq-inline">
+                <div>
+                  <div style={{ fontWeight: 700 }}>Proposed Times</div>
+                  <div className="tpq-muted">
+                    Synced from Google Calendar (placeholder)
+                  </div>
+                </div>
+                <button className="tpq-btn">Refresh</button>
+              </div>
+              <div className="tpq-stack" style={{ marginTop: 8 }}>
+                <label className="tpq-inline">
+                  <input type="radio" name="slot" /> Wed 10/08 10:30–10:50
+                </label>
+                <label className="tpq-inline">
+                  <input type="radio" name="slot" /> Wed 10/08 11:10–11:30
+                </label>
+                <label className="tpq-inline">
+                  <input type="radio" name="slot" /> Thu 10/09 09:00–09:20
+                </label>
+              </div>
+              <div
+                className="tpq-inline"
+                style={{ justifyContent: "flex-end", marginTop: 8 }}
+              >
+                <button className="tpq-btn tpq-btn--primary">
+                  Send Invite
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ANALYTICS TAB */}
+      {activeTab === "analytics" && (
+        <div className="tpq-panel">
+          <div className="tpq-panel-head">
+            <h3>Review Analytics</h3>
+            <span className="tpq-chip">Last 14 days</span>
+          </div>
+          <div className="tpq-stack">
+            <div className="tpq-card">
+              <div className="tpq-inline">
+                <div>
+                  <div className="tpq-muted">Median Review Time</div>
+                  <div style={{ fontSize: 22, fontWeight: 800 }}>
+                    {analytics.medianReviewTime}
+                  </div>
+                </div>
+                <div>
+                  <div className="tpq-muted">Decline Rate</div>
+                  <div
+                    style={{ fontSize: 22, fontWeight: 800, color: "#e53e3e" }}
+                  >
+                    {analytics.declineRate}
+                  </div>
+                </div>
+                <div>
+                  <div className="tpq-muted">Throughput</div>
+                  <div
+                    style={{ fontSize: 22, fontWeight: 800, color: "#38a169" }}
+                  >
+                    {analytics.throughput}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="tpq-card">
+              <div style={{ fontWeight: 700 }}>Top Decline Reasons</div>
+              <ul className="tpq-muted">
+                <li>Missing citations</li>
+                <li>Insufficient evidence</li>
+                <li>Wrong rubric attached</li>
+              </ul>
+            </div>
+            <div className="tpq-card">
+              <div style={{ fontWeight: 700 }}>Project Statistics</div>
+              <div className="tpq-stats-grid">
+                <div className="tpq-stat-item">
+                  <div className="tpq-stat-value">
+                    {analytics.totalProjects}
+                  </div>
+                  <div className="tpq-stat-label">Total Projects</div>
+                </div>
+                <div className="tpq-stat-item">
+                  <div className="tpq-stat-value" style={{ color: "#38a169" }}>
+                    {analytics.approvedProjects}
+                  </div>
+                  <div className="tpq-stat-label">Approved</div>
+                </div>
+                <div className="tpq-stat-item">
+                  <div className="tpq-stat-value" style={{ color: "#d69e2e" }}>
+                    {analytics.pendingProjects}
+                  </div>
+                  <div className="tpq-stat-label">Pending</div>
+                </div>
+                <div className="tpq-stat-item">
+                  <div className="tpq-stat-value" style={{ color: "#e53e3e" }}>
+                    {analytics.rejectedProjects}
+                  </div>
+                  <div className="tpq-stat-label">Rejected</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Enhanced Project Details Modal */}
+      {showDetails && selectedProject && (
+        <div
+          className="tpq-modal-overlay"
+          onClick={(e) => {
+            // Only close if clicking the overlay background, not modal content
+            if (e.target === e.currentTarget) {
+              handleCloseDetails();
+            }
+          }}
+        >
+          <div
+            className="tpq-modal tpq-modal--large"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="tpq-modal-header">
+              <div style={{ flex: 1 }}>
+                <h2>{selectedProject.title}</h2>
+                {hasUnsavedChanges && (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#f59e0b",
+                      marginTop: "4px",
+                      display: "block",
+                    }}
+                  >
+                    ● Unsaved changes
+                  </span>
+                )}
+                {isFrozen && !hasUnsavedChanges && (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#16a34a",
+                      marginTop: "4px",
+                      display: "block",
+                    }}
+                  >
+                    ✓ Saved
+                  </span>
+                )}
+              </div>
+              <div
+                style={{ display: "flex", gap: "8px", alignItems: "center" }}
+              >
+                {isFrozen ? (
+                  <button
+                    className="tpq-btn tpq-btn--secondary"
+                    onClick={handleUnfreeze}
+                    style={{ fontSize: "13px" }}
+                  >
+                    Edit
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      className="tpq-btn tpq-btn--primary"
+                      onClick={handleSaveChanges}
+                      disabled={!hasUnsavedChanges}
+                      style={{
+                        fontSize: "13px",
+                        opacity: hasUnsavedChanges ? 1 : 0.5,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <Save size={14} />
+                      Save Changes
+                    </button>
+                  </>
+                )}
+                <button
+                  className="tpq-modal-close"
+                  onClick={handleCloseDetails}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="tpq-modal-content">
+              {detailsLoading ? (
+                <div className="tpq-loading">
+                  <Loader2 className="spin" size={24} />
+                  <p>Loading project details...</p>
+                </div>
+              ) : detailsError ? (
+                <div className="tpq-error">
+                  <p>{detailsError}</p>
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      marginTop: "8px",
+                      color: "#718096",
+                    }}
+                  >
+                    Showing basic project information.
+                  </p>
+                </div>
+              ) : null}
+
+              {!detailsLoading && editableProjectData && (
+                <>
+                  {/* Project Description */}
+                  <div className="tpq-modal-section">
+                    <h4>Description</h4>
+                    {!isFrozen ? (
+                      <textarea
+                        value={editableProjectData.description || ""}
+                        onChange={(e) =>
+                          updateEditableData("description", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y min-h-[100px]"
+                        placeholder="Project description"
+                      />
+                    ) : (
+                      <p>
+                        {editableProjectData.description ||
+                          "No description provided"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Stages Section - Replicated from CreateProject */}
+                  <div className="tpq-modal-section">
+                    <h4>Project Stages</h4>
+                    {editableProjectData?.stages &&
+                    Array.isArray(editableProjectData.stages) &&
+                    editableProjectData.stages.length > 0 ? (
+                      <>
+                        {/* Stage Tabs Navigation */}
+                        <div className="border-b border-gray-200 bg-gray-50">
+                          <div className="flex gap-1">
+                            {editableProjectData.stages
+                              .slice()
+                              .sort(
+                                (a, b) =>
+                                  (a?.stage_order || 0) - (b?.stage_order || 0)
+                              )
+                              .map((stage, index) => (
+                                <ReviewStageTab
+                                  key={stage.stage_id}
+                                  index={index}
+                                  isActive={currentStageIndex === index}
+                                  onClick={() => setCurrentStageIndex(index)}
+                                  stage={stage}
+                                />
+                              ))}
+                          </div>
+                        </div>
+
+                        {/* Stage Content */}
+                        <div className="mt-4 max-h-[50vh] overflow-y-auto">
+                          {(() => {
+                            const sortedStages = editableProjectData.stages
+                              .slice()
+                              .sort(
+                                (a, b) =>
+                                  (a?.stage_order || 0) - (b?.stage_order || 0)
+                              );
+                            const currentStage =
+                              sortedStages[currentStageIndex];
+
+                            if (!currentStage) return null;
+
+                            return (
+                              <div className="space-y-6">
+                                {/* Stage Title */}
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-500 mb-2">
+                                    STAGE TITLE
+                                  </label>
+                                  {!isFrozen ? (
+                                    <input
+                                      type="text"
+                                      value={currentStage.title || ""}
+                                      onChange={(e) => {
+                                        const sortedStages = [
+                                          ...editableProjectData.stages,
+                                        ].sort(
+                                          (a, b) =>
+                                            (a?.stage_order || 0) -
+                                            (b?.stage_order || 0)
+                                        );
+                                        const stageIndex =
+                                          editableProjectData.stages.findIndex(
+                                            (s) =>
+                                              s.stage_id ===
+                                              currentStage.stage_id
+                                          );
+                                        setEditableProjectData((prev) => {
+                                          const newData = deepClone(prev);
+                                          newData.stages[stageIndex].title =
+                                            e.target.value;
+                                          return newData;
+                                        });
+                                        setHasUnsavedChanges(true);
+                                      }}
+                                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-semibold text-lg text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                                      placeholder="Untitled Stage"
+                                    />
+                                  ) : (
+                                    <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-semibold text-lg text-gray-900">
+                                      {currentStage.title || "Untitled Stage"}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Tasks */}
+                                {currentStage.tasks &&
+                                  currentStage.tasks.length > 0 && (
+                                    <div>
+                                      <h3 className="text-lg font-bold text-gray-900 mb-4">
+                                        Tasks
+                                      </h3>
+                                      <div className="space-y-4">
+                                        {currentStage.tasks.map(
+                                          (task, taskIndex) => {
+                                            const stageIndex =
+                                              editableProjectData.stages.findIndex(
+                                                (s) =>
+                                                  s.stage_id ===
+                                                  currentStage.stage_id
+                                              );
+                                            return (
+                                              <ReviewTaskCard
+                                                key={taskIndex}
+                                                task={task}
+                                                taskIndex={taskIndex}
+                                                stageIndex={stageIndex}
+                                                isEditable={true}
+                                                isFrozen={isFrozen}
+                                                onUpdate={(field, value) => {
+                                                  setEditableProjectData(
+                                                    (prev) => {
+                                                      const newData =
+                                                        deepClone(prev);
+                                                      newData.stages[
+                                                        stageIndex
+                                                      ].tasks[taskIndex][
+                                                        field
+                                                      ] = value;
+                                                      return newData;
+                                                    }
+                                                  );
+                                                  setHasUnsavedChanges(true);
+                                                }}
+                                              />
+                                            );
+                                          }
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                {/* Assessment Gate */}
+                                {currentStage.gate && (
+                                  <div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                                      Assessment Gate
+                                    </h3>
+                                    <ReviewAssessmentGate
+                                      gate={currentStage.gate}
+                                      isEditable={true}
+                                      isFrozen={isFrozen}
+                                      onUpdate={(field, index, value) => {
+                                        const stageIndex =
+                                          editableProjectData.stages.findIndex(
+                                            (s) =>
+                                              s.stage_id ===
+                                              currentStage.stage_id
+                                          );
+                                        setEditableProjectData((prev) => {
+                                          const newData = deepClone(prev);
+                                          if (
+                                            field === "checklist" &&
+                                            typeof index === "number"
+                                          ) {
+                                            if (
+                                              !newData.stages[stageIndex].gate
+                                                .checklist
+                                            ) {
+                                              newData.stages[
+                                                stageIndex
+                                              ].gate.checklist = [];
+                                            }
+                                            newData.stages[
+                                              stageIndex
+                                            ].gate.checklist[index] = value;
+                                          } else {
+                                            newData.stages[stageIndex].gate[
+                                              field
+                                            ] = value;
+                                          }
+                                          return newData;
+                                        });
+                                        setHasUnsavedChanges(true);
+                                      }}
+                                    />
+                                  </div>
+                                )}
+
+                                {/* Stage Actions */}
+                                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                                  <button
+                                    onClick={() => {
+                                      const stageId = currentStage.stage_id;
+                                      setStageStatuses((prev) => ({
+                                        ...prev,
+                                        [stageId]: "approved",
+                                      }));
+                                    }}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                                      stageStatuses[currentStage.stage_id] ===
+                                      "approved"
+                                        ? "bg-green-600 text-white"
+                                        : "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
+                                    }`}
+                                  >
+                                    <CheckCircle size={16} />
+                                    Approve Stage
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const stageId = currentStage.stage_id;
+                                      setStageStatuses((prev) => ({
+                                        ...prev,
+                                        [stageId]: "revision",
+                                      }));
+                                    }}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                                      stageStatuses[currentStage.stage_id] ===
+                                      "revision"
+                                        ? "bg-yellow-600 text-white"
+                                        : "bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200"
+                                    }`}
+                                  >
+                                    <XCircle size={16} />
+                                    Request Revision
+                                  </button>
+                                  {stageStatuses[currentStage.stage_id] && (
+                                    <span className="ml-auto px-3 py-2 text-sm font-medium text-gray-600">
+                                      Status:{" "}
+                                      <span
+                                        className={`font-semibold ${
+                                          stageStatuses[
+                                            currentStage.stage_id
+                                          ] === "approved"
+                                            ? "text-green-600"
+                                            : "text-yellow-600"
+                                        }`}
+                                      >
+                                        {stageStatuses[
+                                          currentStage.stage_id
+                                        ] === "approved"
+                                          ? "Approved"
+                                          : "Revision Requested"}
+                                      </span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </>
+                    ) : (
+                      <div
+                        className="tpq-empty-state"
+                        style={{
+                          padding: "32px",
+                          textAlign: "center",
+                          color: "#6b7280",
+                        }}
+                      >
+                        <BookOpen
+                          size={48}
+                          style={{ marginBottom: "16px", opacity: 0.5 }}
+                        />
+                        <p>No stages available for this project.</p>
+                        <p style={{ fontSize: "14px", marginTop: "8px" }}>
+                          Stages will appear here once the project structure is
+                          defined.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="tpq-modal-actions">
+              <button
+                className="tpq-btn tpq-btn--approve"
+                onClick={() => {
+                  handleApprove(selectedProject);
+                  handleCloseDetails();
+                }}
+              >
+                <CheckCircle size={14} />
+                Approve
+              </button>
+              <button
+                className="tpq-btn tpq-btn--reject"
+                onClick={() => {
+                  handleReject(selectedProject);
+                  handleCloseDetails();
+                }}
+              >
+                <XCircle size={14} />
+                Request Revision
+              </button>
+              <button
+                className="tpq-btn tpq-btn--secondary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloseDetails();
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
