@@ -10,17 +10,19 @@ const DIALOGS = {
   "create-project": CreateProject,
   "project-dashboard": ProjectDashboard,
   "teacher-project-queue": TeacherProjectQueue,
-  "add-standard": LearningStandardsDialog
+  //"teacher-gate-assessment": GateStandards,
+  "add-standard": LearningStandardsDialog,
 };
+function App() {
+  const [dialogType, setDialogType] = useState("dashboard");
 
-// In your useEffect:
-useEffect(() => {
-  // Get dialog type from URL hash
-  const hash = window.location.hash.slice(1); // Remove the '#'
-  if (hash && DIALOGS[hash]) {
-    setDialogType(hash);
-  }
-}, []);
+  useEffect(() => {
+    // Get dialog type from URL hash
+    const hash = window.location.hash.slice(1); // Remove the '#'
+    if (hash && DIALOGS[hash]) {
+      setDialogType(hash);
+    }
+  }, []);
 
   const DialogComponent = DIALOGS[dialogType];
 
@@ -32,6 +34,6 @@ useEffect(() => {
     );
   }
   return <DialogComponent />;
-
+}
 
 export default App;
