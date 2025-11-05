@@ -80,11 +80,7 @@ function validateUser() {
   }
 
   //  Cache is missing or expired → fetch fresh data
-<<<<<<< HEAD
-  const user_email = "teacher1@gmail.com"; //currentUser();
-=======
   const user_email =  currentUser();
->>>>>>> e6237fa7d6cb2d38e27fbe8097414514a25b519c
   const identity_url = 'https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/dev/identity-fetch';
   const payload = {
     email_id: user_email,
@@ -188,26 +184,3 @@ function clearUserCache() {
     .forEach(k => p.deleteProperty(k));
   return true;
 }
-<<<<<<< HEAD
-function openPrototypeDialog(projectId) {
-  const html = HtmlService.createHtmlOutputFromFile('Dialog')
-    .setWidth(900)
-    .setHeight(700);
-
-  const htmlWithHash = html.getContent();
-  const modifiedHtml = HtmlService.createHtmlOutput(
-    htmlWithHash.replace(
-      '<body>',
-      `<body><script>
-        window.location.hash = 'project-dashboard';
-        window.PROJECT_ID = '${projectId || ''}';
-      </script>`
-    )
-  )
-    .setWidth(900)
-    .setHeight(700);
-
-  DocumentApp.getUi().showModalDialog(modifiedHtml, 'Project Prototype');
-}
-=======
->>>>>>> e6237fa7d6cb2d38e27fbe8097414514a25b519c
