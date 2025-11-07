@@ -11,8 +11,8 @@ import {
 import Badge from "../Shared/LearningStandards/Badge";
 import ReviewStageTab from "./ReviewStageTab";
 import ReviewTaskCard from "./ReviewTaskCard";
-import ReviewAssessmentGate from "./ReviewAssessmentGate";
-import GateStandards from "./GateStandards";
+import ReviewGateStandard from "./ReviewGateStandard ";
+import GateAssessment from "./GateAssessment";
 import "./TeacherProjectQueue.css";
 
 const parseMaybeJSON = (v) => {
@@ -178,24 +178,12 @@ export default function TeacherProjectQueue() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Advanced features state
-  const [activeTab, setActiveTab] = useState("inbox"); // inbox, rubrics, calendar, analytics
+  const [activeTab, setActiveTab] = useState("inbox"); // inbox, gate-A, calendar, analytics
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
-  const [rubrics, setRubrics] = useState([]);
-  const [rubricVals, setRubricVals] = useState({
-    align: 0,
-    evidence: 0,
-    clarity: 0,
-    complete: 0,
-  });
-  const [partialMarks, setPartialMarks] = useState({
-    align: "",
-    evidence: "",
-    clarity: "",
-    complete: "",
-  });
+
   const [analytics, setAnalytics] = useState({
     totalProjects: 0,
     approvedProjects: 0,
@@ -240,31 +228,8 @@ export default function TeacherProjectQueue() {
     }
   }, [projects]);
 
-  // Gate Assessment is now integrated directly into this component
 
-  // Load mock rubrics
-  useEffect(() => {
-    const mockRubrics = [
-      {
-        id: 1,
-        name: "Research Quality",
-        criteria: [
-          { name: "Sources", weight: 30, score: 0 },
-          { name: "Accuracy", weight: 40, score: 0 },
-          { name: "Depth", weight: 30, score: 0 },
-        ],
-      },
-      {
-        id: 2,
-        name: "Presentation",
-        criteria: [
-          { name: "Clarity", weight: 50, score: 0 },
-          { name: "Organization", weight: 50, score: 0 },
-        ],
-      },
-    ];
-    setRubrics(mockRubrics);
-  }, []);
+
 
   const loadProjects = async () => {
     try {
@@ -405,8 +370,6 @@ export default function TeacherProjectQueue() {
     setShowDetails(true);
     setCurrentStageIndex(0);
     setStageStatuses({}); // Reset stage statuses for new project
-    setRubricVals({ align: 0, evidence: 0, clarity: 0, complete: 0 }); // Reset rubric
-    setPartialMarks({ align: "", evidence: "", clarity: "", complete: "" }); // Reset partial marks
     setOverallComment(""); // Reset comments
     setIsFrozen(false); // Reset frozen state
     setHasUnsavedChanges(false); // Reset unsaved changes
@@ -643,7 +606,7 @@ export default function TeacherProjectQueue() {
   // Tab configuration
   const tabs = [
     { key: "inbox", label: "Inbox", sub: "Under Review" },
-    { key: "rubrics", label: "Gate Assessment", sub: "Workflow" },
+    { key: "gate-assess", label: "Gate Assessment", sub: "Workflow" },
     { key: "calendar", label: "Calendar", sub: "Scheduling" },
     { key: "analytics", label: "Analytics", sub: "SLA & trends" },
   ];
@@ -745,9 +708,9 @@ export default function TeacherProjectQueue() {
       )}
 
       {/* GATE ASSESSMENT TAB - Integrated workflow */}
-      {activeTab === "rubrics" && (
+      {activeTab === "gate-assess" && (
         <div className="tpq-gate-assessment-wrapper">
-          <GateStandards onCancel={() => setActiveTab("inbox")} />
+          <GateAssessment onCancel={() => setActiveTab("inbox")} />
         </div>
       )}
 
@@ -1125,13 +1088,13 @@ export default function TeacherProjectQueue() {
                                     </div>
                                   )}
 
-                                {/* Assessment Gate */}
+                                {/* Gate Standards */}
                                 {currentStage.gate && (
                                   <div>
                                     <h3 className="text-lg font-bold text-gray-900 mb-4">
-                                      Assessment Gate
+                                      Gate Standards
                                     </h3>
-                                    <ReviewAssessmentGate
+                                    <ReviewGateStandard
                                       gate={currentStage.gate}
                                       isEditable={true}
                                       isFrozen={isFrozen}

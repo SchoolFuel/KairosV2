@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 
-const ReviewAssessmentGate = ({ gate, isEditable, isFrozen, onUpdate }) => {
+const ReviewGateStandard = ({ gate, isEditable, isFrozen, onUpdate }) => {
   const isDisabled = isFrozen || !isEditable;
   
   return (
@@ -26,6 +26,7 @@ const ReviewAssessmentGate = ({ gate, isEditable, isFrozen, onUpdate }) => {
           )
         )}
       </div>
+
       <div className="mb-3">
         <label className="block text-xs font-semibold text-blue-900 mb-1">
           DESCRIPTION
@@ -45,10 +46,12 @@ const ReviewAssessmentGate = ({ gate, isEditable, isFrozen, onUpdate }) => {
           )
         )}
       </div>
+
       <div>
         <label className="block text-xs font-semibold text-blue-900 mb-2">
           CHECKLIST
         </label>
+
         {isEditable && !isFrozen ? (
           <div className="space-y-2">
             {(gate.checklist || []).map((item, index) => (
@@ -81,5 +84,4 @@ const ReviewAssessmentGate = ({ gate, isEditable, isFrozen, onUpdate }) => {
   );
 };
 
-export default ReviewAssessmentGate;
-
+export default ReviewGateStandard;
