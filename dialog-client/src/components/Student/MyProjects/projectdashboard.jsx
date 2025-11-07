@@ -28,6 +28,19 @@ export default function ProjectDashboard() {
   const [quickTaskTitle, setQuickTaskTitle] = useState('');
   const [quickTaskDue, setQuickTaskDue] = useState('');
 
+  // Delete confirmation modal
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+
+  // Edit dialog state
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editTaskId, setEditTaskId] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+
+
   // Gate UI state
   const DEFAULT_GATE_STEPS = ['Prep','Schedule','Notify','Complete','Review/Evaluate','Final Report','Feedback/Reflection'];
   const [activeGateStepIdx, setActiveGateStepIdx] = useState(0);
@@ -192,28 +205,148 @@ export default function ProjectDashboard() {
     addActivity('Task Completed', titleRef || taskId);
   };
   const handleEditTask = (taskId) => {
-    let newTitleRef = '';
-    mutateProject((p) => {
-      const stage = p.stages?.[activeStageIdx];
-      const t = stage?.tasks?.find(t=>t.task_id===taskId);
-      if (!t) return;
-      const newTitle = prompt('Edit title', t.title) ?? t.title;
-      const newDesc = prompt('Edit description', t.description || '') ?? t.description;
-      t.title = newTitle;
-      t.description = newDesc;
-      newTitleRef = newTitle;
-    });
-    addActivity('Task Edited', newTitleRef || taskId);
+    const s = project?.stages?.[activeStageIdx];
+    const t = s?.tasks?.find(t => t.task_id === taskId);
+    if (!t) return;
+
+    setEditTaskId(taskId);
+    setEditTitle(t.title || '');
+    setEditDesc(t.description || '');
+    setShowEditDialog(true);
   };
+
+
   const handleDeleteTask = (taskId) => {
-    if (!confirm('Delete this task?')) return;
-    mutateProject((p) => {
-      const stage = p.stages?.[activeStageIdx];
-      if (!stage?.tasks) return;
-      stage.tasks = stage.tasks.filter(t=>t.task_id!==taskId);
-    });
-    addActivity('Task Deleted', taskId);
+    setSelectedTaskId(taskId);
+    setShowDeleteDialog(true);
   };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedTaskId) return;
+
+    // Simulate a successful delete request
+    alert("Delete request sent for approval.");
+
+    // Mark this task as pending deletion
+    setPendingDeleteId(selectedTaskId);
+
+    // Reset modal
+    setShowDeleteDialog(false);
+    setDeleteReason("");
+    setSelectedTaskId(null);
+  };
+
+
+  // const handleConfirmDelete = async () => {
+  //   if (!selectedTaskId) return;
+
+  //   const payload = {
+  //     action: "myprojects",
+  //     payload: {
+  //       user_id: "23e228fa-4592-4bdc-852e-192973c388ce",
+  //       email_id: "mindspark.user1@schoolfuel.org",
+  //       request: "delete_request_details_student",
+  //       reason: deleteReason || "No reason provided",
+  //     },
+  //   };
+
+  //   try {
+  //     const response = await fetch(
+  //       "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke",
+  //       {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify(payload),
+  //       }
+  //     );
+
+  //     const data = await response.json();
+  //     console.log("Delete request sent:", data);
+  //     alert("Delete request sent to backend for approval.");
+
+  //     // ✅ After success, mark as pending deletion
+  //     setPendingDeleteId(selectedTaskId);
+  //   } catch (error) {
+  //     console.error("Error sending delete request:", error);
+  //     alert("Failed to send delete request. Please try again.");
+  //   } finally {
+  //     setShowDeleteDialog(false);
+  //     setDeleteReason("");
+  //     setSelectedTaskId(null);
+  //   }
+  // };
+
+  const postSaveProject = async (updatedProject) => {
+    const payload = {
+      action: "saveproject",
+      payload: {
+        json: {
+          project: updatedProject, // send the ENTIRE project object
+        },
+        user_id: "909eb26e-5d77-47cb-90be-674b1d2de7fd", // replace with real user_id if dynamic
+        generatedAt: new Date().toISOString(),
+      },
+    };
+
+    try {
+      google.script.run
+        .withSuccessHandler((response) => {
+          console.log("✅ Revision sent successfully:", response);
+          alert("Revision sent successfully for approval.");
+        })
+        .withFailureHandler((error) => {
+          console.error("❌ Failed to send revision:", error);
+          alert("Failed to send revision; please retry.");
+        })
+        .postToBackend(JSON.stringify(payload)); // Calls the .gs function
+    } catch (err) {
+      console.error("❌ Unexpected error while sending revision:", err);
+      alert("Unexpected error; please retry.");
+    }
+
+    // Return a mock success response so your caller doesn’t break
+    return { ok: true };
+  };
+
+
+  const handleSubmitRevision = async () => {
+    if (!editTaskId) return;
+
+    // 1) Mutate local project to reflect the edit + status
+    let updatedProject;
+    setProject(prev => {
+      if (!prev) return prev;
+      const copy = JSON.parse(JSON.stringify(prev));
+      const s = copy.stages?.[activeStageIdx];
+      if (!s?.tasks) return prev;
+
+      const t = s.tasks.find(t => t.task_id === editTaskId);
+      if (t) {
+        t.title = editTitle.trim() || t.title;
+        t.description = editDesc.trim() || t.description;
+        t.status = "Revision"; // mark as in revision
+      }
+
+      updatedProject = copy;
+      return copy;
+    });
+
+    // 2) Close modal immediately for snappy UX
+    setShowEditDialog(false);
+    setEditTaskId(null);
+
+    // 3) Send payload (mock or real)
+    try {
+      await postSaveProject(updatedProject);
+      // Optional: toast/alert success
+      // alert("Changes sent for revision.");
+    } catch (e) {
+      console.error(e);
+      alert("Failed to send revision. Your local edits are saved; please retry.");
+    }
+  };
+
+
 
   // Gate step save/submit
   const handleSaveGateStep = () => {
@@ -465,13 +598,32 @@ export default function ProjectDashboard() {
                   {(stages[activeStageIdx].tasks || []).map((task) => (
                     <div
                       key={task.task_id}
-                      className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow transition text-sm flex justify-between items-start gap-4"
+                      className={`border border-gray-200 rounded-lg p-4 shadow-sm transition text-sm flex justify-between items-start gap-4 ${
+                        task.status === 'Completed'
+                          ? 'bg-green-50 opacity-80 cursor-not-allowed'
+                          : 'bg-white hover:shadow'
+                      }`}
                     >
                       {/* Left Column: Task Info */}
                       <div className="flex-1">
-                        <h5 className="font-semibold text-gray-900">
+                        <h5 className="font-semibold text-gray-900 flex items-center gap-2">
                           {task.title || "Untitled Task"}
+
+                          {task.status && (
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded ${
+                                task.status === "Revision"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : task.status === "Completed"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {task.status}
+                            </span>
+                          )}
                         </h5>
+
 
                         {/* Description */}
                         {task.description && (
@@ -515,22 +667,52 @@ export default function ProjectDashboard() {
                       <div className="flex flex-col gap-2 flex-shrink-0">
                         <button
                           onClick={() => handleMarkTaskDone(task.task_id)}
-                          className="text-xs px-3 py-1.5 rounded-md bg-green-600 text-white hover:bg-green-700 w-[90px]"
+                          disabled={task.status === 'Completed'}
+                          className={`text-xs px-3 py-1.5 rounded-md w-[90px] font-medium ${
+                            task.status === 'Completed'
+                              ? 'bg-gray-400 text-white cursor-not-allowed'
+                              : 'bg-green-600 text-white hover:bg-green-700'
+                          }`}
                         >
-                          Complete
+                          {task.status === 'Completed' ? 'Completed' : 'Complete'}
                         </button>
                         <button
-                          onClick={() => handleEditTask(task.task_id)}
-                          className="text-xs px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 inline-flex items-center justify-center gap-1 w-[90px]"
-                        >
-                          <Pencil size={12} /> Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTask(task.task_id)}
-                          className="text-xs px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 inline-flex items-center justify-center gap-1 w-[90px]"
-                        >
-                          <Trash2 size={12} /> Delete
-                        </button>
+                            onClick={() => handleEditTask(task.task_id)}
+                            disabled={task.status === 'Completed'}
+                            className={`text-xs px-3 py-1.5 rounded-md ${
+                              task.status === 'Completed'
+                                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            } inline-flex items-center justify-center gap-1 w-[90px]`}
+                          >
+                            <Pencil size={12} /> Edit
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteTask(task.task_id)}
+                            disabled={
+                              task.status === "Completed" || pendingDeleteId === task.task_id
+                            }
+                            className={`text-xs px-3 py-1.5 rounded-md inline-flex items-center justify-center gap-1 w-[90px] ${
+                              task.status === "Completed"
+                                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                                : pendingDeleteId === task.task_id
+                                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                                : "bg-red-600 text-white hover:bg-red-700"
+                            }`}
+                          >
+                            {pendingDeleteId === task.task_id ? (
+                              <>
+                                <Trash2 size={12} /> Pending Deletion
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 size={12} /> Delete
+                              </>
+                            )}
+                          </button>
+
+
                       </div>
                     </div>
                   ))}
@@ -761,6 +943,90 @@ export default function ProjectDashboard() {
           </div>
         )}
       </div>
+      {showDeleteDialog && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg w-[420px]">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Confirm Deletion</h2>
+            <p className="text-sm text-gray-700 mb-4">
+              Are you sure you want to delete this task?
+            </p>
+
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Reason for deletion:
+            </label>
+            <textarea
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              placeholder="Enter reason..."
+              className="w-full border border-gray-300 rounded-md p-2 text-sm mb-5 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteDialog(false)}
+                className="text-sm px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition"
+              >
+                No
+              </button>
+
+              <button
+                onClick={handleConfirmDelete}
+                className="text-sm px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditDialog && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+          <div className="w-[520px] rounded-2xl bg-white p-6 shadow-lg">
+            <h2 className="mb-2 text-lg font-semibold text-gray-900">Edit Task</h2>
+
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              Title
+            </label>
+            <input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="mb-3 w-full rounded-md border p-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Task title"
+            />
+
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              Description
+            </label>
+            <textarea
+              value={editDesc}
+              onChange={(e) => setEditDesc(e.target.value)}
+              rows={4}
+              className="mb-5 w-full rounded-md border p-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Task description"
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowEditDialog(false);
+                  setEditTaskId(null);
+                }}
+                className="rounded-md bg-gray-200 px-4 py-2 text-sm text-gray-800 hover:bg-gray-300"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleSubmitRevision}
+                className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600"
+              >
+                Send for Revision
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

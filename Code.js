@@ -185,3 +185,12 @@ function clearUserCache() {
     .forEach(k => p.deleteProperty(k));
   return true;
 }
+function postToBackend(payload) {
+  var url = "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+  var response = UrlFetchApp.fetch(url, {
+    method: "post",
+    contentType: "application/json",
+    payload: payload,
+  });
+  return response.getContentText();
+}
