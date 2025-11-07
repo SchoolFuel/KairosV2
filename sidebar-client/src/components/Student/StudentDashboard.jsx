@@ -8,7 +8,7 @@ import SidebarMorningPulse from './MorningPulse/MorningPulse';
 import CreateProject from './CreateProject/CreateProject';
 import SidebarWorkshop from './Workshopbuilder/Workshopbuilder';
 import ExpertFinderComponent from './FindExperts/ExpertFinderComponent';
-import StandardsSelector from './StandardsSelector';
+import StudentPrototype from './MyProjectsPrototype/StudentProjectsProt';
 
 export default function StudentDashboard({ email }) {
   return (
@@ -17,13 +17,13 @@ export default function StudentDashboard({ email }) {
       <SidebarMorningPulse />
       <CreateProject />
       <StudentProjects />
+      <StudentPrototype />
       <GuideMe />
       <SidebarWorkshop />
       <SidebarAdvice />
       <ExpertFinderComponent />
       <AboutMe />
       <SidebarBreakTimer />
-      <StandardsSelector />
     </div>
   );
 }
