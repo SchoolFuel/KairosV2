@@ -1,17 +1,8 @@
 import React from "react";
-import { Trash2 } from "lucide-react";
 
-const TaskCard = ({
-  task,
-  stageIndex,
-  taskIndex,
-  onUpdate,
-  onRequestDeletion,
-  projectTitle,
-  stageTitle,
-}) => {
+const TaskCard = ({ task, stageIndex, taskIndex, onUpdate }) => {
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 relative">
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 ">
       <div className="mb-3">
         <label className="block text-xs font-semibold text-gray-500 mb-1">
           TASK {taskIndex + 1} TITLE
@@ -51,34 +42,6 @@ const TaskCard = ({
           >
             📚 {task.resource_id.label}
           </a>
-        </div>
-      )}
-
-      {/* Request Deletion Button - Right side */}
-      {onRequestDeletion && (
-        <div className="absolute top-4 right-4">
-          {task.deletion_requested ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-red-600 font-medium">
-                Deletion Requested
-              </span>
-              <button
-                onClick={() => onRequestDeletion(stageIndex, taskIndex, false)}
-                className="text-xs px-2 py-1 text-gray-600 hover:text-gray-800 underline"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => onRequestDeletion(stageIndex, taskIndex, true)}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors"
-              title="Request deletion of this task"
-            >
-              <Trash2 size={14} />
-              Request Deletion
-            </button>
-          )}
         </div>
       )}
     </div>
