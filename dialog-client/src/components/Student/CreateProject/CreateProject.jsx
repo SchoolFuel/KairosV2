@@ -148,6 +148,52 @@ const CreateProject = () => {
     setIsEdited(true);
   }, []);
 
+  const handleRequestDeletion = useCallback((stageIndex, taskIndex, requestDeletion) => {
+    setProjectData(prev => {
+      const updated = { ...prev };
+      const task = updated.stages[stageIndex].tasks[taskIndex];
+      
+      if (requestDeletion) {
+        // Set deletion_requested flag
+        task.deletion_requested = true;
+        task.deletion_request_status = 'pending';
+        
+        // Submit deletion request to backend
+        if (window.google && window.google.script && window.google.script.run) {
+          const stage = updated.stages[stageIndex];
+          google.script.run
+            .withSuccessHandler(() => {
+              showToast('Deletion request submitted successfully', 'success');
+            })
+            .withFailureHandler((error) => {
+              console.error('Error submitting deletion request:', error);
+              showToast('Failed to submit deletion request', 'error');
+              // Revert the change on error
+              task.deletion_requested = false;
+              task.deletion_request_status = null;
+            })
+            .submitDeletionRequest({
+              entity_type: 'task',
+              project_title: updated.project_title,
+              stage_title: stage.title,
+              task_title: task.title,
+              task_id: task.task_id,
+              project_id: updated.project_id,
+              user_id: updated.user_id,
+              reason: 'Student requested deletion'
+            });
+        }
+      } else {
+        // Cancel deletion request
+        task.deletion_requested = false;
+        task.deletion_request_status = null;
+      }
+      
+      return updated;
+    });
+    setIsEdited(true);
+  }, [showToast]);
+
   const resetProject = useCallback(() => {
     if (window.confirm('Are you sure you want to reset all changes?')) {
       setProjectData(JSON.parse(JSON.stringify(originalData)));
@@ -413,6 +459,9 @@ const CreateProject = () => {
                         stageIndex={currentStage}
                         taskIndex={taskIndex}
                         onUpdate={updateTask}
+                        onRequestDeletion={handleRequestDeletion}
+                        projectTitle={projectData.project_title}
+                        stageTitle={projectData.stages[currentStage].title}
                       />
                     ))}
                   </div>

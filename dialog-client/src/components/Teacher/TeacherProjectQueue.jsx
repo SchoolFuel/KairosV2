@@ -6,7 +6,6 @@ import {
   Clock,
   User,
   BookOpen,
-  Save,
 } from "lucide-react";
 import Badge from "../Shared/LearningStandards/Badge";
 import ReviewStageTab from "./ReviewStageTab";
@@ -31,13 +30,6 @@ const safePreview = (v, n = 240) => {
     return String(v).slice(0, n);
   }
 };
-
-
-
-
-
-
-
 
 const deepClone = (obj) =>
   typeof structuredClone === "function"
@@ -181,8 +173,11 @@ export default function TeacherProjectQueue() {
   const [stageStatuses, setStageStatuses] = useState({}); // Track individual stage approval/rejection
   const [overallComment, setOverallComment] = useState("");
   const [editableProjectData, setEditableProjectData] = useState(null); // Editable copy of project data
-  const [isFrozen, setIsFrozen] = useState(false); // Track if changes are saved/frozen
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false); // Track unsaved changes for close warning
+  const [successMessage, setSuccessMessage] = useState(""); // Success message to display
+  const [errorMessage, setErrorMessage] = useState(""); // Error message to display
+  const [isSaving, setIsSaving] = useState(false); // Loading state for approve/reject actions
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false); // Show confirmation dialog for closing with unsaved changes
 
   // Advanced features state
   const [activeTab, setActiveTab] = useState("inbox"); // inbox, gate-A, calendar, analytics
@@ -234,9 +229,6 @@ export default function TeacherProjectQueue() {
       }));
     }
   }, [projects]);
-
-
-
 
   const loadProjects = async () => {
     try {
@@ -378,9 +370,12 @@ export default function TeacherProjectQueue() {
     setCurrentStageIndex(0);
     setStageStatuses({}); // Reset stage statuses for new project
     setOverallComment(""); // Reset comments
-    setIsFrozen(false); // Reset frozen state
     setHasUnsavedChanges(false); // Reset unsaved changes
     setEditableProjectData(null); // Will be set when projectDetails loads
+    setSuccessMessage(""); // Reset success message
+    setErrorMessage(""); // Reset error message
+    setIsSaving(false); // Reset saving state
+    setShowCloseConfirm(false); // Reset close confirmation state
 
     // Fetch detailed project data (including stages) when reviewing
     setDetailsLoading(true);
@@ -461,80 +456,238 @@ export default function TeacherProjectQueue() {
 
   const handleApprove = async (project) => {
     try {
-      // Update project status locally
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.project_id === project.project_id ? { ...p, status: "Approved" } : p
-        )
-      );
+      // Use editableProjectData if available (from review modal), otherwise use project
+      const projectDataToSave = deepClone(editableProjectData || project);
 
-      // Here you would call the actual API
-      console.log("Approving project:", project.project_id);
+      if (!projectDataToSave.project_id || !projectDataToSave.user_id) {
+        setErrorMessage(
+          "Error: Missing project ID or user ID. Cannot approve project."
+        );
+        return;
+      }
+
+      // Show loading state immediately
+      setIsSaving(true);
+      setSuccessMessage(""); // Clear any previous message
+      setErrorMessage(""); // Clear any previous error
+
+      // Call backend API to save project with Approved status
+      google.script.run
+        .withSuccessHandler((response) => {
+          setIsSaving(false); // Clear loading state
+          if (response.success) {
+            // Update project status locally
+            setProjects((prev) =>
+              prev.map((p) =>
+                p.project_id === project.project_id
+                  ? { ...p, status: "Approved" }
+                  : p
+              )
+            );
+
+            // Update projectDetails if it exists
+            if (projectDetails) {
+              setProjectDetails((prev) => ({ ...prev, status: "Approved" }));
+            }
+
+            // Clear unsaved changes flag since everything is saved
+            setHasUnsavedChanges(false);
+
+            // Show success message in green
+            setSuccessMessage("Project approved successfully!");
+            setErrorMessage(""); // Clear any error message
+          } else {
+            setIsSaving(false); // Clear loading state
+            setErrorMessage(response.message || "Failed to approve project");
+            setSuccessMessage(""); // Clear success message
+          }
+        })
+        .withFailureHandler((error) => {
+          setIsSaving(false); // Clear loading state
+          console.error("Error approving project:", error);
+          setErrorMessage(
+            "Error approving project: " + (error.message || "Unknown error")
+          );
+          setSuccessMessage(""); // Clear success message
+        })
+        .saveTeacherProjectUpdate(projectDataToSave, "Approved");
     } catch (err) {
+      setIsSaving(false); // Clear loading state on error
       console.error("Error approving project:", err);
+      setErrorMessage(
+        "Error approving project: " + (err.message || "Unknown error")
+      );
+      setSuccessMessage(""); // Clear success message
     }
   };
 
   const handleReject = async (project) => {
     try {
-      // Update project status locally
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.project_id === project.project_id
-            ? { ...p, status: "Pending Revision" }
-            : p
-        )
-      );
+      // Use editableProjectData if available (from review modal), otherwise use project
+      const projectDataToSave = deepClone(editableProjectData || project);
 
-      // Here you would call the actual API
-      console.log("Requesting revision for project:", project.project_id);
+      if (!projectDataToSave.project_id || !projectDataToSave.user_id) {
+        setErrorMessage(
+          "Error: Missing project ID or user ID. Cannot request revision."
+        );
+        return;
+      }
+
+      // Show loading state immediately
+      setIsSaving(true);
+      setSuccessMessage(""); // Clear any previous message
+      setErrorMessage(""); // Clear any previous error
+
+      // Call backend API to save project with Pending Revision status
+      google.script.run
+        .withSuccessHandler((response) => {
+          setIsSaving(false); // Clear loading state
+          if (response.success) {
+            // Update project status locally
+            setProjects((prev) =>
+              prev.map((p) =>
+                p.project_id === project.project_id
+                  ? { ...p, status: "Pending Revision" }
+                  : p
+              )
+            );
+
+            // Update projectDetails if it exists
+            if (projectDetails) {
+              setProjectDetails((prev) => ({
+                ...prev,
+                status: "Pending Revision",
+              }));
+            }
+
+            // Clear unsaved changes flag since everything is saved
+            setHasUnsavedChanges(false);
+
+            // Show success message in green
+            setSuccessMessage("Revision requested successfully!");
+            setErrorMessage(""); // Clear any error message
+          } else {
+            setIsSaving(false); // Clear loading state
+            setErrorMessage(response.message || "Failed to request revision");
+            setSuccessMessage(""); // Clear success message
+          }
+        })
+        .withFailureHandler((error) => {
+          setIsSaving(false); // Clear loading state
+          console.error("Error requesting revision:", error);
+          setErrorMessage(
+            "Error requesting revision: " + (error.message || "Unknown error")
+          );
+          setSuccessMessage(""); // Clear success message
+        })
+        .saveTeacherProjectUpdate(projectDataToSave, "Pending Revision");
     } catch (err) {
+      setIsSaving(false); // Clear loading state on error
       console.error("Error requesting revision:", err);
+      setErrorMessage(
+        "Error requesting revision: " + (err.message || "Unknown error")
+      );
+      setSuccessMessage(""); // Clear success message
     }
   };
 
   const handleCloseDetails = () => {
     if (hasUnsavedChanges) {
-      if (
-        !confirm("You have unsaved changes. Are you sure you want to close?")
-      ) {
-        return;
-      }
+      // Show custom confirmation dialog instead of browser confirm
+      setShowCloseConfirm(true);
+      return;
     }
+    // Close immediately if no unsaved changes
+    closeDialog();
+  };
+
+  const closeDialog = () => {
     setShowDetails(false);
     setSelectedProject(null);
     setEditableProjectData(null);
-    setIsFrozen(false);
     setHasUnsavedChanges(false);
+    setSuccessMessage(""); // Clear success message when closing
+    setErrorMessage(""); // Clear error message when closing
+    setShowCloseConfirm(false); // Close confirmation dialog
   };
 
-  const handleSaveChanges = async () => {
+  // Handle task deletion approval/rejection
+  const handleApproveTaskDeletion = async (stageIndex, taskIndex) => {
     try {
-      // Deep clone to ensure we're saving the current editable state
-      const dataToSave = deepClone(editableProjectData);
+      const task = editableProjectData.stages[stageIndex].tasks[taskIndex];
+      const taskTitle = task.title || "Task";
 
-      // Call API to save changes
-      // In production: google.script.run.withSuccessHandler(...).saveProjectEdits(...)
-      console.log("Saving project edits:", {
-        project_id: selectedProject.project_id,
-        projectData: dataToSave,
+      // Create updated project data with task removed
+      const projectDataToSave = deepClone(editableProjectData);
+      projectDataToSave.stages[stageIndex].tasks = projectDataToSave.stages[
+        stageIndex
+      ].tasks.filter((_, idx) => idx !== taskIndex);
+
+      // Update local state to remove the task
+      setEditableProjectData((prev) => {
+        const newData = deepClone(prev);
+        newData.stages[stageIndex].tasks = newData.stages[
+          stageIndex
+        ].tasks.filter((_, idx) => idx !== taskIndex);
+        return newData;
       });
 
-      // Update projectDetails with saved data
-      setProjectDetails(dataToSave);
-      setIsFrozen(true);
-      setHasUnsavedChanges(false);
+      setIsSaving(true);
+      setSuccessMessage("");
+      setErrorMessage("");
 
-      // Optionally show success message
-      alert("Changes saved successfully!");
+      google.script.run
+        .withSuccessHandler((response) => {
+          setIsSaving(false);
+          if (response.success) {
+            setHasUnsavedChanges(false);
+            setSuccessMessage(`Task "${taskTitle}" deleted successfully!`);
+            setErrorMessage("");
+          } else {
+            setErrorMessage(response.message || "Failed to delete task");
+            setSuccessMessage("");
+            // Reload project data on error to revert changes
+            if (selectedProject) {
+              handleReview(selectedProject);
+            }
+          }
+        })
+        .withFailureHandler((error) => {
+          setIsSaving(false);
+          console.error("Error deleting task:", error);
+          setErrorMessage(
+            "Error deleting task: " + (error.message || "Unknown error")
+          );
+          setSuccessMessage("");
+          // Reload project data on error to revert changes
+          if (selectedProject) {
+            handleReview(selectedProject);
+          }
+        })
+        .saveTeacherProjectUpdate(projectDataToSave, null);
     } catch (err) {
-      console.error("Error saving changes:", err);
-      alert("Error saving changes. Please try again.");
+      setIsSaving(false);
+      console.error("Error approving task deletion:", err);
+      setErrorMessage(
+        "Error approving task deletion: " + (err.message || "Unknown error")
+      );
+      setSuccessMessage("");
     }
   };
 
-  const handleUnfreeze = () => {
-    setIsFrozen(false);
+  const handleRejectTaskDeletion = (stageIndex, taskIndex) => {
+    // Remove deletion request flags
+    setEditableProjectData((prev) => {
+      const newData = deepClone(prev);
+      const task = newData.stages[stageIndex].tasks[taskIndex];
+      task.deletion_requested = false;
+      task.deletion_request_status = null;
+      return newData;
+    });
+
+    setHasUnsavedChanges(true);
+    setSuccessMessage("Deletion request rejected. Remember to save changes.");
+    setErrorMessage("");
   };
 
   // Helper function to update editable project data
@@ -579,6 +732,8 @@ export default function TeacherProjectQueue() {
       return newData;
     });
     setHasUnsavedChanges(true);
+    setSuccessMessage(""); // Clear success message when making edits
+    setErrorMessage(""); // Clear error message when making edits
   };
 
   // Loading state
@@ -655,20 +810,6 @@ export default function TeacherProjectQueue() {
                 onClick={() => setFilter("all")}
               >
                 All ({projects.length})
-              </button>
-              <button
-                className={`tpq-filter-btn ${
-                  filter === "pending" ? "active" : ""
-                }`}
-                onClick={() => setFilter("pending")}
-              >
-                Pending (
-                {
-                  projects.filter((p) =>
-                    p.status.toLowerCase().includes("pending")
-                  ).length
-                }
-                )
               </button>
             </div>
 
@@ -856,61 +997,49 @@ export default function TeacherProjectQueue() {
             <div className="tpq-modal-header">
               <div style={{ flex: 1 }}>
                 <h2>{selectedProject.title}</h2>
-                {hasUnsavedChanges && (
+                {isSaving && (
                   <span
                     style={{
-                      fontSize: "12px",
-                      color: "#f59e0b",
+                      fontSize: "14px",
+                      color: "#3182ce",
                       marginTop: "4px",
                       display: "block",
+                      fontWeight: "500",
                     }}
                   >
-                    ● Unsaved changes
+                    Saving...
                   </span>
                 )}
-                {isFrozen && !hasUnsavedChanges && (
+                {!isSaving && successMessage && (
                   <span
                     style={{
-                      fontSize: "12px",
+                      fontSize: "14px",
                       color: "#16a34a",
                       marginTop: "4px",
                       display: "block",
+                      fontWeight: "500",
                     }}
                   >
-                    ✓ Saved
+                    {successMessage}
+                  </span>
+                )}
+                {!isSaving && errorMessage && (
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      color: "#e53e3e",
+                      marginTop: "4px",
+                      display: "block",
+                      fontWeight: "500",
+                    }}
+                  >
+                    {errorMessage}
                   </span>
                 )}
               </div>
               <div
                 style={{ display: "flex", gap: "8px", alignItems: "center" }}
               >
-                {isFrozen ? (
-                  <button
-                    className="tpq-btn tpq-btn--secondary"
-                    onClick={handleUnfreeze}
-                    style={{ fontSize: "13px" }}
-                  >
-                    Edit
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      className="tpq-btn tpq-btn--primary"
-                      onClick={handleSaveChanges}
-                      disabled={!hasUnsavedChanges}
-                      style={{
-                        fontSize: "13px",
-                        opacity: hasUnsavedChanges ? 1 : 0.5,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <Save size={14} />
-                      Save Changes
-                    </button>
-                  </>
-                )}
                 <button
                   className="tpq-modal-close"
                   onClick={handleCloseDetails}
@@ -946,21 +1075,14 @@ export default function TeacherProjectQueue() {
                   {/* Project Description */}
                   <div className="tpq-modal-section">
                     <h4>Description</h4>
-                    {!isFrozen ? (
-                      <textarea
-                        value={editableProjectData.description || ""}
-                        onChange={(e) =>
-                          updateEditableData("description", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y min-h-[100px]"
-                        placeholder="Project description"
-                      />
-                    ) : (
-                      <p>
-                        {editableProjectData.description ||
-                          "No description provided"}
-                      </p>
-                    )}
+                    <textarea
+                      value={editableProjectData.description || ""}
+                      onChange={(e) =>
+                        updateEditableData("description", e.target.value)
+                      }
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y min-h-[100px]"
+                      placeholder="Project description"
+                    />
                   </div>
 
                   {/* Stages Section - Replicated from CreateProject */}
@@ -975,13 +1097,15 @@ export default function TeacherProjectQueue() {
                           <div className="flex gap-1">
                             {editableProjectData.stages
                               .slice()
+                              // Filter out gate-only objects (keep only items with stage_id)
+                              .filter((item) => item.stage_id)
                               .sort(
                                 (a, b) =>
                                   (a?.stage_order || 0) - (b?.stage_order || 0)
                               )
                               .map((stage, index) => (
                                 <ReviewStageTab
-                                  key={stage.stage_id}
+                                  key={stage.stage_id || `stage-${index}`}
                                   index={index}
                                   isActive={currentStageIndex === index}
                                   onClick={() => setCurrentStageIndex(index)}
@@ -994,8 +1118,10 @@ export default function TeacherProjectQueue() {
                         {/* Stage Content */}
                         <div className="mt-4 max-h-[50vh] overflow-y-auto">
                           {(() => {
+                            // Filter out gate-only objects and sort (keep only items with stage_id)
                             const sortedStages = editableProjectData.stages
                               .slice()
+                              .filter((item) => item.stage_id)
                               .sort(
                                 (a, b) =>
                                   (a?.stage_order || 0) - (b?.stage_order || 0)
@@ -1012,40 +1138,35 @@ export default function TeacherProjectQueue() {
                                   <label className="block text-xs font-semibold text-gray-500 mb-2">
                                     STAGE TITLE
                                   </label>
-                                  {!isFrozen ? (
-                                    <input
-                                      type="text"
-                                      value={currentStage.title || ""}
-                                      onChange={(e) => {
-                                        const sortedStages = [
-                                          ...editableProjectData.stages,
-                                        ].sort(
-                                          (a, b) =>
-                                            (a?.stage_order || 0) -
-                                            (b?.stage_order || 0)
+                                  <input
+                                    type="text"
+                                    value={currentStage.title || ""}
+                                    onChange={(e) => {
+                                      const sortedStages = [
+                                        ...editableProjectData.stages,
+                                      ].sort(
+                                        (a, b) =>
+                                          (a?.stage_order || 0) -
+                                          (b?.stage_order || 0)
+                                      );
+                                      const stageIndex =
+                                        editableProjectData.stages.findIndex(
+                                          (s) =>
+                                            s.stage_id === currentStage.stage_id
                                         );
-                                        const stageIndex =
-                                          editableProjectData.stages.findIndex(
-                                            (s) =>
-                                              s.stage_id ===
-                                              currentStage.stage_id
-                                          );
-                                        setEditableProjectData((prev) => {
-                                          const newData = deepClone(prev);
-                                          newData.stages[stageIndex].title =
-                                            e.target.value;
-                                          return newData;
-                                        });
-                                        setHasUnsavedChanges(true);
-                                      }}
-                                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-semibold text-lg text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                                      placeholder="Untitled Stage"
-                                    />
-                                  ) : (
-                                    <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-semibold text-lg text-gray-900">
-                                      {currentStage.title || "Untitled Stage"}
-                                    </div>
-                                  )}
+                                      setEditableProjectData((prev) => {
+                                        const newData = deepClone(prev);
+                                        newData.stages[stageIndex].title =
+                                          e.target.value;
+                                        return newData;
+                                      });
+                                      setHasUnsavedChanges(true);
+                                      setSuccessMessage(""); // Clear success message when making edits
+                                      setErrorMessage(""); // Clear error message when making edits
+                                    }}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-semibold text-lg text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                                    placeholder="Untitled Stage"
+                                  />
                                 </div>
 
                                 {/* Tasks */}
@@ -1071,7 +1192,10 @@ export default function TeacherProjectQueue() {
                                                 taskIndex={taskIndex}
                                                 stageIndex={stageIndex}
                                                 isEditable={true}
-                                                isFrozen={isFrozen}
+                                                projectTitle={
+                                                  editableProjectData.project_title ||
+                                                  editableProjectData.title
+                                                }
                                                 onUpdate={(field, value) => {
                                                   setEditableProjectData(
                                                     (prev) => {
@@ -1086,7 +1210,15 @@ export default function TeacherProjectQueue() {
                                                     }
                                                   );
                                                   setHasUnsavedChanges(true);
+                                                  setSuccessMessage(""); // Clear success message when making edits
+                                                  setErrorMessage(""); // Clear error message when making edits
                                                 }}
+                                                onApproveDeletion={
+                                                  handleApproveTaskDeletion
+                                                }
+                                                onRejectDeletion={
+                                                  handleRejectTaskDeletion
+                                                }
                                               />
                                             );
                                           }
@@ -1104,7 +1236,6 @@ export default function TeacherProjectQueue() {
                                     <ReviewGateStandard
                                       gate={currentStage.gate}
                                       isEditable={true}
-                                      isFrozen={isFrozen}
                                       onUpdate={(field, index, value) => {
                                         const stageIndex =
                                           editableProjectData.stages.findIndex(
@@ -1137,70 +1268,12 @@ export default function TeacherProjectQueue() {
                                           return newData;
                                         });
                                         setHasUnsavedChanges(true);
+                                        setSuccessMessage(""); // Clear success message when making edits
+                                        setErrorMessage(""); // Clear error message when making edits
                                       }}
                                     />
                                   </div>
                                 )}
-
-                                {/* Stage Actions */}
-                                <div className="flex gap-3 pt-4 border-t border-gray-200">
-                                  <button
-                                    onClick={() => {
-                                      const stageId = currentStage.stage_id;
-                                      setStageStatuses((prev) => ({
-                                        ...prev,
-                                        [stageId]: "approved",
-                                      }));
-                                    }}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                                      stageStatuses[currentStage.stage_id] ===
-                                      "approved"
-                                        ? "bg-green-600 text-white"
-                                        : "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
-                                    }`}
-                                  >
-                                    <CheckCircle size={16} />
-                                    Approve Stage
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const stageId = currentStage.stage_id;
-                                      setStageStatuses((prev) => ({
-                                        ...prev,
-                                        [stageId]: "revision",
-                                      }));
-                                    }}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                                      stageStatuses[currentStage.stage_id] ===
-                                      "revision"
-                                        ? "bg-yellow-600 text-white"
-                                        : "bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200"
-                                    }`}
-                                  >
-                                    <XCircle size={16} />
-                                    Request Revision
-                                  </button>
-                                  {stageStatuses[currentStage.stage_id] && (
-                                    <span className="ml-auto px-3 py-2 text-sm font-medium text-gray-600">
-                                      Status:{" "}
-                                      <span
-                                        className={`font-semibold ${
-                                          stageStatuses[
-                                            currentStage.stage_id
-                                          ] === "approved"
-                                            ? "text-green-600"
-                                            : "text-yellow-600"
-                                        }`}
-                                      >
-                                        {stageStatuses[
-                                          currentStage.stage_id
-                                        ] === "approved"
-                                          ? "Approved"
-                                          : "Revision Requested"}
-                                      </span>
-                                    </span>
-                                  )}
-                                </div>
                               </div>
                             );
                           })()}
@@ -1231,26 +1304,39 @@ export default function TeacherProjectQueue() {
               )}
             </div>
 
+            {/* Final Actions - These save to backend with full project data and stage statuses */}
             <div className="tpq-modal-actions">
               <button
                 className="tpq-btn tpq-btn--approve"
                 onClick={() => {
+                  // Final approve: saves all project data + stage statuses to backend
                   handleApprove(selectedProject);
-                  handleCloseDetails();
+                  // Dialog stays open to show success message
+                }}
+                disabled={isSaving}
+                style={{
+                  opacity: isSaving ? 0.6 : 1,
+                  cursor: isSaving ? "not-allowed" : "pointer",
                 }}
               >
                 <CheckCircle size={14} />
-                Approve
+                {isSaving ? "Saving..." : "Approve"}
               </button>
               <button
                 className="tpq-btn tpq-btn--reject"
                 onClick={() => {
+                  // Final reject: saves all project data + stage statuses to backend
                   handleReject(selectedProject);
-                  handleCloseDetails();
+                  // Dialog stays open to show success message
+                }}
+                disabled={isSaving}
+                style={{
+                  opacity: isSaving ? 0.6 : 1,
+                  cursor: isSaving ? "not-allowed" : "pointer",
                 }}
               >
                 <XCircle size={14} />
-                Request Revision
+                {isSaving ? "Saving..." : "Request Revision"}
               </button>
               <button
                 className="tpq-btn tpq-btn--secondary"
@@ -1260,6 +1346,38 @@ export default function TeacherProjectQueue() {
                 }}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog for Unsaved Changes */}
+      {showCloseConfirm && (
+        <div className="tpq-modal-overlay" style={{ zIndex: 2000 }}>
+          <div
+            className="tpq-modal"
+            style={{ maxWidth: "400px" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="tpq-modal-header">
+              <h2>Unsaved Changes</h2>
+            </div>
+            <div className="tpq-modal-content">
+              <p>
+                You have unsaved changes. Are you sure you want to close? All
+                unsaved edits will be lost.
+              </p>
+            </div>
+            <div className="tpq-modal-actions">
+              <button
+                className="tpq-btn tpq-btn--secondary"
+                onClick={() => setShowCloseConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button className="tpq-btn tpq-btn--reject" onClick={closeDialog}>
+                Close Without Saving
               </button>
             </div>
           </div>
