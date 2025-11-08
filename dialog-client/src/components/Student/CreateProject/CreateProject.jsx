@@ -68,7 +68,7 @@ const CreateProject = () => {
         }
         return prev + 1;
       });
-    }, 8000);
+    }, 10000);
 
     // Start WebSocket connection
     const ws = new WebSocket(
@@ -79,7 +79,7 @@ const CreateProject = () => {
     ws.onopen = () => {
       const message = `${projectInput}, Subject: ${subjects[subject]}`;
       const payload = {
-        action: "testing",
+        action: "createproject",
         payload: {
           email_id: "mindspark.user1@schoolfuel.org",
           message: message,
