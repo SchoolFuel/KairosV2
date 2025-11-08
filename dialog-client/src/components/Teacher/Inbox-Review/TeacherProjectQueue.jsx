@@ -1,157 +1,13 @@
 import React, { useEffect, useState } from "react";
-import {
-  Loader2,
-  CheckCircle,
-  XCircle,
-  Clock,
-  User,
-  BookOpen,
-} from "lucide-react";
-import Badge from "../Shared/LearningStandards/Badge";
+import { Loader2, CheckCircle, XCircle, Clock, BookOpen } from "lucide-react";
 import ReviewStageTab from "./ReviewStageTab";
 import ReviewTaskCard from "./ReviewTaskCard";
 import ReviewGateStandard from "./ReviewGateStandard ";
-import GateAssessment from "./GateAssessment";
+import GateAssessment from "../GateAssessment/GateAssessment";
+import { useDeletionRequests } from "./useDeletionRequests.jsx";
+import ProjectCard from "./ProjectCard";
+import { deepClone } from "./utils.jsx";
 import "./TeacherProjectQueue.css";
-
-const parseMaybeJSON = (v) => {
-  if (typeof v !== "string") return v;
-  try {
-    return JSON.parse(v);
-  } catch {
-    return v;
-  }
-};
-
-const safePreview = (v, n = 240) => {
-  try {
-    return JSON.stringify(parseMaybeJSON(v)).slice(0, n);
-  } catch {
-    return String(v).slice(0, n);
-  }
-};
-
-const deepClone = (obj) =>
-  typeof structuredClone === "function"
-    ? structuredClone(obj)
-    : JSON.parse(JSON.stringify(obj));
-
-/* ---------- status pill helper ---------- */
-function pillClass(status) {
-  const s = (status || "").toLowerCase();
-  if (s.includes("approve")) return "is-approve";
-  if (s.includes("reject") || s.includes("revision")) return "is-reject";
-  if (s.includes("pending")) return "is-pending";
-  return "is-neutral";
-}
-
-function getStatusIcon(status) {
-  const s = (status || "").toLowerCase();
-  if (s.includes("approve"))
-    return <CheckCircle className="status-icon approved" />;
-  if (s.includes("reject") || s.includes("revision"))
-    return <XCircle className="status-icon rejected" />;
-  if (s.includes("pending")) return <Clock className="status-icon pending" />;
-  return <Clock className="status-icon neutral" />;
-}
-
-/* ---------- Project Card Component using shared components ---------- */
-function ProjectCard({ project, onReview, onApprove, onReject }) {
-  const title = project.title || project.project_title || "Untitled";
-  const subject = project.subject_domain || "—";
-  const status = (project.status || "—").trim();
-  const owner = project.owner_name || project.owner_email || "";
-  const description = project.description || "";
-  const createdAt = project.created_at || project.createdAt || "";
-
-  return (
-    <div className="tpq-card">
-      <div className="tpq-card-header">
-        <div className="tpq-card-title-section">
-          <h3 className="tpq-card-title" title={title}>
-            {title}
-          </h3>
-          <div className="tpq-card-meta">
-            <Badge variant="subject">
-              <BookOpen size={12} />
-              {subject}
-            </Badge>
-            {owner && (
-              <>
-                <span className="tpq-separator">•</span>
-                <span className="tpq-owner">
-                  <User size={12} />
-                  {owner}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-        <div className="tpq-status-section">
-          {getStatusIcon(status)}
-          <span className={`tpq-status-pill ${pillClass(status)}`}>
-            {status}
-          </span>
-        </div>
-      </div>
-
-      {description && (
-        <div className="tpq-description">
-          {description.length > 150
-            ? `${description.substring(0, 150)}...`
-            : description}
-        </div>
-      )}
-
-      {createdAt && (
-        <div className="tpq-timestamp">
-          Submitted: {new Date(createdAt).toLocaleDateString()}
-        </div>
-      )}
-
-      <div className="tpq-actions">
-        <button
-          className="tpq-btn tpq-btn--review"
-          onClick={(e) => {
-            e.stopPropagation();
-            onReview(project);
-          }}
-          disabled={!project.project_id}
-          title={
-            project.project_id ? "Open detailed review" : "Missing project ID"
-          }
-        >
-          <BookOpen size={14} />
-          Review
-        </button>
-        <button
-          className="tpq-btn tpq-btn--approve"
-          onClick={(e) => {
-            e.stopPropagation();
-            onApprove(project);
-          }}
-          disabled={!project.project_id}
-          title="Approve this project"
-        >
-          <CheckCircle size={14} />
-          Approve
-        </button>
-        <button
-          className="tpq-btn tpq-btn--reject"
-          onClick={(e) => {
-            e.stopPropagation();
-            onReject(project);
-          }}
-          disabled={!project.project_id}
-          title="Request revision"
-        >
-          <XCircle size={14} />
-          Request Revision
-        </button>
-      </div>
-    </div>
-  );
-}
 
 /* ---------- Main Component ---------- */
 export default function TeacherProjectQueue() {
@@ -163,6 +19,13 @@ export default function TeacherProjectQueue() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+
+  // Deletion requests hook
+  const {
+    deletionRequests,
+    loadDeletionRequests,
+    flagTasksWithDeletionRequests,
+  } = useDeletionRequests();
 
   // Detailed project review state
   const [projectDetails, setProjectDetails] = useState(null);
@@ -238,7 +101,7 @@ export default function TeacherProjectQueue() {
       // Call Google Apps Script function to fetch all teacher projects
       return new Promise((resolve, reject) => {
         google.script.run
-          .withSuccessHandler((response) => {
+          .withSuccessHandler(async (response) => {
             try {
               console.log(
                 "Raw API response:",
@@ -323,9 +186,25 @@ export default function TeacherProjectQueue() {
               }));
 
               console.log(`Mapped ${mappedProjects.length} projects`);
-              setProjects(mappedProjects);
+
+              // Load deletion requests for all subject domains
+              const subjectDomains = mappedProjects
+                .map((p) => p.subject_domain)
+                .filter((d) => d);
+
+              const deletionRequestsList = await loadDeletionRequests(
+                subjectDomains
+              );
+
+              // Flag tasks with deletion requests
+              const flaggedProjects = flagTasksWithDeletionRequests(
+                mappedProjects,
+                deletionRequestsList
+              );
+
+              setProjects(flaggedProjects);
               setLoading(false); // Set loading to false AFTER setting projects
-              resolve(mappedProjects);
+              resolve(flaggedProjects);
             } catch (parseError) {
               console.error("Error parsing projects response:", parseError);
               setError("Error parsing project data: " + parseError.message);
@@ -425,9 +304,15 @@ export default function TeacherProjectQueue() {
             };
           }
 
-          setProjectDetails(projectDetails);
+          // Flag tasks with deletion requests before setting project details
+          const projectWithDeletionFlags = flagTasksWithDeletionRequests(
+            [projectDetails],
+            deletionRequests
+          )[0];
+
+          setProjectDetails(projectWithDeletionFlags);
           // Initialize editable copy (deep clone)
-          const editableCopy = deepClone(projectDetails);
+          const editableCopy = deepClone(projectWithDeletionFlags);
           setEditableProjectData(editableCopy);
           setDetailsLoading(false);
         } catch (parseError) {
@@ -611,26 +496,16 @@ export default function TeacherProjectQueue() {
     setShowCloseConfirm(false); // Close confirmation dialog
   };
 
-  // Handle task deletion approval/rejection
-  const handleApproveTaskDeletion = async (stageIndex, taskIndex) => {
+  // Handle task deletion rejection
+  const handleRejectTaskDeletion = async (stageIndex, taskIndex) => {
     try {
       const task = editableProjectData.stages[stageIndex].tasks[taskIndex];
-      const taskTitle = task.title || "Task";
+      const requestId = task.deletion_request_id;
 
-      // Create updated project data with task removed
-      const projectDataToSave = deepClone(editableProjectData);
-      projectDataToSave.stages[stageIndex].tasks = projectDataToSave.stages[
-        stageIndex
-      ].tasks.filter((_, idx) => idx !== taskIndex);
-
-      // Update local state to remove the task
-      setEditableProjectData((prev) => {
-        const newData = deepClone(prev);
-        newData.stages[stageIndex].tasks = newData.stages[
-          stageIndex
-        ].tasks.filter((_, idx) => idx !== taskIndex);
-        return newData;
-      });
+      if (!requestId) {
+        setErrorMessage("Deletion request ID not found");
+        return;
+      }
 
       setIsSaving(true);
       setSuccessMessage("");
@@ -640,54 +515,62 @@ export default function TeacherProjectQueue() {
         .withSuccessHandler((response) => {
           setIsSaving(false);
           if (response.success) {
-            setHasUnsavedChanges(false);
-            setSuccessMessage(`Task "${taskTitle}" deleted successfully!`);
+            // Remove deletion flags from local state
+            setEditableProjectData((prev) => {
+              const newData = deepClone(prev);
+              const task = newData.stages[stageIndex].tasks[taskIndex];
+              delete task.deletion_requested;
+              delete task.deletion_request_status;
+              delete task.deletion_request_id;
+              return newData;
+            });
+
+            // Reload deletion requests to update the UI
+            const subjectDomains = [editableProjectData.subject_domain].filter(
+              (d) => d
+            );
+            loadDeletionRequests(subjectDomains).then((requests) => {
+              // Re-flag projects with updated deletion requests
+              const flaggedProjects = flagTasksWithDeletionRequests(
+                [editableProjectData],
+                requests
+              );
+              if (flaggedProjects.length > 0) {
+                setEditableProjectData(flaggedProjects[0]);
+              }
+            });
+
+            setSuccessMessage(
+              `Deletion request for "${
+                task.title || "task"
+              }" rejected successfully!`
+            );
             setErrorMessage("");
           } else {
-            setErrorMessage(response.message || "Failed to delete task");
+            setErrorMessage(
+              response.message || "Failed to reject deletion request"
+            );
             setSuccessMessage("");
-            // Reload project data on error to revert changes
-            if (selectedProject) {
-              handleReview(selectedProject);
-            }
           }
         })
         .withFailureHandler((error) => {
           setIsSaving(false);
-          console.error("Error deleting task:", error);
+          console.error("Error rejecting deletion request:", error);
           setErrorMessage(
-            "Error deleting task: " + (error.message || "Unknown error")
+            "Error rejecting deletion request: " +
+              (error.message || "Unknown error")
           );
           setSuccessMessage("");
-          // Reload project data on error to revert changes
-          if (selectedProject) {
-            handleReview(selectedProject);
-          }
         })
-        .saveTeacherProjectUpdate(projectDataToSave, null);
+        .rejectDeletionRequest(requestId);
     } catch (err) {
       setIsSaving(false);
-      console.error("Error approving task deletion:", err);
+      console.error("Error rejecting task deletion:", err);
       setErrorMessage(
-        "Error approving task deletion: " + (err.message || "Unknown error")
+        "Error rejecting task deletion: " + (err.message || "Unknown error")
       );
       setSuccessMessage("");
     }
-  };
-
-  const handleRejectTaskDeletion = (stageIndex, taskIndex) => {
-    // Remove deletion request flags
-    setEditableProjectData((prev) => {
-      const newData = deepClone(prev);
-      const task = newData.stages[stageIndex].tasks[taskIndex];
-      task.deletion_requested = false;
-      task.deletion_request_status = null;
-      return newData;
-    });
-
-    setHasUnsavedChanges(true);
-    setSuccessMessage("Deletion request rejected. Remember to save changes.");
-    setErrorMessage("");
   };
 
   // Helper function to update editable project data
@@ -1213,9 +1096,6 @@ export default function TeacherProjectQueue() {
                                                   setSuccessMessage(""); // Clear success message when making edits
                                                   setErrorMessage(""); // Clear error message when making edits
                                                 }}
-                                                onApproveDeletion={
-                                                  handleApproveTaskDeletion
-                                                }
                                                 onRejectDeletion={
                                                   handleRejectTaskDeletion
                                                 }

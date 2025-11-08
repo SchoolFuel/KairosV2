@@ -117,37 +117,98 @@ function getTeacherProjectsAll() {
 }
 
 /**
- * Submit a deletion request from student
- * @param {Object} deletionData - Deletion request data
- * @returns {Object} Response with success status
+ * Get deletion requests for a teacher
+ * @param {String} subjectDomain - The subject domain (e.g., "Science", "Geography")
+ * @returns {Object} Response with deletion requests
  */
-function submitDeletionRequest(deletionData) {
-  if (!deletionData) throw new Error("Missing deletionData");
-  if (!deletionData.entity_type) throw new Error("Missing entity_type");
-  if (!deletionData.project_title) throw new Error("Missing project_title");
+function getDeletionRequests(subjectDomain) {
+  if (!subjectDomain) throw new Error("Missing subjectDomain");
 
   const url =
     "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
-
-  // Construct payload based on entity type
-  const payload = {
+  const body = {
     action: "myprojects",
     payload: {
-      request: "delete_request",
-      entity_type: deletionData.entity_type, // "task", "stage", or "project"
-      project_title: deletionData.project_title,
-      stage_title: deletionData.stage_title || null,
-      task_title: deletionData.task_title || null,
-      task_id: deletionData.task_id || null,
-      project_id: deletionData.project_id || null,
-      user_id: deletionData.user_id || null,
-      email_id: "student1@gmail.com", // This should come from the student context
-      reason: deletionData.reason || "No reason provided",
+      request: "delete_request_details_teacher",
+      email_id: "teacher1@gmail.com",
+      subject_domain: subjectDomain,
     },
   };
 
   try {
-    Logger.log("=== submitDeletionRequest START ===");
+    Logger.log("=== getDeletionRequests START ===");
+    Logger.log("Subject Domain: " + subjectDomain);
+    Logger.log("Payload: " + JSON.stringify(body, null, 2));
+
+    const res = UrlFetchApp.fetch(url, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(body),
+      muteHttpExceptions: true,
+    });
+
+    const code = res.getResponseCode();
+    const text = res.getContentText();
+
+    Logger.log("Response Code: " + code);
+    Logger.log("Response Text: " + text);
+
+    if (code < 200 || code >= 300) {
+      throw new Error("API " + code + ": " + text);
+    }
+
+    let out = {};
+    try {
+      out = JSON.parse(text);
+    } catch (e) {
+      throw new Error("Bad JSON: " + text);
+    }
+
+    const bodyLike =
+      out && typeof out.body === "string" ? JSON.parse(out.body) : out.body;
+
+    Logger.log("=== getDeletionRequests SUCCESS ===");
+    return {
+      statusCode: out.statusCode || out.status || 200,
+      body: bodyLike,
+      action_response: out.action_response,
+      status: out.status,
+    };
+  } catch (error) {
+    Logger.log("=== getDeletionRequests ERROR ===");
+    Logger.log("Error: " + error.toString());
+    throw error;
+  }
+}
+
+/**
+ * Reject a deletion request (teacher action)
+ * @param {String} requestId - The deletion request ID to reject
+ * @returns {Object} Response with success status
+ */
+function rejectDeletionRequest(requestId) {
+  if (!requestId) throw new Error("Missing requestId");
+
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+
+  const payload = {
+    action: "deleterequest",
+    payload: {
+      request: "teacher_reject",
+      actor: {
+        role: "teacher",
+        email_id: "teacher1@gmail.com",
+      },
+      ids: {
+        request_id: requestId,
+      },
+    },
+  };
+
+  try {
+    Logger.log("=== rejectDeletionRequest START ===");
+    Logger.log("Request ID: " + requestId);
     Logger.log("Payload: " + JSON.stringify(payload, null, 2));
 
     const options = {
@@ -175,19 +236,19 @@ function submitDeletionRequest(deletionData) {
       throw new Error("Bad JSON response: " + responseText);
     }
 
-    Logger.log("=== submitDeletionRequest SUCCESS ===");
+    Logger.log("=== rejectDeletionRequest SUCCESS ===");
     return {
       success: true,
       statusCode: responseCode,
-      message: "Deletion request submitted successfully",
+      message: "Deletion request rejected successfully",
       data: responseData,
     };
   } catch (error) {
-    Logger.log("=== submitDeletionRequest ERROR ===");
+    Logger.log("=== rejectDeletionRequest ERROR ===");
     Logger.log("Error: " + error.toString());
     return {
       success: false,
-      message: error.message || "Failed to submit deletion request",
+      message: error.message || "Failed to reject deletion request",
     };
   }
 }

@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import "./App.css";
 import LearningStandardsDialog from "./components/Shared/LearningStandards/LearningStandardsDialog";
 import CreateProject from "./components/Student/CreateProject/CreateProject";
-import TeacherProjectQueue from "./components/Teacher/TeacherProjectQueue";
-import ProjectDashboard from './components/Student/MyProjects/projectdashboard';
+import TeacherProjectQueue from "./components/Teacher/Inbox-Review/TeacherProjectQueue";
+import ProjectDashboard from "./components/Student/MyProjects/projectdashboard";
 
 const DIALOGS = {
   "student-standards": LearningStandardsDialog,

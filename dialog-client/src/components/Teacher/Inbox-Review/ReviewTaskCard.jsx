@@ -13,14 +13,9 @@ const ReviewTaskCard = ({
   projectTitle,
 }) => {
   const isDisabled = isFrozen || !isEditable;
-  // Only show deletion request UI for "Survey Stakeholders" task in "Healthcare Robotics Project"
-  const isEligibleForDeletion =
-    projectTitle === "Healthcare Robotics Project" &&
-    task.title === "Survey Stakeholders";
+  // Show deletion request UI for any task with a pending deletion request
   const hasDeletionRequest =
-    isEligibleForDeletion &&
-    task.deletion_requested &&
-    task.deletion_request_status === "pending";
+    task.deletion_requested && task.deletion_request_status === "pending";
 
   return (
     <div
@@ -44,8 +39,9 @@ const ReviewTaskCard = ({
               onClick={() =>
                 onApproveDeletion && onApproveDeletion(stageIndex, taskIndex)
               }
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
-              title="Approve deletion"
+              disabled={true}
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-gray-400 cursor-not-allowed rounded transition-colors"
+              title="Approve deletion (disabled)"
             >
               <CheckCircle size={12} />
               Approve
@@ -54,7 +50,8 @@ const ReviewTaskCard = ({
               onClick={() =>
                 onRejectDeletion && onRejectDeletion(stageIndex, taskIndex)
               }
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded transition-colors"
+              disabled={!onRejectDeletion}
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Reject deletion"
             >
               <XCircle size={12} />

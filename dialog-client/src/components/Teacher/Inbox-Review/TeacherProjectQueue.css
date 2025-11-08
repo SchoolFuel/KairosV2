@@ -262,8 +262,8 @@
 }
 
 .tpq-status-pill.is-approve {
-  background: #c6f6d5;
-  color: #22543d;
+  background: #c6f6d5; /* Green background */
+  color: #22543d; /* Dark green text */
 }
 
 .tpq-status-pill.is-reject {
