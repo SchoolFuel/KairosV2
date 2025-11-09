@@ -3,7 +3,7 @@ import { CheckCircle, XCircle, User, BookOpen, Trash2 } from "lucide-react";
 import Badge from "../../Shared/LearningStandards/Badge";
 import { pillClass, getStatusIcon } from "./utils.jsx";
 
-function ProjectCard({ project, onReview, onApprove, onReject }) {
+function ProjectCard({ project, onReview, onApprove, onReject, onViewDeletionRequests }) {
   const title = project.title || project.project_title || "Untitled";
   const subject = project.subject_domain || "—";
   const status = (project.status || "—").trim();
@@ -35,13 +35,39 @@ function ProjectCard({ project, onReview, onApprove, onReject }) {
             {project.hasDeletionRequests && (
               <>
                 <span className="tpq-separator">•</span>
-                <Badge
-                  variant="warning"
-                  style={{ backgroundColor: "#fee2e2", color: "#dc2626" }}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onViewDeletionRequests) {
+                      onViewDeletionRequests(project);
+                    }
+                  }}
+                  style={{
+                    border: "none",
+                    background: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                  }}
+                  title="Click to view deletion request details"
                 >
-                  <Trash2 size={12} />
-                  Delete Requested ({project.deletionRequestCount || 1})
-                </Badge>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "6px 12px",
+                      backgroundColor: "#fee2e2",
+                      color: "#dc2626",
+                      border: "1px solid #fecaca",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "500",
+                    }}
+                  >
+                    <Trash2 size={12} />
+                    Delete Requested ({project.deletionRequestCount || 1})
+                  </span>
+                </button>
               </>
             )}
           </div>

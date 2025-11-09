@@ -39,9 +39,9 @@ const ReviewTaskCard = ({
               onClick={() =>
                 onApproveDeletion && onApproveDeletion(stageIndex, taskIndex)
               }
-              disabled={true}
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-gray-400 cursor-not-allowed rounded transition-colors"
-              title="Approve deletion (disabled)"
+              disabled={!onApproveDeletion}
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Approve deletion"
             >
               <CheckCircle size={12} />
               Approve

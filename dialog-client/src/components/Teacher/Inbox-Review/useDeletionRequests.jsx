@@ -205,6 +205,48 @@ export function useDeletionRequests() {
       // Add hasDeletionRequests flag to project based on API data
       flaggedProject.hasDeletionRequests = projectRequests.length > 0;
       flaggedProject.deletionRequestCount = projectRequests.length;
+      
+      // Store deletion request details for display (stage titles, task titles)
+      // Enrich with titles from project structure since API only returns IDs
+      flaggedProject.deletionRequestDetails = projectRequests.map((req) => {
+        let stageTitle = req.stage_title || null;
+        let taskTitle = req.task_title || null;
+
+        // Look up stage title from project structure
+        if (req.stage_id && flaggedProject.stages && Array.isArray(flaggedProject.stages)) {
+          const stage = flaggedProject.stages.find(
+            (s) => s.stage_id === req.stage_id
+          );
+          if (stage && stage.title) {
+            stageTitle = stage.title;
+          }
+        }
+
+        // Look up task title from project structure
+        if (req.task_id && req.stage_id && flaggedProject.stages && Array.isArray(flaggedProject.stages)) {
+          const stage = flaggedProject.stages.find(
+            (s) => s.stage_id === req.stage_id
+          );
+          if (stage && stage.tasks && Array.isArray(stage.tasks)) {
+            const task = stage.tasks.find((t) => t.task_id === req.task_id);
+            if (task && task.title) {
+              taskTitle = task.title;
+            }
+          }
+        }
+
+        return {
+          request_id: req.request_id,
+          entity_type: req.entity_type,
+          stage_title: stageTitle,
+          task_title: taskTitle,
+          stage_id: req.stage_id,
+          task_id: req.task_id,
+          requested_by: req.requested_by,
+          requested_at: req.requested_at,
+          reason: req.reason,
+        };
+      });
 
       return flaggedProject;
     });

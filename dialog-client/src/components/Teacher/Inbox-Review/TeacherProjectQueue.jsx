@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Loader2, CheckCircle, XCircle, Clock, BookOpen } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Clock,
+  BookOpen,
+  Trash2,
+  RefreshCw,
+} from "lucide-react";
 import ReviewStageTab from "./ReviewStageTab";
 import ReviewTaskCard from "./ReviewTaskCard";
 import ReviewGateStandard from "./ReviewGateStandard ";
@@ -41,6 +49,10 @@ export default function TeacherProjectQueue() {
   const [errorMessage, setErrorMessage] = useState(""); // Error message to display
   const [isSaving, setIsSaving] = useState(false); // Loading state for approve/reject actions
   const [showCloseConfirm, setShowCloseConfirm] = useState(false); // Show confirmation dialog for closing with unsaved changes
+  const [showDeletionRequestsModal, setShowDeletionRequestsModal] =
+    useState(false); // Show deletion requests details modal
+  const [selectedProjectDeletionRequests, setSelectedProjectDeletionRequests] =
+    useState([]); // Deletion requests for selected project
 
   // Advanced features state
   const [activeTab, setActiveTab] = useState("inbox"); // inbox, gate-A, calendar, analytics
@@ -48,6 +60,9 @@ export default function TeacherProjectQueue() {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+
+  // Ref for scrollable stage content container
+  const stageContentRef = React.useRef(null);
 
   const [analytics, setAnalytics] = useState({
     totalProjects: 0,
@@ -92,6 +107,13 @@ export default function TeacherProjectQueue() {
       }));
     }
   }, [projects]);
+
+  // Reset scroll to top when stage index changes
+  useEffect(() => {
+    if (stageContentRef.current) {
+      stageContentRef.current.scrollTop = 0;
+    }
+  }, [currentStageIndex]);
 
   const loadProjects = async () => {
     try {
@@ -496,6 +518,240 @@ export default function TeacherProjectQueue() {
     setShowCloseConfirm(false); // Close confirmation dialog
   };
 
+  // Handle stage deletion approval
+  const handleApproveStageDeletion = async (stageIndex) => {
+    try {
+      const stage = editableProjectData.stages[stageIndex];
+      const requestId = stage.deletion_request_id;
+
+      if (!requestId) {
+        setErrorMessage("Deletion request ID not found");
+        return;
+      }
+
+      setIsSaving(true);
+      setSuccessMessage("");
+      setErrorMessage("");
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response.success) {
+            // Backend already deleted the stage, remove immediately from UI
+            setEditableProjectData((prev) => {
+              const newData = deepClone(prev);
+              newData.stages = newData.stages.filter(
+                (s) => s.stage_id !== stage.stage_id
+              );
+
+              // Update current stage index if needed (if deleted stage was the current one)
+              if (currentStageIndex >= newData.stages.length) {
+                setCurrentStageIndex(Math.max(0, newData.stages.length - 1));
+              }
+
+              return newData;
+            });
+
+            setIsSaving(false);
+            setSuccessMessage(
+              `Stage "${stage.title || "stage"}" deleted successfully!`
+            );
+            setErrorMessage("");
+
+            // Reload deletion requests in background to update counts
+            const subjectDomains = [editableProjectData.subject_domain].filter(
+              (d) => d
+            );
+            loadDeletionRequests(subjectDomains).then((requests) => {
+              // Re-flag projects with updated deletion requests
+              setEditableProjectData((prev) => {
+                const flaggedProjects = flagTasksWithDeletionRequests(
+                  [prev],
+                  requests
+                );
+                return flaggedProjects[0] || prev;
+              });
+            });
+          } else {
+            setIsSaving(false);
+            setErrorMessage(
+              response.message || "Failed to approve deletion request"
+            );
+            setSuccessMessage("");
+          }
+        })
+        .withFailureHandler((error) => {
+          setIsSaving(false);
+          console.error("Error approving deletion request:", error);
+          setErrorMessage(
+            "Error approving deletion request: " +
+              (error.message || "Unknown error")
+          );
+          setSuccessMessage("");
+        })
+        .approveDeletionRequest(requestId, "stage");
+    } catch (err) {
+      setIsSaving(false);
+      console.error("Error approving stage deletion:", err);
+      setErrorMessage(
+        "Error approving stage deletion: " + (err.message || "Unknown error")
+      );
+      setSuccessMessage("");
+    }
+  };
+
+  // Handle stage deletion rejection
+  const handleRejectStageDeletion = async (stageIndex) => {
+    try {
+      const stage = editableProjectData.stages[stageIndex];
+      const requestId = stage.deletion_request_id;
+
+      if (!requestId) {
+        setErrorMessage("Deletion request ID not found");
+        return;
+      }
+
+      setIsSaving(true);
+      setSuccessMessage("");
+      setErrorMessage("");
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          setIsSaving(false);
+          if (response.success) {
+            // Remove deletion flags from local state
+            setEditableProjectData((prev) => {
+              const newData = deepClone(prev);
+              const stage = newData.stages[stageIndex];
+              delete stage.deletion_requested;
+              delete stage.deletion_request_status;
+              delete stage.deletion_request_id;
+              return newData;
+            });
+
+            // Reload deletion requests to update the UI
+            const subjectDomains = [editableProjectData.subject_domain].filter(
+              (d) => d
+            );
+            loadDeletionRequests(subjectDomains).then((requests) => {
+              // Re-flag projects with updated deletion requests
+              const flaggedProjects = flagTasksWithDeletionRequests(
+                [editableProjectData],
+                requests
+              );
+              if (flaggedProjects.length > 0) {
+                setEditableProjectData(flaggedProjects[0]);
+              }
+            });
+
+            setSuccessMessage(
+              `Deletion request for "${
+                stage.title || "stage"
+              }" rejected successfully!`
+            );
+            setErrorMessage("");
+          } else {
+            setErrorMessage(
+              response.message || "Failed to reject deletion request"
+            );
+            setSuccessMessage("");
+          }
+        })
+        .withFailureHandler((error) => {
+          setIsSaving(false);
+          console.error("Error rejecting deletion request:", error);
+          setErrorMessage(
+            "Error rejecting deletion request: " +
+              (error.message || "Unknown error")
+          );
+          setSuccessMessage("");
+        })
+        .rejectDeletionRequest(requestId);
+    } catch (err) {
+      setIsSaving(false);
+      console.error("Error rejecting stage deletion:", err);
+      setErrorMessage(
+        "Error rejecting stage deletion: " + (err.message || "Unknown error")
+      );
+      setSuccessMessage("");
+    }
+  };
+
+  // Handle task deletion approval
+  const handleApproveTaskDeletion = async (stageIndex, taskIndex) => {
+    try {
+      const task = editableProjectData.stages[stageIndex].tasks[taskIndex];
+      const requestId = task.deletion_request_id;
+
+      if (!requestId) {
+        setErrorMessage("Deletion request ID not found");
+        return;
+      }
+
+      setIsSaving(true);
+      setSuccessMessage("");
+      setErrorMessage("");
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response.success) {
+            // Backend already deleted the task, remove immediately from UI
+            setEditableProjectData((prev) => {
+              const newData = deepClone(prev);
+              const stageToUpdate = newData.stages[stageIndex];
+              stageToUpdate.tasks = stageToUpdate.tasks.filter(
+                (t) => t.task_id !== task.task_id
+              );
+              return newData;
+            });
+
+            setIsSaving(false);
+            setSuccessMessage(
+              `Task "${task.title || "task"}" deleted successfully!`
+            );
+            setErrorMessage("");
+
+            // Reload deletion requests in background to update counts
+            const subjectDomains = [editableProjectData.subject_domain].filter(
+              (d) => d
+            );
+            loadDeletionRequests(subjectDomains).then((requests) => {
+              // Re-flag projects with updated deletion requests
+              setEditableProjectData((prev) => {
+                const flaggedProjects = flagTasksWithDeletionRequests(
+                  [prev],
+                  requests
+                );
+                return flaggedProjects[0] || prev;
+              });
+            });
+          } else {
+            setIsSaving(false);
+            setErrorMessage(
+              response.message || "Failed to approve deletion request"
+            );
+            setSuccessMessage("");
+          }
+        })
+        .withFailureHandler((error) => {
+          setIsSaving(false);
+          console.error("Error approving deletion request:", error);
+          setErrorMessage(
+            "Error approving deletion request: " +
+              (error.message || "Unknown error")
+          );
+          setSuccessMessage("");
+        })
+        .approveDeletionRequest(requestId, "task");
+    } catch (err) {
+      setIsSaving(false);
+      console.error("Error approving task deletion:", err);
+      setErrorMessage(
+        "Error approving task deletion: " + (err.message || "Unknown error")
+      );
+      setSuccessMessage("");
+    }
+  };
+
   // Handle task deletion rejection
   const handleRejectTaskDeletion = async (stageIndex, taskIndex) => {
     try {
@@ -660,8 +916,27 @@ export default function TeacherProjectQueue() {
     <div className="tpq-container">
       {/* Header */}
       <div className="tpq-header">
-        <h1>Teacher Project Queue</h1>
-        <p>Review and manage student project submissions</p>
+        <div style={{ flex: 1 }}>
+          <h1>Teacher Project Queue</h1>
+          <p>Review and manage student project submissions</p>
+        </div>
+        <button
+          onClick={loadProjects}
+          disabled={loading}
+          className="tpq-btn tpq-btn--secondary"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "8px 16px",
+            opacity: loading ? 0.6 : 1,
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
+          title="Refresh project list"
+        >
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          Refresh
+        </button>
       </div>
 
       {/* Section Switcher */}
@@ -731,6 +1006,14 @@ export default function TeacherProjectQueue() {
                   onReview={handleReview}
                   onApprove={handleApprove}
                   onReject={handleReject}
+                  onViewDeletionRequests={(project) => {
+                    // Simply show the deletion request details that are already available
+                    // Backend will send titles in the future
+                    setSelectedProjectDeletionRequests(
+                      project.deletionRequestDetails || []
+                    );
+                    setShowDeletionRequestsModal(true);
+                  }}
                 />
               ))
             )}
@@ -991,7 +1274,13 @@ export default function TeacherProjectQueue() {
                                   key={stage.stage_id || `stage-${index}`}
                                   index={index}
                                   isActive={currentStageIndex === index}
-                                  onClick={() => setCurrentStageIndex(index)}
+                                  onClick={() => {
+                                    setCurrentStageIndex(index);
+                                    // Reset scroll to top when switching stages
+                                    if (stageContentRef.current) {
+                                      stageContentRef.current.scrollTop = 0;
+                                    }
+                                  }}
                                   stage={stage}
                                 />
                               ))}
@@ -999,7 +1288,10 @@ export default function TeacherProjectQueue() {
                         </div>
 
                         {/* Stage Content */}
-                        <div className="mt-4 max-h-[50vh] overflow-y-auto">
+                        <div
+                          ref={stageContentRef}
+                          className="mt-4 max-h-[50vh] overflow-y-auto"
+                        >
                           {(() => {
                             // Filter out gate-only objects and sort (keep only items with stage_id)
                             const sortedStages = editableProjectData.stages
@@ -1021,35 +1313,87 @@ export default function TeacherProjectQueue() {
                                   <label className="block text-xs font-semibold text-gray-500 mb-2">
                                     STAGE TITLE
                                   </label>
-                                  <input
-                                    type="text"
-                                    value={currentStage.title || ""}
-                                    onChange={(e) => {
-                                      const sortedStages = [
-                                        ...editableProjectData.stages,
-                                      ].sort(
-                                        (a, b) =>
-                                          (a?.stage_order || 0) -
-                                          (b?.stage_order || 0)
-                                      );
-                                      const stageIndex =
-                                        editableProjectData.stages.findIndex(
-                                          (s) =>
-                                            s.stage_id === currentStage.stage_id
+                                  <div className="relative">
+                                    <input
+                                      type="text"
+                                      value={currentStage.title || ""}
+                                      onChange={(e) => {
+                                        const sortedStages = [
+                                          ...editableProjectData.stages,
+                                        ].sort(
+                                          (a, b) =>
+                                            (a?.stage_order || 0) -
+                                            (b?.stage_order || 0)
                                         );
-                                      setEditableProjectData((prev) => {
-                                        const newData = deepClone(prev);
-                                        newData.stages[stageIndex].title =
-                                          e.target.value;
-                                        return newData;
-                                      });
-                                      setHasUnsavedChanges(true);
-                                      setSuccessMessage(""); // Clear success message when making edits
-                                      setErrorMessage(""); // Clear error message when making edits
-                                    }}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-semibold text-lg text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                                    placeholder="Untitled Stage"
-                                  />
+                                        const stageIndex =
+                                          editableProjectData.stages.findIndex(
+                                            (s) =>
+                                              s.stage_id ===
+                                              currentStage.stage_id
+                                          );
+                                        setEditableProjectData((prev) => {
+                                          const newData = deepClone(prev);
+                                          newData.stages[stageIndex].title =
+                                            e.target.value;
+                                          return newData;
+                                        });
+                                        setHasUnsavedChanges(true);
+                                        setSuccessMessage(""); // Clear success message when making edits
+                                        setErrorMessage(""); // Clear error message when making edits
+                                      }}
+                                      className={`w-full px-4 py-3 border rounded-lg bg-white font-semibold text-lg text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none ${
+                                        currentStage.deletion_requested &&
+                                        currentStage.deletion_request_status ===
+                                          "pending"
+                                          ? "border-red-500 border-2 bg-red-50"
+                                          : "border-gray-300"
+                                      }`}
+                                      placeholder="Untitled Stage"
+                                    />
+                                    {/* Deletion Request UI */}
+                                    {currentStage.deletion_requested &&
+                                      currentStage.deletion_request_status ===
+                                        "pending" && (
+                                        <div className="absolute top-2 right-2 flex items-center gap-2">
+                                          <div className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded">
+                                            <Trash2 size={12} />
+                                            Deletion Requested
+                                          </div>
+                                          <div className="flex gap-1">
+                                            <button
+                                              onClick={() => {
+                                                // Dummy approve - disabled
+                                              }}
+                                              disabled={true}
+                                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-gray-400 cursor-not-allowed rounded transition-colors"
+                                              title="Approve deletion (disabled)"
+                                            >
+                                              <CheckCircle size={12} />
+                                              Approve
+                                            </button>
+                                            <button
+                                              onClick={() => {
+                                                const stageIndex =
+                                                  editableProjectData.stages.findIndex(
+                                                    (s) =>
+                                                      s.stage_id ===
+                                                      currentStage.stage_id
+                                                  );
+                                                handleRejectStageDeletion(
+                                                  stageIndex
+                                                );
+                                              }}
+                                              disabled={isSaving}
+                                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                              title="Reject deletion"
+                                            >
+                                              <XCircle size={12} />
+                                              Reject
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
+                                  </div>
                                 </div>
 
                                 {/* Tasks */}
@@ -1096,6 +1440,9 @@ export default function TeacherProjectQueue() {
                                                   setSuccessMessage(""); // Clear success message when making edits
                                                   setErrorMessage(""); // Clear error message when making edits
                                                 }}
+                                                onApproveDeletion={
+                                                  handleApproveTaskDeletion
+                                                }
                                                 onRejectDeletion={
                                                   handleRejectTaskDeletion
                                                 }
@@ -1258,6 +1605,146 @@ export default function TeacherProjectQueue() {
               </button>
               <button className="tpq-btn tpq-btn--reject" onClick={closeDialog}>
                 Close Without Saving
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deletion Requests Details Modal */}
+      {showDeletionRequestsModal && (
+        <div className="tpq-modal-overlay" style={{ zIndex: 2000 }}>
+          <div
+            className="tpq-modal"
+            style={{ maxWidth: "600px" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="tpq-modal-header">
+              <h2>Deletion Requests</h2>
+              <button
+                className="tpq-modal-close"
+                onClick={() => {
+                  setShowDeletionRequestsModal(false);
+                  setSelectedProjectDeletionRequests([]);
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div
+              className="tpq-modal-content"
+              style={{ maxHeight: "60vh", overflowY: "auto" }}
+            >
+              {selectedProjectDeletionRequests.length === 0 ? (
+                <p>No deletion requests found.</p>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                  }}
+                >
+                  {selectedProjectDeletionRequests.map((request, index) => (
+                    <div
+                      key={request.request_id || index}
+                      style={{
+                        border: "1px solid #fecaca",
+                        backgroundColor: "#fef2f2",
+                        borderRadius: "8px",
+                        padding: "16px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "12px",
+                        }}
+                      >
+                        <Trash2
+                          size={20}
+                          style={{
+                            color: "#dc2626",
+                            marginTop: "2px",
+                            flexShrink: 0,
+                          }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              color: "#991b1b",
+                              marginBottom: "4px",
+                            }}
+                          >
+                            {request.entity_type === "stage" ? "Stage" : "Task"}{" "}
+                            Deletion Request
+                          </div>
+                          {request.entity_type === "stage" && (
+                            <div style={{ fontSize: "14px", color: "#b91c1c" }}>
+                              <strong>Stage:</strong>{" "}
+                              {request.stage_title || "Untitled Stage"}
+                            </div>
+                          )}
+                          {request.entity_type === "task" && (
+                            <div
+                              style={{
+                                fontSize: "14px",
+                                color: "#b91c1c",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "4px",
+                              }}
+                            >
+                              <div>
+                                <strong>Stage:</strong>{" "}
+                                {request.stage_title || "Untitled Stage"}
+                              </div>
+                              <div>
+                                <strong>Task:</strong>{" "}
+                                {request.task_title || "Untitled Task"}
+                              </div>
+                            </div>
+                          )}
+                          {request.reason && (
+                            <div
+                              style={{
+                                fontSize: "14px",
+                                color: "#dc2626",
+                                marginTop: "8px",
+                              }}
+                            >
+                              <strong>Reason:</strong> {request.reason}
+                            </div>
+                          )}
+                          {request.requested_by && (
+                            <div
+                              style={{
+                                fontSize: "12px",
+                                color: "#dc2626",
+                                marginTop: "8px",
+                              }}
+                            >
+                              Requested by: {request.requested_by}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="tpq-modal-actions">
+              <button
+                className="tpq-btn tpq-btn--secondary"
+                onClick={() => {
+                  setShowDeletionRequestsModal(false);
+                  setSelectedProjectDeletionRequests([]);
+                }}
+              >
+                Close
               </button>
             </div>
           </div>

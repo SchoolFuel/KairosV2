@@ -37,7 +37,14 @@
 /* Header */
 .tpq-header {
   margin-bottom: 24px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tpq-header > div {
+  flex: 1;
 }
 
 .tpq-header h1 {
