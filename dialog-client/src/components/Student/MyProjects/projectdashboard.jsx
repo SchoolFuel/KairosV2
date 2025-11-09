@@ -34,6 +34,13 @@ export default function ProjectDashboard() {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
+  // Stage deletion dialog
+  const [showStageDeleteDialog, setShowStageDeleteDialog] = useState(false);
+  const [deleteStageReason, setDeleteStageReason] = useState('');
+  const [selectedStageId, setSelectedStageId] = useState(null);
+
+  
+
   // Edit dialog state
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editTaskId, setEditTaskId] = useState(null);
@@ -89,24 +96,92 @@ export default function ProjectDashboard() {
     setError(null);
 
     google.script.run
-      .withSuccessHandler((result) => {
+      .withSuccessHandler(async (result) => {
         try {
-          // Expecting result.action_response.json.project like in sidebar ProjectDetail
           const p = result?.action_response?.json?.project;
-          if (!p) throw new Error('Invalid response format');
+          if (!p) throw new Error("Invalid response format");
+
+          // ✅ Fetch delete requests
+          const deleteRequests = await fetchDeleteRequests();
+
+          // ✅ Merge stages and tasks with deleteRequests
+          const mergedStages = (p.stages || []).map((stage) => {
+            // Find any delete request linked to this stage
+            const stageDeleteReq = deleteRequests.find(
+              (r) =>
+                r.entity_type === "stage" &&
+                r.status === "pending" &&
+                r.stage_id === stage.stage_id
+            );
+
+            // Find project-level pending delete (covers all stages)
+            const projectDeleteReq = deleteRequests.find(
+              (r) =>
+                r.entity_type === "project" &&
+                r.status === "pending" &&
+                r.project_id === p.project_id
+            );
+
+            // ✅ Stage-level pending deletion overrides everything
+            if (stageDeleteReq || projectDeleteReq) {
+              stage.status = "Pending Deletion";
+            }
+
+            // ✅ Then check for task-level pending deletions
+            stage.tasks = (stage.tasks || []).map((t) => {
+              const pendingTaskReq = deleteRequests.find(
+                (r) =>
+                  r.task_id === t.task_id &&
+                  r.status === "pending" &&
+                  r.entity_type === "task"
+              );
+              if (pendingTaskReq) {
+                t.status = "Pending Deletion";
+              }
+              return t;
+            });
+
+            return stage;
+          });
+
+
+          p.stages = mergedStages;
+
+          // 🔹 1. Check if any task in the project is under revision
+          let projectHasRevision = false;
+          (p.stages || []).forEach(stage => {
+            if ((stage.tasks || []).some(t => t.status === "Revision")) {
+              projectHasRevision = true;
+            }
+          });
+
+          // 🔹 2. Apply intelligent project status logic
+          if (p.status === "Pending Deletion") {
+            // Keep "Pending Deletion" untouched (highest priority)
+            p.status = "Pending Deletion";
+          } else if (p.status === "Pending") {
+            // Keep backend "Pending" if it's still under review
+            p.status = "Pending";
+          } else if (projectHasRevision && (p.status === "Approved" || p.status === "Completed")) {
+            // Show "Revision" only if the project was already approved
+            p.status = "Revision";
+          } // else, leave the backend-provided status as is
+
           setProject(p);
         } catch (e) {
+          console.error("Error merging project with delete requests:", e);
           setError(e.message);
         } finally {
           setIsLoading(false);
         }
       })
       .withFailureHandler((err) => {
-        console.error('Error fetching project details:', err);
-        setError(err?.message || 'Failed to load project details');
+        console.error("Error fetching project details:", err);
+        setError(err?.message || "Failed to load project details");
         setIsLoading(false);
       })
       .getProjectDetails(projectId);
+
   }, [projectId]);
 
   const stages = project?.stages || [];
@@ -137,14 +212,16 @@ export default function ProjectDashboard() {
   // Helpers
   const getStatusColor = (status) => {
     const colors = {
-      'Pending': 'bg-yellow-100 text-yellow-800',
-      'In Progress': 'bg-blue-100 text-blue-800',
-      'Completed': 'bg-green-100 text-green-800',
-      'On Hold': 'bg-gray-100 text-gray-800',
-      'default': 'bg-gray-100 text-gray-800'
+      Pending: "bg-yellow-100 text-yellow-800",
+      Approved: "bg-green-100 text-green-800",
+      Completed: "bg-green-100 text-green-800",
+      Revision: "bg-gray-100 text-gray-800", 
+      PendingDeletion: "bg-yellow-100 text-yellow-800",
+      default: "bg-gray-100 text-gray-800",
     };
     return colors[status] || colors.default;
   };
+
 
   // Helpers to safely update project state
   const mutateProject = (updater) => {
@@ -216,130 +293,214 @@ export default function ProjectDashboard() {
   };
 
 
+
+
   const handleDeleteTask = (taskId) => {
     setSelectedTaskId(taskId);
     setShowDeleteDialog(true);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!selectedTaskId) return;
+  const handleConfirmDelete = (taskId) => {
+    if (!taskId || !project) return;
 
-    // Simulate a successful delete request
-    alert("Delete request sent for approval.");
+    const stage = project.stages?.[activeStageIdx];
+    if (!stage) return;
 
-    // Mark this task as pending deletion
-    setPendingDeleteId(selectedTaskId);
+    const payload = {
+      action: "deleterequest",
+      payload: {
+        request: "student_create",
+        actor: {
+          role: "student",
+          email_id: "mindspark.user1@schoolfuel.org",
+          user_id: "23e228fa-4592-4bdc-852e-192973c388ce",
+        },
+        ids: {
+          entity_type: "task",
+          project_id: project.project_id,
+          stage_id: stage.stage_id,
+          task_id: taskId,                 // ← this is the one that must arrive
+        },
+        subject_domain: project.subject_domain || "General",
+        reason: deleteReason || "No reason provided",
+      },
+    };
 
-    // Reset modal
+    // Optimistic UI
+    mutateProject((p) => {
+      const s = p.stages?.[activeStageIdx];
+      const t = s?.tasks?.find((t) => t.task_id === taskId);
+      if (t) t.status = "Pending Deletion";
+    });
+    addActivity("Task Deletion Requested", taskId);
     setShowDeleteDialog(false);
-    setDeleteReason("");
-    setSelectedTaskId(null);
+
+    // Hard guard before sending
+    if (!payload.payload.ids.task_id) {
+      alert("Could not prepare delete request (missing task id). Try again.");
+      return;
+    }
+
+    console.log("🟡 Final delete payload before send:", payload);
+
+    google.script.run
+      .withSuccessHandler((res) => {
+        console.log("✅ Delete initiation sent:", res);
+        setDeleteReason("");
+        setSelectedTaskId(null);
+      })
+      .withFailureHandler((err) => {
+        console.error("❌ Failed to send delete initiation", err);
+        alert("Failed to send delete request. Please try again later.");
+      })
+      .postToBackend(payload);            // ← pass OBJECT, not JSON string
   };
 
 
-  // const handleConfirmDelete = async () => {
-  //   if (!selectedTaskId) return;
 
-  //   const payload = {
-  //     action: "myprojects",
-  //     payload: {
-  //       user_id: "23e228fa-4592-4bdc-852e-192973c388ce",
-  //       email_id: "mindspark.user1@schoolfuel.org",
-  //       request: "delete_request_details_student",
-  //       reason: deleteReason || "No reason provided",
-  //     },
-  //   };
+  const fetchDeleteRequests = () => {
+    const payload = {
+      action: "myprojects",
+      payload: {
+        user_id: "23e228fa-4592-4bdc-852e-192973c388ce",
+        email_id: "mindspark.user1@schoolfuel.org",
+        request: "delete_request_details_student",
+      },
+    };
 
-  //   try {
-  //     const response = await fetch(
-  //       "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke",
-  //       {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify(payload),
-  //       }
-  //     );
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler((result) => {
+          try {
+            const parsed = typeof result === "string" ? JSON.parse(result) : result;
+            resolve(parsed?.action_response?.requests || []);
+          } catch (e) {
+            reject(e);
+          }
+        })
+        .withFailureHandler(reject)
+        .postToBackend(payload);          // ← object, not JSON string
+    });
+  };
 
-  //     const data = await response.json();
-  //     console.log("Delete request sent:", data);
-  //     alert("Delete request sent to backend for approval.");
+  const handleConfirmStageDelete = async (stageId) => {
+    if (!stageId || !project) return;
 
-  //     // ✅ After success, mark as pending deletion
-  //     setPendingDeleteId(selectedTaskId);
-  //   } catch (error) {
-  //     console.error("Error sending delete request:", error);
-  //     alert("Failed to send delete request. Please try again.");
-  //   } finally {
-  //     setShowDeleteDialog(false);
-  //     setDeleteReason("");
-  //     setSelectedTaskId(null);
-  //   }
-  // };
+    const subjectDomain = project.subject_domain || "General";
+    const projectId = project.project_id;
 
-  const postSaveProject = async (updatedProject) => {
+    const payload = {
+      action: "deleterequest",
+      payload: {
+        request: "student_create",
+        actor: {
+          role: "student",
+          email_id: "mindspark.user1@schoolfuel.org",
+          user_id: "23e228fa-4592-4bdc-852e-192973c388ce",
+        },
+        ids: {
+          entity_type: "stage",
+          project_id: projectId,
+          stage_id: stageId,
+        },
+        subject_domain: subjectDomain,
+        reason: deleteStageReason || "No reason provided",
+      },
+    };
+
+    console.log("Sending stage delete request:", payload);
+
+    // Update UI optimistically
+    mutateProject((p) => {
+      const s = p.stages?.find((s) => s.stage_id === stageId);
+      if (s) s.status = "Pending Deletion";
+    });
+
+    // Close the dialog
+    setShowStageDeleteDialog(false);
+
+    try {
+      google.script.run
+        .withSuccessHandler((res) => {
+          console.log("✅ Stage delete initiation sent:", res);
+          alert("Stage delete request sent successfully.");
+          setDeleteStageReason('');
+          setSelectedStageId(null);
+        })
+        .withFailureHandler((err) => {
+          console.error("❌ Failed to send stage delete initiation", err);
+          alert("Failed to send delete request. Please try again later.");
+        })
+        .postToBackend(JSON.stringify(payload));
+    } catch (err) {
+      console.error("❌ Exception in handleConfirmStageDelete:", err);
+    }
+  };
+
+
+  const postSaveProject = (updatedProject) => {
     const payload = {
       action: "saveproject",
       payload: {
         json: {
-          project: updatedProject, // send the ENTIRE project object
+          project: updatedProject, // full project object
         },
-        user_id: "909eb26e-5d77-47cb-90be-674b1d2de7fd", // replace with real user_id if dynamic
+        user_id: "23e228fa-4592-4bdc-852e-192973c388ce",
         generatedAt: new Date().toISOString(),
       },
     };
 
-    try {
-      google.script.run
-        .withSuccessHandler((response) => {
-          console.log("✅ Revision sent successfully:", response);
-          alert("Revision sent successfully for approval.");
-        })
-        .withFailureHandler((error) => {
-          console.error("❌ Failed to send revision:", error);
-          alert("Failed to send revision; please retry.");
-        })
-        .postToBackend(JSON.stringify(payload)); // Calls the .gs function
-    } catch (err) {
-      console.error("❌ Unexpected error while sending revision:", err);
-      alert("Unexpected error; please retry.");
-    }
+    google.script.run
+      .withSuccessHandler((res) => {
+        try {
+          // Parse backend response (Apps Script usually returns a string)
+          const parsed = typeof res === "string" ? JSON.parse(res) : res;
 
-    // Return a mock success response so your caller doesn’t break
-    return { ok: true };
+          if (parsed?.status === "success") {
+            const msg =
+              parsed?.action_response?.response ||
+              "Revision sent successfully for approval!";
+            alert(msg);
+          } else {
+            console.error("Backend error:", parsed);
+            alert("Failed to send revision. Please retry.");
+          }
+        } catch (err) {
+          console.error("Error parsing backend response:", err, res);
+          alert("Unexpected response from backend. Please retry.");
+        }
+      })
+      .withFailureHandler((err) => {
+        console.error("Error sending to Apps Script:", err);
+        alert("Failed to send revision. Please retry.");
+      })
+      .postToBackend(JSON.stringify(payload));
   };
 
 
   const handleSubmitRevision = async () => {
     if (!editTaskId) return;
 
-    // 1) Mutate local project to reflect the edit + status
-    let updatedProject;
-    setProject(prev => {
-      if (!prev) return prev;
-      const copy = JSON.parse(JSON.stringify(prev));
-      const s = copy.stages?.[activeStageIdx];
-      if (!s?.tasks) return prev;
-
+    // 1️⃣ Build updated project synchronously
+    const copy = JSON.parse(JSON.stringify(project));
+    const s = copy.stages?.[activeStageIdx];
+    if (s?.tasks) {
       const t = s.tasks.find(t => t.task_id === editTaskId);
       if (t) {
         t.title = editTitle.trim() || t.title;
         t.description = editDesc.trim() || t.description;
-        t.status = "Revision"; // mark as in revision
+        t.status = "Revision";
       }
+    }
 
-      updatedProject = copy;
-      return copy;
-    });
-
-    // 2) Close modal immediately for snappy UX
+    // 2️⃣ Update UI optimistically
+    setProject(copy);
     setShowEditDialog(false);
     setEditTaskId(null);
 
-    // 3) Send payload (mock or real)
+    // 3️⃣ Send to backend
     try {
-      await postSaveProject(updatedProject);
-      // Optional: toast/alert success
-      // alert("Changes sent for revision.");
+      await postSaveProject(copy);
     } catch (e) {
       console.error(e);
       alert("Failed to send revision. Your local edits are saved; please retry.");
@@ -347,6 +508,7 @@ export default function ProjectDashboard() {
   };
 
 
+  
 
   // Gate step save/submit
   const handleSaveGateStep = () => {
@@ -478,10 +640,15 @@ export default function ProjectDashboard() {
               </span>
             )}
             {project?.status && (
-              <span className="px-2.5 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+              <span
+                className={`px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                  project.status
+                )}`}
+              >
                 {project.status}
               </span>
             )}
+
           </div>
         </div>
       </div>
@@ -587,11 +754,34 @@ export default function ProjectDashboard() {
               <div className="border border-gray-200 rounded overflow-hidden">
                 <div className="p-2 bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-medium text-gray-900">{stages[activeStageIdx].title}</h4>
-                      <div className="text-xs text-gray-500 mt-1">{stages[activeStageIdx].tasks?.length || 0} task{(stages[activeStageIdx].tasks?.length || 0) !== 1 ? 's' : ''}</div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900">{stages[activeStageIdx].title}</h4>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {stages[activeStageIdx].tasks?.length || 0} tasks
                     </div>
                   </div>
+                    <div className="flex flex-col items-end gap-2">
+                      {/* 🗑️ Delete Stage button */}
+                      <button
+                        onClick={() => {
+                          setSelectedStageId(stages[activeStageIdx].stage_id);
+                          setShowStageDeleteDialog(true);
+                        }}
+                        disabled={stages[activeStageIdx].status === "Pending Deletion"}
+                        className={`text-xs px-3 py-1.5 rounded-md inline-flex items-center justify-center gap-1 w-[110px] shadow-sm transition-all ${
+                          stages[activeStageIdx].status === "Pending Deletion"
+                            ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                            : "bg-red-600 text-white hover:bg-red-700"
+                        }`}
+                      >
+                        <Trash2 size={12} />
+                        {stages[activeStageIdx].status === "Pending Deletion"
+                          ? "Pending Deletion"
+                          : "Delete Stage"}
+                      </button>
+                      </div>
+                  </div>
+
                 </div>
 
                 <div className="p-2 space-y-3">
@@ -665,55 +855,62 @@ export default function ProjectDashboard() {
 
                       {/* Right Column: Actions */}
                       <div className="flex flex-col gap-2 flex-shrink-0">
+                        {/* Complete Button */}
                         <button
                           onClick={() => handleMarkTaskDone(task.task_id)}
-                          disabled={task.status === 'Completed'}
-                          className={`text-xs px-3 py-1.5 rounded-md w-[90px] font-medium ${
-                            task.status === 'Completed'
-                              ? 'bg-gray-400 text-white cursor-not-allowed'
-                              : 'bg-green-600 text-white hover:bg-green-700'
+                          disabled={
+                            task.status === "Completed" ||
+                            task.status === "Pending Deletion" ||
+                            task.status === "Revision"
+                          }
+                          className={`text-xs px-3 py-1.5 rounded-md w-[90px] ${
+                            task.status === "Completed" ||
+                            task.status === "Pending Deletion" ||
+                            task.status === "Revision"
+                              ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                              : "bg-green-600 text-white hover:bg-green-700"
                           }`}
                         >
-                          {task.status === 'Completed' ? 'Completed' : 'Complete'}
+                          {task.status === "Completed" ? "Completed" : "Complete"}
                         </button>
+
+                        {/* Edit Button */}
                         <button
-                            onClick={() => handleEditTask(task.task_id)}
-                            disabled={task.status === 'Completed'}
-                            className={`text-xs px-3 py-1.5 rounded-md ${
-                              task.status === 'Completed'
-                                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                                : 'bg-blue-600 text-white hover:bg-blue-700'
-                            } inline-flex items-center justify-center gap-1 w-[90px]`}
-                          >
-                            <Pencil size={12} /> Edit
-                          </button>
+                          onClick={() => handleEditTask(task.task_id)}
+                          disabled={task.status === "Completed" || task.status === "Pending Deletion"}
+                          className={`text-xs px-3 py-1.5 rounded-md inline-flex items-center justify-center gap-1 w-[90px] ${
+                            task.status === "Completed" || task.status === "Pending Deletion"
+                              ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                              : "bg-blue-600 text-white hover:bg-blue-700"
+                          }`}
+                        >
+                          <Pencil size={12} /> Edit
+                        </button>
 
-                          <button
-                            onClick={() => handleDeleteTask(task.task_id)}
-                            disabled={
-                              task.status === "Completed" || pendingDeleteId === task.task_id
-                            }
-                            className={`text-xs px-3 py-1.5 rounded-md inline-flex items-center justify-center gap-1 w-[90px] ${
-                              task.status === "Completed"
-                                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                                : pendingDeleteId === task.task_id
-                                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                                : "bg-red-600 text-white hover:bg-red-700"
-                            }`}
-                          >
-                            {pendingDeleteId === task.task_id ? (
-                              <>
-                                <Trash2 size={12} /> Pending Deletion
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 size={12} /> Delete
-                              </>
-                            )}
-                          </button>
-
-
+                        {/* Delete Button */}
+                        <button
+                          onClick={() => {
+                            setSelectedTaskId(task.task_id);
+                            setShowDeleteDialog(true);
+                          }}
+                          disabled={
+                            task.status === "Completed" ||
+                            task.status === "Pending Deletion" ||
+                            task.status === "Revision"
+                          }
+                          className={`text-xs px-3 py-1.5 rounded-md inline-flex items-center justify-center gap-1 w-[90px] ${
+                            task.status === "Completed" ||
+                            task.status === "Pending Deletion" ||
+                            task.status === "Revision"
+                              ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                              : "bg-red-600 text-white hover:bg-red-700"
+                          }`}
+                        >
+                          <Trash2 size={12} />
+                          {task.status === "Pending Deletion" ? "Pending Deletion" : "Delete"}
+                        </button>
                       </div>
+
                     </div>
                   ))}
                 </div>
@@ -963,14 +1160,17 @@ export default function ProjectDashboard() {
 
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => setShowDeleteDialog(false)}
+                onClick={() => {
+                  setShowDeleteDialog(false);
+                  setDeleteReason('');     // ← reset on close
+                }}
                 className="text-sm px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition"
               >
                 No
               </button>
 
               <button
-                onClick={handleConfirmDelete}
+                 onClick={() => handleConfirmDelete(selectedTaskId)}
                 className="text-sm px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition"
               >
                 Yes, Delete
@@ -1026,6 +1226,47 @@ export default function ProjectDashboard() {
           </div>
         </div>
       )}
+
+      {showStageDeleteDialog && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-[420px] border border-gray-200 p-6 animate-fadeIn">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Confirm Stage Deletion</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Are you sure you want to delete this stage?
+            </p>
+
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Reason for deletion
+            </label>
+            <textarea
+              value={deleteStageReason}
+              onChange={(e) => setDeleteStageReason(e.target.value)}
+              placeholder="Enter your reason..."
+              className="w-full border border-gray-300 rounded-md p-2 text-sm mb-5 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none h-20"
+            />
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowStageDeleteDialog(false);
+                  setDeleteStageReason('');
+                }}
+                className="text-sm px-4 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => handleConfirmStageDelete(selectedStageId)}
+                className="text-sm px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
     </div>
   );
