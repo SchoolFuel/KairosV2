@@ -258,6 +258,76 @@ function approveDeletionRequest(requestId, entityType) {
 }
 
 /**
+ * Get gate standards for a project
+ * @param {String} projectId - The project ID
+ * @param {String} invokerEmail - The email of the invoker (teacher)
+ * @returns {Object} Response with gate standards data
+ */
+function getGateStandards(projectId, invokerEmail) {
+  if (!projectId) throw new Error("Missing projectId");
+  if (!invokerEmail) throw new Error("Missing invokerEmail");
+
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+
+  const payload = {
+    action: "getgatestandards",
+    payload: {
+      invoker_email: invokerEmail,
+      project_id: projectId,
+    },
+  };
+
+  try {
+    Logger.log("=== getGateStandards START ===");
+    Logger.log("Project ID: " + projectId);
+    Logger.log("Invoker Email: " + invokerEmail);
+    Logger.log("Payload: " + JSON.stringify(payload, null, 2));
+
+    const options = {
+      method: "POST",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    Logger.log("Response Code: " + responseCode);
+    Logger.log("Response Text: " + responseText);
+
+    if (responseCode < 200 || responseCode >= 300) {
+      throw new Error("API " + responseCode + ": " + responseText);
+    }
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error("Bad JSON response: " + responseText);
+    }
+
+    Logger.log("=== getGateStandards SUCCESS ===");
+    return {
+      success: true,
+      statusCode: responseCode,
+      data: responseData,
+      action_response: responseData.action_response,
+      status: responseData.status,
+    };
+  } catch (error) {
+    Logger.log("=== getGateStandards ERROR ===");
+    Logger.log("Error: " + error.toString());
+    return {
+      success: false,
+      message: error.message || "Failed to get gate standards",
+    };
+  }
+}
+
+/**
  * Reject a deletion request (teacher action)
  * @param {String} requestId - The deletion request ID to reject
  * @returns {Object} Response with success status

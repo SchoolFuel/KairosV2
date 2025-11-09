@@ -33,6 +33,7 @@ export default function TeacherProjectQueue() {
     deletionRequests,
     loadDeletionRequests,
     flagTasksWithDeletionRequests,
+    removeDeletionRequest,
   } = useDeletionRequests();
 
   // Detailed project review state
@@ -80,6 +81,28 @@ export default function TeacherProjectQueue() {
   useEffect(() => {
     loadProjects();
   }, []);
+
+  // Auto-dismiss success messages after 7 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage("");
+      }, 7000); // 7 seconds
+
+      return () => clearTimeout(timer); // Cleanup on unmount or message change
+    }
+  }, [successMessage]);
+
+  // Auto-dismiss error messages after 7 seconds
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => {
+        setErrorMessage("");
+      }, 7000); // 7 seconds
+
+      return () => clearTimeout(timer); // Cleanup on unmount or message change
+    }
+  }, [errorMessage]);
 
   // Calculate analytics when projects change
   useEffect(() => {
@@ -209,24 +232,33 @@ export default function TeacherProjectQueue() {
 
               console.log(`Mapped ${mappedProjects.length} projects`);
 
-              // Load deletion requests for all subject domains
+              // Show projects immediately (don't wait for deletion requests)
+              setProjects(mappedProjects);
+              setLoading(false); // Set loading to false immediately
+              resolve(mappedProjects);
+
+              // Load deletion requests in background and update projects
+              // This allows UI to show projects faster
               const subjectDomains = mappedProjects
                 .map((p) => p.subject_domain)
                 .filter((d) => d);
 
-              const deletionRequestsList = await loadDeletionRequests(
-                subjectDomains
-              );
-
-              // Flag tasks with deletion requests
-              const flaggedProjects = flagTasksWithDeletionRequests(
-                mappedProjects,
-                deletionRequestsList
-              );
-
-              setProjects(flaggedProjects);
-              setLoading(false); // Set loading to false AFTER setting projects
-              resolve(flaggedProjects);
+              if (subjectDomains.length > 0) {
+                loadDeletionRequests(subjectDomains)
+                  .then((deletionRequestsList) => {
+                    // Flag tasks with deletion requests and update projects
+                    const flaggedProjects = flagTasksWithDeletionRequests(
+                      mappedProjects,
+                      deletionRequestsList
+                    );
+                    setProjects(flaggedProjects);
+                    console.log("Projects updated with deletion request flags");
+                  })
+                  .catch((err) => {
+                    console.error("Error loading deletion requests:", err);
+                    // Don't block UI if deletion requests fail
+                  });
+              }
             } catch (parseError) {
               console.error("Error parsing projects response:", parseError);
               setError("Error parsing project data: " + parseError.message);
@@ -521,8 +553,19 @@ export default function TeacherProjectQueue() {
   // Handle stage deletion approval
   const handleApproveStageDeletion = async (stageIndex) => {
     try {
-      const stage = editableProjectData.stages[stageIndex];
+      // Find stage by index - need to filter out gates first to get correct index
+      const stagesOnly = editableProjectData.stages.filter(
+        (item) => item.stage_id
+      );
+      const stage = stagesOnly[stageIndex];
+
+      if (!stage) {
+        setErrorMessage("Stage not found");
+        return;
+      }
+
       const requestId = stage.deletion_request_id;
+      const stageId = stage.stage_id;
 
       if (!requestId) {
         setErrorMessage("Deletion request ID not found");
@@ -539,17 +582,55 @@ export default function TeacherProjectQueue() {
             // Backend already deleted the stage, remove immediately from UI
             setEditableProjectData((prev) => {
               const newData = deepClone(prev);
-              newData.stages = newData.stages.filter(
-                (s) => s.stage_id !== stage.stage_id
-              );
 
-              // Update current stage index if needed (if deleted stage was the current one)
-              if (currentStageIndex >= newData.stages.length) {
-                setCurrentStageIndex(Math.max(0, newData.stages.length - 1));
+              // Find and remove stage by stage_id (more reliable than index)
+              const filteredStages = newData.stages.filter(
+                (s) => s.stage_id !== stageId
+              );
+              newData.stages = filteredStages;
+
+              // Update current stage index if needed
+              // Count only actual stages (with stage_id) for index calculation
+              const remainingStages = filteredStages.filter((s) => s.stage_id);
+              if (
+                currentStageIndex >= remainingStages.length &&
+                remainingStages.length > 0
+              ) {
+                setCurrentStageIndex(Math.max(0, remainingStages.length - 1));
+              } else if (remainingStages.length === 0) {
+                setCurrentStageIndex(0);
               }
 
               return newData;
             });
+
+            // Also update projectDetails if it exists
+            if (projectDetails) {
+              setProjectDetails((prev) => {
+                const newData = deepClone(prev);
+                newData.stages = newData.stages.filter(
+                  (s) => s.stage_id !== stageId
+                );
+                return newData;
+              });
+            }
+
+            // Update main projects list as well
+            setProjects((prevProjects) => {
+              return prevProjects.map((project) => {
+                if (project.project_id === editableProjectData.project_id) {
+                  const updatedProject = deepClone(project);
+                  updatedProject.stages = updatedProject.stages.filter(
+                    (s) => s.stage_id !== stageId
+                  );
+                  return updatedProject;
+                }
+                return project;
+              });
+            });
+
+            // Remove the approved request from deletion requests list
+            removeDeletionRequest(requestId);
 
             setIsSaving(false);
             setSuccessMessage(
@@ -561,16 +642,25 @@ export default function TeacherProjectQueue() {
             const subjectDomains = [editableProjectData.subject_domain].filter(
               (d) => d
             );
-            loadDeletionRequests(subjectDomains).then((requests) => {
-              // Re-flag projects with updated deletion requests
-              setEditableProjectData((prev) => {
-                const flaggedProjects = flagTasksWithDeletionRequests(
-                  [prev],
-                  requests
-                );
-                return flaggedProjects[0] || prev;
+            loadDeletionRequests(subjectDomains)
+              .then((requests) => {
+                // Re-flag projects with updated deletion requests
+                setEditableProjectData((prev) => {
+                  const flaggedProjects = flagTasksWithDeletionRequests(
+                    [prev],
+                    requests
+                  );
+                  return flaggedProjects[0] || prev;
+                });
+
+                // Also update main projects list
+                setProjects((prevProjects) => {
+                  return flagTasksWithDeletionRequests(prevProjects, requests);
+                });
+              })
+              .catch((err) => {
+                console.warn("Background sync failed (non-critical):", err);
               });
-            });
           } else {
             setIsSaving(false);
             setErrorMessage(
@@ -602,8 +692,19 @@ export default function TeacherProjectQueue() {
   // Handle stage deletion rejection
   const handleRejectStageDeletion = async (stageIndex) => {
     try {
-      const stage = editableProjectData.stages[stageIndex];
+      // Find stage by index - need to filter out gates first to get correct index
+      const stagesOnly = editableProjectData.stages.filter(
+        (item) => item.stage_id
+      );
+      const stage = stagesOnly[stageIndex];
+
+      if (!stage) {
+        setErrorMessage("Stage not found");
+        return;
+      }
+
       const requestId = stage.deletion_request_id;
+      const stageId = stage.stage_id;
 
       if (!requestId) {
         setErrorMessage("Deletion request ID not found");
@@ -618,29 +719,65 @@ export default function TeacherProjectQueue() {
         .withSuccessHandler((response) => {
           setIsSaving(false);
           if (response.success) {
-            // Remove deletion flags from local state
+            // Compute updated deletion requests list (remove the rejected one)
+            const updatedDeletionRequests = deletionRequests.filter(
+              (req) => req.request_id !== requestId
+            );
+
+            // Update deletion requests state immediately
+            removeDeletionRequest(requestId);
+
+            // Remove deletion flags from local state and re-flag with updated requests
             setEditableProjectData((prev) => {
               const newData = deepClone(prev);
-              const stage = newData.stages[stageIndex];
-              delete stage.deletion_requested;
-              delete stage.deletion_request_status;
-              delete stage.deletion_request_id;
-              return newData;
+
+              // Find stage by stage_id (more reliable than index)
+              const stageToUpdate = newData.stages.find(
+                (s) => s.stage_id === stageId
+              );
+
+              if (stageToUpdate) {
+                // Remove flags from stage
+                delete stageToUpdate.deletion_requested;
+                delete stageToUpdate.deletion_request_status;
+                delete stageToUpdate.deletion_request_id;
+              }
+
+              // Re-flag the entire project with updated deletion requests (excluding rejected one)
+              const flaggedProjects = flagTasksWithDeletionRequests(
+                [newData],
+                updatedDeletionRequests
+              );
+
+              return flaggedProjects[0] || newData;
             });
 
-            // Reload deletion requests to update the UI
-            const subjectDomains = [editableProjectData.subject_domain].filter(
-              (d) => d
-            );
-            loadDeletionRequests(subjectDomains).then((requests) => {
-              // Re-flag projects with updated deletion requests
-              const flaggedProjects = flagTasksWithDeletionRequests(
-                [editableProjectData],
-                requests
+            // Also update projectDetails if it exists
+            if (projectDetails) {
+              setProjectDetails((prev) => {
+                const newData = deepClone(prev);
+                const stageToUpdate = newData.stages.find(
+                  (s) => s.stage_id === stageId
+                );
+                if (stageToUpdate) {
+                  delete stageToUpdate.deletion_requested;
+                  delete stageToUpdate.deletion_request_status;
+                  delete stageToUpdate.deletion_request_id;
+                }
+                const flaggedProjects = flagTasksWithDeletionRequests(
+                  [newData],
+                  updatedDeletionRequests
+                );
+                return flaggedProjects[0] || newData;
+              });
+            }
+
+            // Update main projects list as well
+            setProjects((prevProjects) => {
+              return flagTasksWithDeletionRequests(
+                prevProjects,
+                updatedDeletionRequests
               );
-              if (flaggedProjects.length > 0) {
-                setEditableProjectData(flaggedProjects[0]);
-              }
             });
 
             setSuccessMessage(
@@ -649,6 +786,12 @@ export default function TeacherProjectQueue() {
               }" rejected successfully!`
             );
             setErrorMessage("");
+
+            // Note: We don't reload deletion requests here because:
+            // 1. Local state is already updated (request removed, flags cleared)
+            // 2. Backend might not have processed the rejection yet
+            // 3. Reloading could reintroduce the rejected request if backend is slow
+            // 4. Next refresh will get the correct state from backend
           } else {
             setErrorMessage(
               response.message || "Failed to reject deletion request"
@@ -679,8 +822,21 @@ export default function TeacherProjectQueue() {
   // Handle task deletion approval
   const handleApproveTaskDeletion = async (stageIndex, taskIndex) => {
     try {
-      const task = editableProjectData.stages[stageIndex].tasks[taskIndex];
+      // Find stage by index - need to filter out gates first to get correct index
+      const stagesOnly = editableProjectData.stages.filter(
+        (item) => item.stage_id
+      );
+      const stage = stagesOnly[stageIndex];
+
+      if (!stage || !stage.tasks || !stage.tasks[taskIndex]) {
+        setErrorMessage("Task not found");
+        return;
+      }
+
+      const task = stage.tasks[taskIndex];
       const requestId = task.deletion_request_id;
+      const stageId = stage.stage_id;
+      const taskId = task.task_id;
 
       if (!requestId) {
         setErrorMessage("Deletion request ID not found");
@@ -697,12 +853,59 @@ export default function TeacherProjectQueue() {
             // Backend already deleted the task, remove immediately from UI
             setEditableProjectData((prev) => {
               const newData = deepClone(prev);
-              const stageToUpdate = newData.stages[stageIndex];
-              stageToUpdate.tasks = stageToUpdate.tasks.filter(
-                (t) => t.task_id !== task.task_id
+
+              // Find stage by stage_id (more reliable than index)
+              const stageToUpdate = newData.stages.find(
+                (s) => s.stage_id === stageId
               );
+
+              if (stageToUpdate && stageToUpdate.tasks) {
+                // Remove task by task_id (more reliable than index)
+                stageToUpdate.tasks = stageToUpdate.tasks.filter(
+                  (t) => t.task_id !== taskId
+                );
+              }
+
               return newData;
             });
+
+            // Also update projectDetails if it exists
+            if (projectDetails) {
+              setProjectDetails((prev) => {
+                const newData = deepClone(prev);
+                const stageToUpdate = newData.stages.find(
+                  (s) => s.stage_id === stageId
+                );
+                if (stageToUpdate && stageToUpdate.tasks) {
+                  stageToUpdate.tasks = stageToUpdate.tasks.filter(
+                    (t) => t.task_id !== taskId
+                  );
+                }
+                return newData;
+              });
+            }
+
+            // Update main projects list as well
+            setProjects((prevProjects) => {
+              return prevProjects.map((project) => {
+                if (project.project_id === editableProjectData.project_id) {
+                  const updatedProject = deepClone(project);
+                  const stageToUpdate = updatedProject.stages.find(
+                    (s) => s.stage_id === stageId
+                  );
+                  if (stageToUpdate && stageToUpdate.tasks) {
+                    stageToUpdate.tasks = stageToUpdate.tasks.filter(
+                      (t) => t.task_id !== taskId
+                    );
+                  }
+                  return updatedProject;
+                }
+                return project;
+              });
+            });
+
+            // Remove the approved request from deletion requests list
+            removeDeletionRequest(requestId);
 
             setIsSaving(false);
             setSuccessMessage(
@@ -714,16 +917,25 @@ export default function TeacherProjectQueue() {
             const subjectDomains = [editableProjectData.subject_domain].filter(
               (d) => d
             );
-            loadDeletionRequests(subjectDomains).then((requests) => {
-              // Re-flag projects with updated deletion requests
-              setEditableProjectData((prev) => {
-                const flaggedProjects = flagTasksWithDeletionRequests(
-                  [prev],
-                  requests
-                );
-                return flaggedProjects[0] || prev;
+            loadDeletionRequests(subjectDomains)
+              .then((requests) => {
+                // Re-flag projects with updated deletion requests
+                setEditableProjectData((prev) => {
+                  const flaggedProjects = flagTasksWithDeletionRequests(
+                    [prev],
+                    requests
+                  );
+                  return flaggedProjects[0] || prev;
+                });
+
+                // Also update main projects list
+                setProjects((prevProjects) => {
+                  return flagTasksWithDeletionRequests(prevProjects, requests);
+                });
+              })
+              .catch((err) => {
+                console.warn("Background sync failed (non-critical):", err);
               });
-            });
           } else {
             setIsSaving(false);
             setErrorMessage(
@@ -752,11 +964,227 @@ export default function TeacherProjectQueue() {
     }
   };
 
+  // Handle project deletion approval
+  const handleApproveProjectDeletion = async (projectData) => {
+    try {
+      // Use editableProjectData if available (from review modal), otherwise use projectData
+      const project = editableProjectData || projectData;
+
+      if (!project || !project.deletion_request_id) {
+        setErrorMessage("Deletion request ID not found");
+        return;
+      }
+
+      const requestId = project.deletion_request_id;
+
+      setIsSaving(true);
+      setSuccessMessage("");
+      setErrorMessage("");
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response.success) {
+            // Remove the approved request from deletion requests list
+            removeDeletionRequest(requestId);
+
+            // Close the review modal if it's open for this project
+            if (
+              selectedProject &&
+              selectedProject.project_id === project.project_id
+            ) {
+              handleCloseDetails();
+            }
+
+            // Remove project from projects list (backend handles actual deletion)
+            setProjects((prevProjects) => {
+              const remainingProjects = prevProjects.filter(
+                (p) => p.project_id !== project.project_id
+              );
+
+              // Reload deletion requests in background to update counts for remaining projects
+              const subjectDomains = remainingProjects
+                .map((p) => p.subject_domain)
+                .filter((d) => d);
+
+              if (subjectDomains.length > 0) {
+                // Load deletion requests asynchronously
+                loadDeletionRequests(subjectDomains)
+                  .then((requests) => {
+                    // Update remaining projects with updated deletion requests
+                    setProjects((prevProjects) => {
+                      const updatedProjects = prevProjects.filter(
+                        (p) => p.project_id !== project.project_id
+                      );
+                      return flagTasksWithDeletionRequests(
+                        updatedProjects,
+                        requests
+                      );
+                    });
+                  })
+                  .catch((err) => {
+                    console.warn("Background sync failed (non-critical):", err);
+                  });
+              }
+
+              return remainingProjects;
+            });
+
+            setIsSaving(false);
+            setSuccessMessage(
+              `Project "${
+                project.title || project.project_title || "project"
+              }" deleted successfully!`
+            );
+            setErrorMessage("");
+          } else {
+            setIsSaving(false);
+            setErrorMessage(
+              response.message || "Failed to approve deletion request"
+            );
+            setSuccessMessage("");
+          }
+        })
+        .withFailureHandler((error) => {
+          setIsSaving(false);
+          console.error("Error approving deletion request:", error);
+          setErrorMessage(
+            "Error approving deletion request: " +
+              (error.message || "Unknown error")
+          );
+          setSuccessMessage("");
+        })
+        .approveDeletionRequest(requestId, "project");
+    } catch (err) {
+      setIsSaving(false);
+      console.error("Error approving project deletion:", err);
+      setErrorMessage(
+        "Error approving project deletion: " + (err.message || "Unknown error")
+      );
+      setSuccessMessage("");
+    }
+  };
+
+  // Handle project deletion rejection
+  const handleRejectProjectDeletion = async (projectData) => {
+    try {
+      // Use editableProjectData if available (from review modal), otherwise use projectData
+      const project = editableProjectData || projectData;
+
+      if (!project || !project.deletion_request_id) {
+        setErrorMessage("Deletion request ID not found");
+        return;
+      }
+
+      const requestId = project.deletion_request_id;
+
+      setIsSaving(true);
+      setSuccessMessage("");
+      setErrorMessage("");
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          setIsSaving(false);
+          if (response.success) {
+            // Compute updated deletion requests list (remove the rejected one)
+            const updatedDeletionRequests = deletionRequests.filter(
+              (req) => req.request_id !== requestId
+            );
+
+            // Update deletion requests state immediately
+            removeDeletionRequest(requestId);
+
+            // Remove deletion flags from project in projects list
+            setProjects((prevProjects) => {
+              return prevProjects.map((p) => {
+                if (p.project_id === project.project_id) {
+                  const updatedProject = { ...p };
+                  delete updatedProject.deletion_requested;
+                  delete updatedProject.deletion_request_status;
+                  delete updatedProject.deletion_request_id;
+
+                  // Re-flag projects with updated deletion requests (excluding rejected one)
+                  const flaggedProjects = flagTasksWithDeletionRequests(
+                    [updatedProject],
+                    updatedDeletionRequests
+                  );
+                  return flaggedProjects[0] || updatedProject;
+                }
+                return p;
+              });
+            });
+
+            // Also update editableProjectData if it exists (review modal)
+            if (
+              editableProjectData &&
+              editableProjectData.project_id === project.project_id
+            ) {
+              setEditableProjectData((prev) => {
+                if (!prev) return prev;
+                const newData = { ...prev };
+                delete newData.deletion_requested;
+                delete newData.deletion_request_status;
+                delete newData.deletion_request_id;
+
+                // Re-flag with updated deletion requests
+                const flaggedProjects = flagTasksWithDeletionRequests(
+                  [newData],
+                  updatedDeletionRequests
+                );
+                return flaggedProjects[0] || newData;
+              });
+            }
+
+            setSuccessMessage(
+              `Deletion request for project "${
+                project.title || project.project_title || "project"
+              }" rejected successfully!`
+            );
+            setErrorMessage("");
+          } else {
+            setErrorMessage(
+              response.message || "Failed to reject deletion request"
+            );
+            setSuccessMessage("");
+          }
+        })
+        .withFailureHandler((error) => {
+          setIsSaving(false);
+          console.error("Error rejecting deletion request:", error);
+          setErrorMessage(
+            "Error rejecting deletion request: " +
+              (error.message || "Unknown error")
+          );
+          setSuccessMessage("");
+        })
+        .rejectDeletionRequest(requestId);
+    } catch (err) {
+      setIsSaving(false);
+      console.error("Error rejecting project deletion:", err);
+      setErrorMessage(
+        "Error rejecting project deletion: " + (err.message || "Unknown error")
+      );
+      setSuccessMessage("");
+    }
+  };
+
   // Handle task deletion rejection
   const handleRejectTaskDeletion = async (stageIndex, taskIndex) => {
     try {
-      const task = editableProjectData.stages[stageIndex].tasks[taskIndex];
+      // Find stage by index - need to filter out gates first to get correct index
+      const stagesOnly = editableProjectData.stages.filter(
+        (item) => item.stage_id
+      );
+      const stage = stagesOnly[stageIndex];
+
+      if (!stage || !stage.tasks || !stage.tasks[taskIndex]) {
+        setErrorMessage("Task not found");
+        return;
+      }
+
+      const task = stage.tasks[taskIndex];
       const requestId = task.deletion_request_id;
+      const stageId = stage.stage_id;
+      const taskId = task.task_id;
 
       if (!requestId) {
         setErrorMessage("Deletion request ID not found");
@@ -771,29 +1199,77 @@ export default function TeacherProjectQueue() {
         .withSuccessHandler((response) => {
           setIsSaving(false);
           if (response.success) {
-            // Remove deletion flags from local state
+            // Compute updated deletion requests list (remove the rejected one)
+            const updatedDeletionRequests = deletionRequests.filter(
+              (req) => req.request_id !== requestId
+            );
+
+            // Update deletion requests state immediately
+            removeDeletionRequest(requestId);
+
+            // Remove deletion flags from local state and re-flag with updated requests
             setEditableProjectData((prev) => {
               const newData = deepClone(prev);
-              const task = newData.stages[stageIndex].tasks[taskIndex];
-              delete task.deletion_requested;
-              delete task.deletion_request_status;
-              delete task.deletion_request_id;
-              return newData;
+
+              // Find stage by stage_id (more reliable than index)
+              const stageToUpdate = newData.stages.find(
+                (s) => s.stage_id === stageId
+              );
+
+              if (stageToUpdate && stageToUpdate.tasks) {
+                // Find task by task_id (more reliable than index)
+                const taskToUpdate = stageToUpdate.tasks.find(
+                  (t) => t.task_id === taskId
+                );
+
+                if (taskToUpdate) {
+                  // Remove flags from task
+                  delete taskToUpdate.deletion_requested;
+                  delete taskToUpdate.deletion_request_status;
+                  delete taskToUpdate.deletion_request_id;
+                }
+              }
+
+              // Re-flag the entire project with updated deletion requests (excluding rejected one)
+              const flaggedProjects = flagTasksWithDeletionRequests(
+                [newData],
+                updatedDeletionRequests
+              );
+
+              return flaggedProjects[0] || newData;
             });
 
-            // Reload deletion requests to update the UI
-            const subjectDomains = [editableProjectData.subject_domain].filter(
-              (d) => d
-            );
-            loadDeletionRequests(subjectDomains).then((requests) => {
-              // Re-flag projects with updated deletion requests
-              const flaggedProjects = flagTasksWithDeletionRequests(
-                [editableProjectData],
-                requests
+            // Also update projectDetails if it exists
+            if (projectDetails) {
+              setProjectDetails((prev) => {
+                const newData = deepClone(prev);
+                const stageToUpdate = newData.stages.find(
+                  (s) => s.stage_id === stageId
+                );
+                if (stageToUpdate && stageToUpdate.tasks) {
+                  const taskToUpdate = stageToUpdate.tasks.find(
+                    (t) => t.task_id === taskId
+                  );
+                  if (taskToUpdate) {
+                    delete taskToUpdate.deletion_requested;
+                    delete taskToUpdate.deletion_request_status;
+                    delete taskToUpdate.deletion_request_id;
+                  }
+                }
+                const flaggedProjects = flagTasksWithDeletionRequests(
+                  [newData],
+                  updatedDeletionRequests
+                );
+                return flaggedProjects[0] || newData;
+              });
+            }
+
+            // Update main projects list as well
+            setProjects((prevProjects) => {
+              return flagTasksWithDeletionRequests(
+                prevProjects,
+                updatedDeletionRequests
               );
-              if (flaggedProjects.length > 0) {
-                setEditableProjectData(flaggedProjects[0]);
-              }
             });
 
             setSuccessMessage(
@@ -802,6 +1278,12 @@ export default function TeacherProjectQueue() {
               }" rejected successfully!`
             );
             setErrorMessage("");
+
+            // Note: We don't reload deletion requests here because:
+            // 1. Local state is already updated (request removed, flags cleared)
+            // 2. Backend might not have processed the rejection yet
+            // 3. Reloading could reintroduce the rejected request if backend is slow
+            // 4. Next refresh will get the correct state from backend
           } else {
             setErrorMessage(
               response.message || "Failed to reject deletion request"
@@ -1009,9 +1491,19 @@ export default function TeacherProjectQueue() {
                   onViewDeletionRequests={(project) => {
                     // Simply show the deletion request details that are already available
                     // Backend will send titles in the future
-                    setSelectedProjectDeletionRequests(
-                      project.deletionRequestDetails || []
-                    );
+                    // Deduplicate by request_id to ensure only unique requests are shown
+                    const details = project.deletionRequestDetails || [];
+                    const uniqueDetailsMap = new Map();
+                    details.forEach((req) => {
+                      if (
+                        req.request_id &&
+                        !uniqueDetailsMap.has(req.request_id)
+                      ) {
+                        uniqueDetailsMap.set(req.request_id, req);
+                      }
+                    });
+                    const uniqueDetails = Array.from(uniqueDetailsMap.values());
+                    setSelectedProjectDeletionRequests(uniqueDetails);
                     setShowDeletionRequestsModal(true);
                   }}
                 />
@@ -1162,7 +1654,103 @@ export default function TeacherProjectQueue() {
           >
             <div className="tpq-modal-header">
               <div style={{ flex: 1 }}>
-                <h2>{selectedProject.title}</h2>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    marginBottom: "8px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <h2 style={{ margin: 0 }}>
+                    {editableProjectData?.title ||
+                      editableProjectData?.project_title ||
+                      selectedProject.title}
+                  </h2>
+                  {editableProjectData?.deletion_requested &&
+                    editableProjectData?.deletion_request_status ===
+                      "pending" &&
+                    editableProjectData?.deletion_request_id && (
+                      <>
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: "4px 10px",
+                            backgroundColor: "#fee2e2",
+                            color: "#dc2626",
+                            border: "1px solid #fecaca",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: "500",
+                          }}
+                        >
+                          <Trash2 size={12} />
+                          Project Deletion Requested
+                        </div>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button
+                            onClick={() => {
+                              if (editableProjectData.deletion_request_id) {
+                                handleApproveProjectDeletion(
+                                  editableProjectData
+                                );
+                              }
+                            }}
+                            disabled={isSaving}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              padding: "6px 12px",
+                              fontSize: "12px",
+                              fontWeight: "500",
+                              color: "white",
+                              backgroundColor: "#16a34a",
+                              border: "none",
+                              borderRadius: "6px",
+                              cursor: isSaving ? "not-allowed" : "pointer",
+                              opacity: isSaving ? 0.6 : 1,
+                            }}
+                            title="Approve project deletion"
+                          >
+                            <CheckCircle size={12} />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (editableProjectData.deletion_request_id) {
+                                handleRejectProjectDeletion(
+                                  editableProjectData
+                                );
+                              }
+                            }}
+                            disabled={isSaving}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              padding: "6px 12px",
+                              fontSize: "12px",
+                              fontWeight: "500",
+                              color: "#374151",
+                              backgroundColor: "#e5e7eb",
+                              border: "none",
+                              borderRadius: "6px",
+                              cursor: isSaving ? "not-allowed" : "pointer",
+                              opacity: isSaving ? 0.6 : 1,
+                            }}
+                            title="Reject project deletion"
+                          >
+                            <XCircle size={12} />
+                            Reject
+                          </button>
+                        </div>
+                      </>
+                    )}
+                </div>
                 {isSaving && (
                   <span
                     style={{
@@ -1246,7 +1834,13 @@ export default function TeacherProjectQueue() {
                       onChange={(e) =>
                         updateEditableData("description", e.target.value)
                       }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y min-h-[100px]"
+                      className={`w-full px-4 py-3 border rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y min-h-[100px] ${
+                        editableProjectData.deletion_requested &&
+                        editableProjectData.deletion_request_status ===
+                          "pending"
+                          ? "border-red-500 border-2 bg-red-50"
+                          : "border-gray-300"
+                      }`}
                       placeholder="Project description"
                     />
                   </div>
@@ -1362,26 +1956,48 @@ export default function TeacherProjectQueue() {
                                           <div className="flex gap-1">
                                             <button
                                               onClick={() => {
-                                                // Dummy approve - disabled
+                                                // Find the stage index in the filtered stages list
+                                                const stagesOnly =
+                                                  editableProjectData.stages.filter(
+                                                    (item) => item.stage_id
+                                                  );
+                                                const stageIndex =
+                                                  stagesOnly.findIndex(
+                                                    (s) =>
+                                                      s.stage_id ===
+                                                      currentStage.stage_id
+                                                  );
+                                                if (stageIndex !== -1) {
+                                                  handleApproveStageDeletion(
+                                                    stageIndex
+                                                  );
+                                                }
                                               }}
-                                              disabled={true}
-                                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-gray-400 cursor-not-allowed rounded transition-colors"
-                                              title="Approve deletion (disabled)"
+                                              disabled={isSaving}
+                                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                              title="Approve deletion"
                                             >
                                               <CheckCircle size={12} />
                                               Approve
                                             </button>
                                             <button
                                               onClick={() => {
+                                                // Find the stage index in the filtered stages list
+                                                const stagesOnly =
+                                                  editableProjectData.stages.filter(
+                                                    (item) => item.stage_id
+                                                  );
                                                 const stageIndex =
-                                                  editableProjectData.stages.findIndex(
+                                                  stagesOnly.findIndex(
                                                     (s) =>
                                                       s.stage_id ===
                                                       currentStage.stage_id
                                                   );
-                                                handleRejectStageDeletion(
-                                                  stageIndex
-                                                );
+                                                if (stageIndex !== -1) {
+                                                  handleRejectStageDeletion(
+                                                    stageIndex
+                                                  );
+                                                }
                                               }}
                                               disabled={isSaving}
                                               className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1463,6 +2079,9 @@ export default function TeacherProjectQueue() {
                                     <ReviewGateStandard
                                       gate={currentStage.gate}
                                       isEditable={true}
+                                      projectId={editableProjectData.project_id}
+                                      stageId={currentStage.stage_id}
+                                      invokerEmail="teacher1@gmail.com"
                                       onUpdate={(field, index, value) => {
                                         const stageIndex =
                                           editableProjectData.stages.findIndex(
@@ -1474,16 +2093,26 @@ export default function TeacherProjectQueue() {
                                           const newData = deepClone(prev);
                                           if (field === "checklist") {
                                             // New structure: value is the entire checklist array
-                                            if (!newData.stages[stageIndex].gate) {
-                                              newData.stages[stageIndex].gate = {};
+                                            if (
+                                              !newData.stages[stageIndex].gate
+                                            ) {
+                                              newData.stages[stageIndex].gate =
+                                                {};
                                             }
-                                            newData.stages[stageIndex].gate.checklist = value;
+                                            newData.stages[
+                                              stageIndex
+                                            ].gate.checklist = value;
                                           } else {
                                             // Other gate fields (title, description)
-                                            if (!newData.stages[stageIndex].gate) {
-                                              newData.stages[stageIndex].gate = {};
+                                            if (
+                                              !newData.stages[stageIndex].gate
+                                            ) {
+                                              newData.stages[stageIndex].gate =
+                                                {};
                                             }
-                                            newData.stages[stageIndex].gate[field] = value;
+                                            newData.stages[stageIndex].gate[
+                                              field
+                                            ] = value;
                                           }
                                           return newData;
                                         });
@@ -1671,9 +2300,19 @@ export default function TeacherProjectQueue() {
                               marginBottom: "4px",
                             }}
                           >
-                            {request.entity_type === "stage" ? "Stage" : "Task"}{" "}
+                            {request.entity_type === "project"
+                              ? "Project"
+                              : request.entity_type === "stage"
+                              ? "Stage"
+                              : "Task"}{" "}
                             Deletion Request
                           </div>
+                          {request.entity_type === "project" && (
+                            <div style={{ fontSize: "14px", color: "#b91c1c" }}>
+                              <strong>Project:</strong>{" "}
+                              {request.project_title || "Untitled Project"}
+                            </div>
+                          )}
                           {request.entity_type === "stage" && (
                             <div style={{ fontSize: "14px", color: "#b91c1c" }}>
                               <strong>Stage:</strong>{" "}

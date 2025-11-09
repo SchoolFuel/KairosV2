@@ -3,7 +3,13 @@ import { CheckCircle, XCircle, User, BookOpen, Trash2 } from "lucide-react";
 import Badge from "../../Shared/LearningStandards/Badge";
 import { pillClass, getStatusIcon } from "./utils.jsx";
 
-function ProjectCard({ project, onReview, onApprove, onReject, onViewDeletionRequests }) {
+function ProjectCard({
+  project,
+  onReview,
+  onApprove,
+  onReject,
+  onViewDeletionRequests,
+}) {
   const title = project.title || project.project_title || "Untitled";
   const subject = project.subject_domain || "—";
   const status = (project.status || "—").trim();
@@ -139,4 +145,3 @@ function ProjectCard({ project, onReview, onApprove, onReject, onViewDeletionReq
 }
 
 export default ProjectCard;
-
