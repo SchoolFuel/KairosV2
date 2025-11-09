@@ -1472,25 +1472,18 @@ export default function TeacherProjectQueue() {
                                           );
                                         setEditableProjectData((prev) => {
                                           const newData = deepClone(prev);
-                                          if (
-                                            field === "checklist" &&
-                                            typeof index === "number"
-                                          ) {
-                                            if (
-                                              !newData.stages[stageIndex].gate
-                                                .checklist
-                                            ) {
-                                              newData.stages[
-                                                stageIndex
-                                              ].gate.checklist = [];
+                                          if (field === "checklist") {
+                                            // New structure: value is the entire checklist array
+                                            if (!newData.stages[stageIndex].gate) {
+                                              newData.stages[stageIndex].gate = {};
                                             }
-                                            newData.stages[
-                                              stageIndex
-                                            ].gate.checklist[index] = value;
+                                            newData.stages[stageIndex].gate.checklist = value;
                                           } else {
-                                            newData.stages[stageIndex].gate[
-                                              field
-                                            ] = value;
+                                            // Other gate fields (title, description)
+                                            if (!newData.stages[stageIndex].gate) {
+                                              newData.stages[stageIndex].gate = {};
+                                            }
+                                            newData.stages[stageIndex].gate[field] = value;
                                           }
                                           return newData;
                                         });
