@@ -328,6 +328,85 @@ function getGateStandards(projectId, invokerEmail) {
 }
 
 /**
+ * Save gate standards
+ * @param {Object} gateStandardsData - The gate standards data to save
+ * @returns {Object} Response with success status
+ */
+function saveGateStandards(gateStandardsData) {
+  if (!gateStandardsData) throw new Error("Missing gateStandardsData");
+  if (!gateStandardsData.project_id) throw new Error("Missing project_id");
+  if (!gateStandardsData.student_id) throw new Error("Missing student_id");
+  if (!gateStandardsData.invoker_email) {
+    throw new Error("Missing invoker_email");
+  }
+  if (!gateStandardsData.stages || !Array.isArray(gateStandardsData.stages)) {
+    throw new Error("Missing or invalid stages array");
+  }
+
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+
+  const payload = {
+    action: "savegatestandards",
+    payload: {
+      student_id: gateStandardsData.student_id,
+      invoker_email: gateStandardsData.invoker_email,
+      project_id: gateStandardsData.project_id,
+      stages: gateStandardsData.stages,
+    },
+  };
+
+  try {
+    Logger.log("=== saveGateStandards START ===");
+    Logger.log("Project ID: " + gateStandardsData.project_id);
+    Logger.log("Student ID: " + gateStandardsData.student_id);
+    Logger.log("Invoker Email: " + gateStandardsData.invoker_email);
+    Logger.log("Number of stages: " + gateStandardsData.stages.length);
+    Logger.log("Payload: " + JSON.stringify(payload, null, 2));
+
+    const options = {
+      method: "POST",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    Logger.log("Response Code: " + responseCode);
+    Logger.log("Response Text: " + responseText);
+
+    if (responseCode < 200 || responseCode >= 300) {
+      throw new Error("API " + responseCode + ": " + responseText);
+    }
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error("Bad JSON response: " + responseText);
+    }
+
+    Logger.log("=== saveGateStandards SUCCESS ===");
+    return {
+      success: true,
+      statusCode: responseCode,
+      message: "Gate standards saved successfully",
+      data: responseData,
+    };
+  } catch (error) {
+    Logger.log("=== saveGateStandards ERROR ===");
+    Logger.log("Error: " + error.toString());
+    return {
+      success: false,
+      message: error.message || "Failed to save gate standards",
+    };
+  }
+}
+
+/**
  * Reject a deletion request (teacher action)
  * @param {String} requestId - The deletion request ID to reject
  * @returns {Object} Response with success status

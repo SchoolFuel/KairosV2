@@ -2082,6 +2082,8 @@ export default function TeacherProjectQueue() {
                                       projectId={editableProjectData.project_id}
                                       stageId={currentStage.stage_id}
                                       invokerEmail="teacher1@gmail.com"
+                                      studentId={editableProjectData.user_id}
+                                      gateId={currentStage.gate?.gate_id}
                                       onUpdate={(field, index, value) => {
                                         const stageIndex =
                                           editableProjectData.stages.findIndex(

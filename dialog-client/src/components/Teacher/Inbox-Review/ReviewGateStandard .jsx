@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, X, Loader2 } from "lucide-react";
+import { Plus, X, Loader2, Save } from "lucide-react";
 
 const ReviewGateStandard = ({
   gate,
@@ -9,12 +9,17 @@ const ReviewGateStandard = ({
   projectId,
   stageId,
   invokerEmail,
+  studentId,
+  gateId,
 }) => {
   const isDisabled = isFrozen || !isEditable;
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [gateStandardsData, setGateStandardsData] = useState(null);
   const [loadingGateStandards, setLoadingGateStandards] = useState(false);
   const [gateStandardsError, setGateStandardsError] = useState(null);
+  const [savingGateStandards, setSavingGateStandards] = useState(false);
+  const [saveSuccessMessage, setSaveSuccessMessage] = useState(null);
+  const [saveErrorMessage, setSaveErrorMessage] = useState(null);
 
   // Normalize checklist: convert old string format to new object format, always return exactly 4 items
   const normalizeChecklist = (checklist) => {
@@ -284,6 +289,123 @@ const ReviewGateStandard = ({
     }
   };
 
+  // Get effective gate_id from props or API data
+  const getEffectiveGateId = () => {
+    if (gateId) return gateId;
+    if (gate?.gate_id) return gate.gate_id;
+    if (gateStandardsData?.stageData?.gate_id)
+      return gateStandardsData.stageData.gate_id;
+    return null;
+  };
+
+  // Transform checklist items to API payload format
+  const transformChecklistToPayload = () => {
+    const effectiveGateId = getEffectiveGateId();
+    if (!effectiveGateId) {
+      throw new Error("Gate ID is required to save gate standards");
+    }
+
+    const checklists = checklistItems.map((item) => {
+      // Filter out empty learning standards and deduplicate by standard_id
+      const standardsMap = new Map();
+      (item.learningStandards || []).forEach((ls) => {
+        if (ls.standard_id) {
+          // Use standard_id as key to deduplicate
+          if (!standardsMap.has(ls.standard_id)) {
+            standardsMap.set(ls.standard_id, {
+              standard_id: ls.standard_id,
+              percentage: parseFloat(ls.percentage) || 0,
+            });
+          }
+        }
+      });
+
+      return {
+        gate_checklist_title: item.text || "",
+        gate_checklist_description: item.description || item.text || "",
+        status: item.status || "Pending",
+        standards: Array.from(standardsMap.values()),
+      };
+    });
+
+    return {
+      stage_id: stageId,
+      gate_id: effectiveGateId,
+      checklists: checklists,
+    };
+  };
+
+  // Handle save gate standards
+  const handleSaveGateStandards = async () => {
+    if (!projectId || !stageId || !studentId || !invokerEmail) {
+      setSaveErrorMessage(
+        "Missing required data (projectId, stageId, studentId, or invokerEmail)"
+      );
+      return;
+    }
+
+    setSavingGateStandards(true);
+    setSaveErrorMessage(null);
+    setSaveSuccessMessage(null);
+
+    try {
+      const stagePayload = transformChecklistToPayload();
+
+      const payload = {
+        project_id: projectId,
+        student_id: studentId,
+        invoker_email: invokerEmail,
+        stages: [stagePayload], // Save only the current stage
+      };
+
+      console.log(
+        "Saving gate standards payload:",
+        JSON.stringify(payload, null, 2)
+      );
+
+      const response = await new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .saveGateStandards(payload);
+      });
+
+      if (response.success) {
+        setSaveSuccessMessage("Gate standards saved successfully!");
+        // Optionally reload gate standards after save
+        // loadGateStandards();
+      } else {
+        setSaveErrorMessage(
+          response.message || "Failed to save gate standards"
+        );
+      }
+    } catch (error) {
+      console.error("Error saving gate standards:", error);
+      setSaveErrorMessage(error.message || "Failed to save gate standards");
+    } finally {
+      setSavingGateStandards(false);
+    }
+  };
+
+  // Auto-dismiss success/error messages after 7 seconds
+  useEffect(() => {
+    if (saveSuccessMessage) {
+      const timer = setTimeout(() => {
+        setSaveSuccessMessage(null);
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveSuccessMessage]);
+
+  useEffect(() => {
+    if (saveErrorMessage) {
+      const timer = setTimeout(() => {
+        setSaveErrorMessage(null);
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveErrorMessage]);
+
   const currentItem = checklistItems[activeTabIndex] || {
     text: "",
     learningStandards: [],
@@ -534,6 +656,20 @@ const ReviewGateStandard = ({
                               placeholder="Enter learning standard description"
                             />
                           </div>
+
+                          {/* Standard ID */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              Standard ID
+                            </label>
+                            <input
+                              type="text"
+                              value={ls.standard_id || ""}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600"
+                              disabled={true}
+                              placeholder="Standard ID (auto-populated)"
+                            />
+                          </div>
                         </div>
                       )
                     )}
@@ -638,6 +774,43 @@ const ReviewGateStandard = ({
                     />
                   </div>
                 </div>
+
+                {/* Save Button */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={handleSaveGateStandards}
+                    disabled={
+                      isDisabled ||
+                      savingGateStandards ||
+                      !projectId ||
+                      !stageId ||
+                      !studentId
+                    }
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {savingGateStandards ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={16} />
+                        Save Gate Standards
+                      </>
+                    )}
+                  </button>
+                  {saveSuccessMessage && (
+                    <div className="mt-2 text-sm text-green-600 font-medium">
+                      {saveSuccessMessage}
+                    </div>
+                  )}
+                  {saveErrorMessage && (
+                    <div className="mt-2 text-sm text-red-600 font-medium">
+                      {saveErrorMessage}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -694,6 +867,11 @@ const ReviewGateStandard = ({
                               </div>
                             </div>
                             <div>LS Description: {ls.lsDescription || "—"}</div>
+                            {ls.standard_id && (
+                              <div className="text-xs text-gray-500">
+                                Standard ID: {ls.standard_id}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
