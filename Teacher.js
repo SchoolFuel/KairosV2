@@ -79,179 +79,6 @@ function getTeacherProjectDetails(projectId, userId) {
   return { statusCode: out.statusCode || 200, body: { project } };
 }
 
-
-function createStudentTab(studentName, projectContent) {
-  Logger.log(studentName);
-  
-  try {
-    
-    const doc = DocumentApp.getActiveDocument();
-    const body = doc.getBody();
-    
-   
-    if (body.getNumChildren() > 1) {
-      body.appendPageBreak();
-    }
-    
-    const headingText = `${studentName.toUpperCase()} - PROJECT`;
-    
-    const heading = body.appendParagraph(headingText);
-    heading.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-    
-    try {
-      const headingTextElement = heading.editAsText();
-      headingTextElement.setForegroundColor('#1a365d')
-                       .setBold(true)
-                       .setFontSize(18);
-    } catch (headingError) {
-      Logger.log('Error formatting heading: ' + headingError);
-      Logger.log('Heading error details: ' + headingError.toString());
-      Logger.log('Heading error stack: ' + headingError.stack);
-    }
-    
-    try {
-      body.appendHorizontalRule();
-    } catch (ruleError) {
-      Logger.log('Error adding horizontal rule: ' + ruleError);
-      Logger.log('Rule error details: ' + ruleError.toString());
-    }
-    
-    
-    if (!projectContent || projectContent.trim() === '') {
-      body.appendParagraph('No project content available.');
-      return true;
-    }
-    
-    const sections = projectContent.split(/\n\s*\n/);
-    
-    let processedParagraphs = 0;
-    let processedSections = 0;
-    
-    sections.forEach((section, sectionIndex) => {
-      if (section.trim()) {
-        processedSections++;
-        
-        
-        const lines = section.split('\n');
-        
-        lines.forEach((line, lineIndex) => {
-          if (line.trim()) {
-            processedParagraphs++;
-            
-            try {
-              const para = body.appendParagraph(line.trim());
-              
-              
-              if (line.includes('**')) {
-                try {
-                  const text = para.getText();
-                  const textElement = para.editAsText();
-                  
-                  let processedText = text;
-                  let offset = 0;
-                  
-                 
-                  const boldRegex = /\*\*(.*?)\*\*/g;
-                  let match;
-                  let boldMatches = 0;
-                  
-                  while ((match = boldRegex.exec(text)) !== null) {
-                    boldMatches++;
-                    
-                    const fullMatch = match[0]; 
-                    const boldText = match[1]; 
-                    const startIndex = match.index - offset;
-                    const endIndex = startIndex + fullMatch.length;
-                   
-                    textElement.deleteText(startIndex + boldText.length, endIndex - 1);
-                    textElement.deleteText(startIndex, startIndex + 1);
-                    
-                    textElement.setBold(startIndex, startIndex + boldText.length - 1, true);
-                    
-                   
-                    offset += 4; 
-                  }
-                  
-                  
-                  if (line.trim().startsWith('**') || (line.includes('**') && line.length < 100)) {
-                    textElement.setFontSize(14)
-                              .setForegroundColor('#2d3748');
-                  }
-                  
-                } catch (boldError) {
-                  Logger.log('Error processing bold formatting: ' + boldError);
-                  Logger.log('Bold error details: ' + boldError.toString());
-                  Logger.log('Bold error stack: ' + boldError.stack);
-                }
-              }
-              
-              
-              try {
-                para.setFontFamily('Arial')
-                    .setFontSize(11)
-                    .setSpacingAfter(8)
-                    .setLineSpacing(1.15);
-              } catch (formatError) {
-                Logger.log('Error applying paragraph formatting: ' + formatError);
-                Logger.log('Format error details: ' + formatError.toString());
-              }
-              
-            } catch (paraError) {
-              Logger.log('Error processing paragraph ' + processedParagraphs + ': ' + paraError);
-              Logger.log('Paragraph error details: ' + paraError.toString());
-              Logger.log('Paragraph error stack: ' + paraError.stack);
-            }
-          }
-        });
-        
-       
-        try {
-          body.appendParagraph('');
-        } catch (spacingError) {
-          Logger.log('Error adding section spacing: ' + spacingError);
-        }
-      }
-    });
-    
-    
-    try {
-      body.appendParagraph('');
-      const timestamp = body.appendParagraph(`Exported: ${new Date().toLocaleString()}`);
-      timestamp.setFontSize(9);
-      const timestampText = timestamp.editAsText();
-      timestampText.setForegroundColor('#666666')
-               .setItalic(true);
-    } catch (timestampError) {
-      Logger.log('Error adding timestamp: ' + timestampError);
-      Logger.log('Timestamp error details: ' + timestampError.toString());
-    }
-    
-  
-    try {
-      body.appendParagraph('');
-      body.appendParagraph('');
-    } catch (finalSpacingError) {
-      Logger.log('Error adding final spacing: ' + finalSpacingError);
-    }
-    
-    return { success: true, message: `Successfully exported ${studentName}'s project` };
-    
-  } catch (error) {
-    Logger.log('=== MAJOR ERROR IN EXPORT ===');
-    Logger.log('Error creating student tab: ' + error);
-    Logger.log('Error name: ' + error.name);
-    Logger.log('Error message: ' + error.message);
-    Logger.log('Error details: ' + error.toString());
-    Logger.log('Error stack: ' + error.stack);
-    Logger.log('Student name: ' + studentName);
-    Logger.log('Content type: ' + typeof projectContent);
-    Logger.log('Content length: ' + (projectContent ? projectContent.length : 'N/A'));
-    Logger.log('=== END ERROR DETAILS ===');
-    
-    throw new Error(`Failed to export ${studentName}: ${error.message} (${error.name})`);
-  }
-}
-
 function getTeacherProjectsAll() {
   const url =
     "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
@@ -287,4 +114,517 @@ function getTeacherProjectsAll() {
   if (!bodyLike) bodyLike = out.action_response || out;
 
   return { statusCode: out.statusCode || out.status || 200, body: bodyLike };
+}
+
+/**
+ * Get deletion requests for a teacher
+ * @param {String} subjectDomain - The subject domain (e.g., "Science", "Geography")
+ * @returns {Object} Response with deletion requests
+ */
+function getDeletionRequests(subjectDomain) {
+  if (!subjectDomain) throw new Error("Missing subjectDomain");
+
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+  const body = {
+    action: "myprojects",
+    payload: {
+      request: "delete_request_details_teacher",
+      email_id: "teacher1@gmail.com",
+      subject_domain: subjectDomain,
+    },
+  };
+
+  try {
+    Logger.log("=== getDeletionRequests START ===");
+    Logger.log("Subject Domain: " + subjectDomain);
+    Logger.log("Payload: " + JSON.stringify(body, null, 2));
+
+    const res = UrlFetchApp.fetch(url, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(body),
+      muteHttpExceptions: true,
+    });
+
+    const code = res.getResponseCode();
+    const text = res.getContentText();
+
+    Logger.log("Response Code: " + code);
+    Logger.log("Response Text: " + text);
+
+    if (code < 200 || code >= 300) {
+      throw new Error("API " + code + ": " + text);
+    }
+
+    let out = {};
+    try {
+      out = JSON.parse(text);
+    } catch (e) {
+      throw new Error("Bad JSON: " + text);
+    }
+
+    const bodyLike =
+      out && typeof out.body === "string" ? JSON.parse(out.body) : out.body;
+
+    Logger.log("=== getDeletionRequests SUCCESS ===");
+    return {
+      statusCode: out.statusCode || out.status || 200,
+      body: bodyLike,
+      action_response: out.action_response,
+      status: out.status,
+    };
+  } catch (error) {
+    Logger.log("=== getDeletionRequests ERROR ===");
+    Logger.log("Error: " + error.toString());
+    throw error;
+  }
+}
+
+/**
+ * Approve a deletion request (teacher action)
+ * @param {String} requestId - The deletion request ID to approve
+ * @param {String} entityType - The entity type ("task" or "stage")
+ * @returns {Object} Response with success status
+ */
+function approveDeletionRequest(requestId, entityType) {
+  if (!requestId) throw new Error("Missing requestId");
+  if (!entityType) throw new Error("Missing entityType");
+
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+
+  const payload = {
+    action: "deleterequest",
+    payload: {
+      request: "teacher_approve",
+      actor: {
+        role: "teacher",
+        email_id: "teacher1@gmail.com",
+      },
+      ids: {
+        request_id: requestId,
+        entity_type: entityType,
+      },
+    },
+  };
+
+  try {
+    Logger.log("=== approveDeletionRequest START ===");
+    Logger.log("Request ID: " + requestId);
+    Logger.log("Entity Type: " + entityType);
+    Logger.log("Payload: " + JSON.stringify(payload, null, 2));
+
+    const options = {
+      method: "POST",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    Logger.log("Response Code: " + responseCode);
+    Logger.log("Response Text: " + responseText);
+
+    if (responseCode < 200 || responseCode >= 300) {
+      throw new Error("API " + responseCode + ": " + responseText);
+    }
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error("Bad JSON response: " + responseText);
+    }
+
+    Logger.log("=== approveDeletionRequest SUCCESS ===");
+    return {
+      success: true,
+      statusCode: responseCode,
+      message: "Deletion request approved successfully",
+      data: responseData,
+    };
+  } catch (error) {
+    Logger.log("=== approveDeletionRequest ERROR ===");
+    Logger.log("Error: " + error.toString());
+    return {
+      success: false,
+      message: error.message || "Failed to approve deletion request",
+    };
+  }
+}
+
+/**
+ * Get gate standards for a project
+ * @param {String} projectId - The project ID
+ * @param {String} invokerEmail - The email of the invoker (teacher)
+ * @returns {Object} Response with gate standards data
+ */
+function getGateStandards(projectId, invokerEmail) {
+  if (!projectId) throw new Error("Missing projectId");
+  if (!invokerEmail) throw new Error("Missing invokerEmail");
+
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+
+  const payload = {
+    action: "getgatestandards",
+    payload: {
+      invoker_email: invokerEmail,
+      project_id: projectId,
+    },
+  };
+
+  try {
+    Logger.log("=== getGateStandards START ===");
+    Logger.log("Project ID: " + projectId);
+    Logger.log("Invoker Email: " + invokerEmail);
+    Logger.log("Payload: " + JSON.stringify(payload, null, 2));
+
+    const options = {
+      method: "POST",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    Logger.log("Response Code: " + responseCode);
+    Logger.log("Response Text: " + responseText);
+
+    if (responseCode < 200 || responseCode >= 300) {
+      throw new Error("API " + responseCode + ": " + responseText);
+    }
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error("Bad JSON response: " + responseText);
+    }
+
+    Logger.log("=== getGateStandards SUCCESS ===");
+    return {
+      success: true,
+      statusCode: responseCode,
+      data: responseData,
+      action_response: responseData.action_response,
+      status: responseData.status,
+    };
+  } catch (error) {
+    Logger.log("=== getGateStandards ERROR ===");
+    Logger.log("Error: " + error.toString());
+    return {
+      success: false,
+      message: error.message || "Failed to get gate standards",
+    };
+  }
+}
+
+/**
+ * Save gate standards
+ * @param {Object} gateStandardsData - The gate standards data to save
+ * @returns {Object} Response with success status
+ */
+function saveGateStandards(gateStandardsData) {
+  if (!gateStandardsData) throw new Error("Missing gateStandardsData");
+  if (!gateStandardsData.project_id) throw new Error("Missing project_id");
+  if (!gateStandardsData.student_id) throw new Error("Missing student_id");
+  if (!gateStandardsData.invoker_email) {
+    throw new Error("Missing invoker_email");
+  }
+  if (!gateStandardsData.stages || !Array.isArray(gateStandardsData.stages)) {
+    throw new Error("Missing or invalid stages array");
+  }
+
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+
+  const payload = {
+    action: "savegatestandards",
+    payload: {
+      student_id: gateStandardsData.student_id,
+      invoker_email: gateStandardsData.invoker_email,
+      project_id: gateStandardsData.project_id,
+      stages: gateStandardsData.stages,
+    },
+  };
+
+  try {
+    Logger.log("=== saveGateStandards START ===");
+    Logger.log("Project ID: " + gateStandardsData.project_id);
+    Logger.log("Student ID: " + gateStandardsData.student_id);
+    Logger.log("Invoker Email: " + gateStandardsData.invoker_email);
+    Logger.log("Number of stages: " + gateStandardsData.stages.length);
+    Logger.log("Payload: " + JSON.stringify(payload, null, 2));
+
+    const options = {
+      method: "POST",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    Logger.log("Response Code: " + responseCode);
+    Logger.log("Response Text: " + responseText);
+
+    if (responseCode < 200 || responseCode >= 300) {
+      throw new Error("API " + responseCode + ": " + responseText);
+    }
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error("Bad JSON response: " + responseText);
+    }
+
+    Logger.log("=== saveGateStandards SUCCESS ===");
+    return {
+      success: true,
+      statusCode: responseCode,
+      message: "Gate standards saved successfully",
+      data: responseData,
+    };
+  } catch (error) {
+    Logger.log("=== saveGateStandards ERROR ===");
+    Logger.log("Error: " + error.toString());
+    return {
+      success: false,
+      message: error.message || "Failed to save gate standards",
+    };
+  }
+}
+
+/**
+ * Reject a deletion request (teacher action)
+ * @param {String} requestId - The deletion request ID to reject
+ * @returns {Object} Response with success status
+ */
+function rejectDeletionRequest(requestId) {
+  if (!requestId) throw new Error("Missing requestId");
+
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+
+  const payload = {
+    action: "deleterequest",
+    payload: {
+      request: "teacher_reject",
+      actor: {
+        role: "teacher",
+        email_id: "teacher1@gmail.com",
+      },
+      ids: {
+        request_id: requestId,
+      },
+    },
+  };
+
+  try {
+    Logger.log("=== rejectDeletionRequest START ===");
+    Logger.log("Request ID: " + requestId);
+    Logger.log("Payload: " + JSON.stringify(payload, null, 2));
+
+    const options = {
+      method: "POST",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    Logger.log("Response Code: " + responseCode);
+    Logger.log("Response Text: " + responseText);
+
+    if (responseCode < 200 || responseCode >= 300) {
+      throw new Error("API " + responseCode + ": " + responseText);
+    }
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error("Bad JSON response: " + responseText);
+    }
+
+    Logger.log("=== rejectDeletionRequest SUCCESS ===");
+    return {
+      success: true,
+      statusCode: responseCode,
+      message: "Deletion request rejected successfully",
+      data: responseData,
+    };
+  } catch (error) {
+    Logger.log("=== rejectDeletionRequest ERROR ===");
+    Logger.log("Error: " + error.toString());
+    return {
+      success: false,
+      message: error.message || "Failed to reject deletion request",
+    };
+  }
+}
+
+/**
+ * Save teacher's project updates (approve, reject, or save edits)
+ * @param {Object} projectData - The full project data object
+ * @param {String} status - The new status (e.g., "Approved", "Pending Revision")
+ * @returns {Object} Response with success status and message
+ */
+function saveTeacherProjectUpdate(projectData, status) {
+  if (!projectData) throw new Error("Missing projectData");
+  if (!projectData.project_id) throw new Error("Missing project_id");
+  if (!projectData.user_id) throw new Error("Missing user_id");
+
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+
+  try {
+    Logger.log("=== saveTeacherProjectUpdate START ===");
+    Logger.log(
+      "Input projectData keys: " + Object.keys(projectData).join(", ")
+    );
+    Logger.log("Input status: " + status);
+    Logger.log("Input project_id: " + projectData.project_id);
+    Logger.log("Input user_id: " + projectData.user_id);
+
+    // Add status to project data if provided (null means preserve existing status)
+    // Deep clone projectData to avoid mutating the original
+    const projectToSave = JSON.parse(JSON.stringify(projectData));
+    if (status !== null && status !== undefined) {
+      projectToSave.status = status;
+      Logger.log("Status added to project: " + status);
+    } else {
+      Logger.log("Status preserved: " + (projectToSave.status || "none"));
+    }
+
+    Logger.log(
+      "Project to save keys: " + Object.keys(projectToSave).join(", ")
+    );
+    if (projectToSave.stages && Array.isArray(projectToSave.stages)) {
+      Logger.log("Number of stages: " + projectToSave.stages.length);
+      projectToSave.stages.forEach((stage, idx) => {
+        Logger.log(
+          "Stage " +
+            idx +
+            " - stage_id: " +
+            (stage.stage_id || "missing") +
+            ", title: " +
+            (stage.title || "missing") +
+            ", teacher_review_status: " +
+            (stage.teacher_review_status || "none")
+        );
+      });
+    }
+
+    // Prepare the payload according to saveproject action format
+    const payload = {
+      action: "saveproject",
+      payload: {
+        json: {
+          project: projectToSave,
+        },
+        user_id: String(projectData.user_id),
+        email_id: "teacher1@gmail.com",
+        generatedAt: new Date().toISOString(),
+      },
+    };
+
+    Logger.log("=== PAYLOAD TO SEND ===");
+    Logger.log(JSON.stringify(payload, null, 2));
+
+    const options = {
+      method: "POST",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    };
+
+    // Make the API call to the backend
+    Logger.log("Sending request to: " + url);
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    Logger.log("=== API RESPONSE ===");
+    Logger.log("Response Code: " + responseCode);
+    Logger.log("Response Text: " + responseText);
+
+    if (responseCode < 200 || responseCode >= 300) {
+      throw new Error("API " + responseCode + ": " + responseText);
+    }
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+      Logger.log(
+        "Parsed response data keys: " + Object.keys(responseData).join(", ")
+      );
+      if (responseData.action_response) {
+        Logger.log(
+          "action_response keys: " +
+            Object.keys(responseData.action_response).join(", ")
+        );
+      }
+    } catch (e) {
+      Logger.log("ERROR: Failed to parse response as JSON: " + e.toString());
+      throw new Error("Bad JSON response: " + responseText);
+    }
+
+    // Return success response
+    Logger.log("=== SUCCESS ===");
+    Logger.log("Returning success response");
+    Logger.log("=== saveTeacherProjectUpdate END ===");
+
+    return {
+      success: true,
+      statusCode: responseCode,
+      message:
+        responseData.action_response?.response ||
+        "Project updated successfully!",
+      data: responseData,
+    };
+  } catch (error) {
+    Logger.log("=== ERROR in saveTeacherProjectUpdate ===");
+    Logger.log("Error type: " + error.toString());
+    Logger.log("Error message: " + error.message);
+    console.error("Error in saveTeacherProjectUpdate:", error);
+
+    // Handle different types of errors
+    if (
+      error.toString().includes("DNS error") ||
+      error.toString().includes("network")
+    ) {
+      return {
+        success: false,
+        message:
+          "Network connection error. Please check your internet connection.",
+      };
+    } else if (error.toString().includes("timeout")) {
+      return {
+        success: false,
+        message: "Request timed out. Please try again.",
+      };
+    } else {
+      return {
+        success: false,
+        message:
+          error.message ||
+          "An unexpected error occurred. Please contact support if the problem persists.",
+      };
+    }
+  }
 }

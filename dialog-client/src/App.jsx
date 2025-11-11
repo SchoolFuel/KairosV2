@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import "./App.css";
 import LearningStandardsDialog from "./components/Shared/LearningStandards/LearningStandardsDialog";
 import CreateProject from "./components/Student/CreateProject/CreateProject";
-import TeacherProjectQueue from "./components/Teacher/TeacherProjectQueue";
+import TeacherProjectQueue from "./components/Teacher/Inbox-Review/TeacherProjectQueue";
 import ProjectDashboard from './components/Student/MyProjects/projectdashboard';
 
 const DIALOGS = {
@@ -10,7 +10,6 @@ const DIALOGS = {
   "create-project": CreateProject,
   "project-dashboard": ProjectDashboard,
   "teacher-project-queue": TeacherProjectQueue,
-  //"teacher-gate-assessment": GateStandards,
   "add-standard": LearningStandardsDialog,
 };
 function App() {

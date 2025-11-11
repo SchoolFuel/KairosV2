@@ -37,7 +37,14 @@
 /* Header */
 .tpq-header {
   margin-bottom: 24px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tpq-header > div {
+  flex: 1;
 }
 
 .tpq-header h1 {
@@ -262,8 +269,8 @@
 }
 
 .tpq-status-pill.is-approve {
-  background: #c6f6d5;
-  color: #22543d;
+  background: #c6f6d5; /* Green background */
+  color: #22543d; /* Dark green text */
 }
 
 .tpq-status-pill.is-reject {
