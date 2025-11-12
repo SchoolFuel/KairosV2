@@ -7,6 +7,7 @@ import {
   BookOpen,
   Trash2,
   RefreshCw,
+  ArrowLeft,
 } from "lucide-react";
 import ReviewStageTab from "./ReviewStageTab";
 import ReviewTaskCard from "./ReviewTaskCard";
@@ -25,12 +26,14 @@ import "./TeacherProjectQueue.css";
 export default function TeacherProjectQueue() {
   // State management
   const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Don't load on mount
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("all"); // all, pending
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState(""); // Track selected subject
+  const [hasSubjectFilter, setHasSubjectFilter] = useState(false); // Track if subject filter has been applied
 
   // Deletion requests hook
   const {
@@ -81,10 +84,7 @@ export default function TeacherProjectQueue() {
     throughput: 126,
   });
 
-  // Load projects on component mount
-  useEffect(() => {
-    loadProjects();
-  }, []);
+  // Don't load projects on mount - require subject filter first
 
   // Auto-dismiss success messages after 7 seconds
   useEffect(() => {
@@ -142,10 +142,17 @@ export default function TeacherProjectQueue() {
     }
   }, [currentStageIndex]);
 
-  const loadProjects = async () => {
+  const loadProjects = async (subject) => {
     try {
+      if (!subject || !subject.trim()) {
+        setError("Please select a subject before fetching projects");
+        return;
+      }
+
       setLoading(true);
       setError("");
+      setSelectedSubject(subject);
+      setHasSubjectFilter(true);
 
       // Call Google Apps Script function to fetch all teacher projects
       return new Promise((resolve, reject) => {
@@ -276,7 +283,7 @@ export default function TeacherProjectQueue() {
             setLoading(false);
             reject(error);
           })
-          .getTeacherProjectsAll();
+          .getTeacherProjectsAll(subject);
       });
     } catch (err) {
       console.error("Error in loadProjects:", err);
@@ -1330,9 +1337,14 @@ export default function TeacherProjectQueue() {
         <div className="tpq-error">
           <XCircle size={24} />
           <p>{error}</p>
-          <button onClick={loadProjects} className="tpq-btn tpq-btn--primary">
-            Retry
-          </button>
+          {selectedSubject && (
+            <button
+              onClick={() => loadProjects(selectedSubject)}
+              className="tpq-btn tpq-btn--primary"
+            >
+              Retry
+            </button>
+          )}
         </div>
       </div>
     );
@@ -1354,23 +1366,48 @@ export default function TeacherProjectQueue() {
           <h1>Teacher Project Queue</h1>
           <p>Review and manage student project submissions</p>
         </div>
-        <button
-          onClick={loadProjects}
-          disabled={loading}
-          className="tpq-btn tpq-btn--secondary"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            opacity: loading ? 0.6 : 1,
-            cursor: loading ? "not-allowed" : "pointer",
-          }}
-          title="Refresh project list"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
+        {hasSubjectFilter && (
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button
+              onClick={() => {
+                setHasSubjectFilter(false);
+                setSelectedSubject("");
+                setProjects([]);
+                setError("");
+                setSearchTerm("");
+                setFilter("all");
+              }}
+              className="tpq-btn tpq-btn--secondary"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 16px",
+              }}
+              title="Go back to subject selection"
+            >
+              <ArrowLeft size={16} />
+              Back
+            </button>
+            <button
+              onClick={() => loadProjects(selectedSubject)}
+              disabled={loading}
+              className="tpq-btn tpq-btn--secondary"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 16px",
+                opacity: loading ? 0.6 : 1,
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+              title="Refresh project list"
+            >
+              <RefreshCw size={16} className={loading ? "spin" : ""} />
+              Refresh
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Section Switcher */}
@@ -1418,6 +1455,10 @@ export default function TeacherProjectQueue() {
             setSelectedProjectDeletionRequests(uniqueDetails);
             setShowDeletionRequestsModal(true);
           }}
+          hasSubjectFilter={hasSubjectFilter}
+          loading={loading}
+          onApplySubjectFilter={loadProjects}
+          selectedSubject={selectedSubject}
         />
       )}
 
