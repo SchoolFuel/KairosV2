@@ -84,7 +84,7 @@ export default function TeacherProjectQueue() {
     throughput: 126,
   });
 
-  // Don't load projects on mount - require subject filter first
+
 
   // Auto-dismiss success messages after 7 seconds
   useEffect(() => {

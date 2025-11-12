@@ -474,3 +474,29 @@ function callMorningPulseAPI(payload) {
     throw error;
   }
 }
+function sendDeleteRequest(payload) {
+  try {
+    const url = "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+
+    const options = {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const data = JSON.parse(response.getContentText());
+
+    return {
+      success: true,
+      statusCode: response.getResponseCode(),
+      data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "Failed to send delete request",
+    };
+  }
+}
