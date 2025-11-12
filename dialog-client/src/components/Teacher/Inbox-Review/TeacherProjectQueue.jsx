@@ -7,6 +7,7 @@ import {
   BookOpen,
   Trash2,
   RefreshCw,
+  ArrowLeft,
 } from "lucide-react";
 import ReviewStageTab from "./ReviewStageTab";
 import ReviewTaskCard from "./ReviewTaskCard";
@@ -15,18 +16,24 @@ import GateAssessment from "../GateAssessment/GateAssessment";
 import { useDeletionRequests } from "./useDeletionRequests.jsx";
 import ProjectCard from "./ProjectCard";
 import { deepClone } from "./utils.jsx";
+import InboxTab from "./InboxTab";
+import CalendarTab from "./CalendarTab";
+import AnalyticsTab from "./AnalyticsTab";
+import DeletionRequestsModal from "./DeletionRequestsModal";
 import "./TeacherProjectQueue.css";
 
 /* ---------- Main Component ---------- */
 export default function TeacherProjectQueue() {
   // State management
   const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Don't load on mount
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("all"); // all, pending
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState(""); // Track selected subject
+  const [hasSubjectFilter, setHasSubjectFilter] = useState(false); // Track if subject filter has been applied
 
   // Deletion requests hook
   const {
@@ -77,10 +84,7 @@ export default function TeacherProjectQueue() {
     throughput: 126,
   });
 
-  // Load projects on component mount
-  useEffect(() => {
-    loadProjects();
-  }, []);
+
 
   // Auto-dismiss success messages after 7 seconds
   useEffect(() => {
@@ -138,10 +142,17 @@ export default function TeacherProjectQueue() {
     }
   }, [currentStageIndex]);
 
-  const loadProjects = async () => {
+  const loadProjects = async (subject) => {
     try {
+      if (!subject || !subject.trim()) {
+        setError("Please select a subject before fetching projects");
+        return;
+      }
+
       setLoading(true);
       setError("");
+      setSelectedSubject(subject);
+      setHasSubjectFilter(true);
 
       // Call Google Apps Script function to fetch all teacher projects
       return new Promise((resolve, reject) => {
@@ -272,7 +283,7 @@ export default function TeacherProjectQueue() {
             setLoading(false);
             reject(error);
           })
-          .getTeacherProjectsAll();
+          .getTeacherProjectsAll(subject);
       });
     } catch (err) {
       console.error("Error in loadProjects:", err);
@@ -1278,12 +1289,6 @@ export default function TeacherProjectQueue() {
               }" rejected successfully!`
             );
             setErrorMessage("");
-
-            // Note: We don't reload deletion requests here because:
-            // 1. Local state is already updated (request removed, flags cleared)
-            // 2. Backend might not have processed the rejection yet
-            // 3. Reloading could reintroduce the rejected request if backend is slow
-            // 4. Next refresh will get the correct state from backend
           } else {
             setErrorMessage(
               response.message || "Failed to reject deletion request"
@@ -1311,52 +1316,6 @@ export default function TeacherProjectQueue() {
     }
   };
 
-  // Helper function to update editable project data
-  const updateEditableData = (path, value) => {
-    setEditableProjectData((prev) => {
-      if (!prev) return prev;
-      const newData = deepClone(prev);
-      const keys = path.split(".");
-      let current = newData;
-
-      for (let i = 0; i < keys.length - 1; i++) {
-        const key = keys[i];
-        if (key.includes("[") && key.includes("]")) {
-          // Handle array indices like "stages[0]"
-          const match = key.match(/(\w+)\[(\d+)\]/);
-          if (match) {
-            const arrName = match[1];
-            const arrIndex = parseInt(match[2]);
-            if (!current[arrName]) current[arrName] = [];
-            if (!current[arrName][arrIndex]) current[arrName][arrIndex] = {};
-            current = current[arrName][arrIndex];
-            continue;
-          }
-        }
-        if (!current[key]) current[key] = {};
-        current = current[key];
-      }
-
-      const lastKey = keys[keys.length - 1];
-      if (lastKey.includes("[") && lastKey.includes("]")) {
-        const match = lastKey.match(/(\w+)\[(\d+)\]/);
-        if (match) {
-          const arrName = match[1];
-          const arrIndex = parseInt(match[2]);
-          if (!current[arrName]) current[arrName] = [];
-          current[arrName][arrIndex] = value;
-        }
-      } else {
-        current[lastKey] = value;
-      }
-
-      return newData;
-    });
-    setHasUnsavedChanges(true);
-    setSuccessMessage(""); // Clear success message when making edits
-    setErrorMessage(""); // Clear error message when making edits
-  };
-
   // Loading state
   if (loading) {
     return (
@@ -1378,9 +1337,14 @@ export default function TeacherProjectQueue() {
         <div className="tpq-error">
           <XCircle size={24} />
           <p>{error}</p>
-          <button onClick={loadProjects} className="tpq-btn tpq-btn--primary">
-            Retry
-          </button>
+          {selectedSubject && (
+            <button
+              onClick={() => loadProjects(selectedSubject)}
+              className="tpq-btn tpq-btn--primary"
+            >
+              Retry
+            </button>
+          )}
         </div>
       </div>
     );
@@ -1402,23 +1366,48 @@ export default function TeacherProjectQueue() {
           <h1>Teacher Project Queue</h1>
           <p>Review and manage student project submissions</p>
         </div>
-        <button
-          onClick={loadProjects}
-          disabled={loading}
-          className="tpq-btn tpq-btn--secondary"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            opacity: loading ? 0.6 : 1,
-            cursor: loading ? "not-allowed" : "pointer",
-          }}
-          title="Refresh project list"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
+        {hasSubjectFilter && (
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button
+              onClick={() => {
+                setHasSubjectFilter(false);
+                setSelectedSubject("");
+                setProjects([]);
+                setError("");
+                setSearchTerm("");
+                setFilter("all");
+              }}
+              className="tpq-btn tpq-btn--secondary"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 16px",
+              }}
+              title="Go back to subject selection"
+            >
+              <ArrowLeft size={16} />
+              Back
+            </button>
+            <button
+              onClick={() => loadProjects(selectedSubject)}
+              disabled={loading}
+              className="tpq-btn tpq-btn--secondary"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 16px",
+                opacity: loading ? 0.6 : 1,
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+              title="Refresh project list"
+            >
+              <RefreshCw size={16} className={loading ? "spin" : ""} />
+              Refresh
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Section Switcher */}
@@ -1441,76 +1430,36 @@ export default function TeacherProjectQueue() {
 
       {/* INBOX TAB */}
       {activeTab === "inbox" && (
-        <>
-          {/* Filters and Search */}
-          <div className="tpq-controls">
-            <div className="tpq-filters">
-              <button
-                className={`tpq-filter-btn ${filter === "all" ? "active" : ""}`}
-                onClick={() => setFilter("all")}
-              >
-                All ({projects.length})
-              </button>
-            </div>
-
-            <div className="tpq-search">
-              <input
-                type="text"
-                placeholder="Search projects, subjects, or students..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="tpq-search-input"
-              />
-            </div>
-          </div>
-
-          {/* Projects List */}
-          <div className="tpq-projects">
-            {filteredProjects.length === 0 ? (
-              <div className="tpq-empty">
-                <BookOpen size={48} />
-                <h3>No projects found</h3>
-                <p>
-                  {searchTerm || filter !== "all"
-                    ? "Try adjusting your search or filter criteria"
-                    : projects.length === 0
-                    ? "No projects have been submitted yet"
-                    : `No projects match your filters. Showing ${
-                        projects.length
-                      } total project${projects.length !== 1 ? "s" : ""}.`}
-                </p>
-              </div>
-            ) : (
-              filteredProjects.map((project) => (
-                <ProjectCard
-                  key={project.project_id}
-                  project={project}
-                  onReview={handleReview}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
-                  onViewDeletionRequests={(project) => {
-                    // Simply show the deletion request details that are already available
-                    // Backend will send titles in the future
-                    // Deduplicate by request_id to ensure only unique requests are shown
-                    const details = project.deletionRequestDetails || [];
-                    const uniqueDetailsMap = new Map();
-                    details.forEach((req) => {
-                      if (
-                        req.request_id &&
-                        !uniqueDetailsMap.has(req.request_id)
-                      ) {
-                        uniqueDetailsMap.set(req.request_id, req);
-                      }
-                    });
-                    const uniqueDetails = Array.from(uniqueDetailsMap.values());
-                    setSelectedProjectDeletionRequests(uniqueDetails);
-                    setShowDeletionRequestsModal(true);
-                  }}
-                />
-              ))
-            )}
-          </div>
-        </>
+        <InboxTab
+          projects={projects}
+          filteredProjects={filteredProjects}
+          filter={filter}
+          setFilter={setFilter}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onReview={handleReview}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          onViewDeletionRequests={(project) => {
+            // Simply show the deletion request details that are already available
+            // Backend will send titles in the future
+            // Deduplicate by request_id to ensure only unique requests are shown
+            const details = project.deletionRequestDetails || [];
+            const uniqueDetailsMap = new Map();
+            details.forEach((req) => {
+              if (req.request_id && !uniqueDetailsMap.has(req.request_id)) {
+                uniqueDetailsMap.set(req.request_id, req);
+              }
+            });
+            const uniqueDetails = Array.from(uniqueDetailsMap.values());
+            setSelectedProjectDeletionRequests(uniqueDetails);
+            setShowDeletionRequestsModal(true);
+          }}
+          hasSubjectFilter={hasSubjectFilter}
+          loading={loading}
+          onApplySubjectFilter={loadProjects}
+          selectedSubject={selectedSubject}
+        />
       )}
 
       {/* GATE ASSESSMENT TAB - Integrated workflow */}
@@ -1521,121 +1470,10 @@ export default function TeacherProjectQueue() {
       )}
 
       {/* CALENDAR TAB */}
-      {activeTab === "calendar" && (
-        <div className="tpq-panel">
-          <div className="tpq-panel-head">
-            <h3>Scheduling Assistant</h3>
-            <span className="tpq-chip">Proposes slots</span>
-          </div>
-          <div className="tpq-stack">
-            <div className="tpq-card">
-              <div className="tpq-inline">
-                <div>
-                  <div style={{ fontWeight: 700 }}>Proposed Times</div>
-                  <div className="tpq-muted">
-                    Synced from Google Calendar (placeholder)
-                  </div>
-                </div>
-                <button className="tpq-btn">Refresh</button>
-              </div>
-              <div className="tpq-stack" style={{ marginTop: 8 }}>
-                <label className="tpq-inline">
-                  <input type="radio" name="slot" /> Wed 10/08 10:30–10:50
-                </label>
-                <label className="tpq-inline">
-                  <input type="radio" name="slot" /> Wed 10/08 11:10–11:30
-                </label>
-                <label className="tpq-inline">
-                  <input type="radio" name="slot" /> Thu 10/09 09:00–09:20
-                </label>
-              </div>
-              <div
-                className="tpq-inline"
-                style={{ justifyContent: "flex-end", marginTop: 8 }}
-              >
-                <button className="tpq-btn tpq-btn--primary">
-                  Send Invite
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {activeTab === "calendar" && <CalendarTab />}
 
       {/* ANALYTICS TAB */}
-      {activeTab === "analytics" && (
-        <div className="tpq-panel">
-          <div className="tpq-panel-head">
-            <h3>Review Analytics</h3>
-            <span className="tpq-chip">Last 14 days</span>
-          </div>
-          <div className="tpq-stack">
-            <div className="tpq-card">
-              <div className="tpq-inline">
-                <div>
-                  <div className="tpq-muted">Median Review Time</div>
-                  <div style={{ fontSize: 22, fontWeight: 800 }}>
-                    {analytics.medianReviewTime}
-                  </div>
-                </div>
-                <div>
-                  <div className="tpq-muted">Decline Rate</div>
-                  <div
-                    style={{ fontSize: 22, fontWeight: 800, color: "#e53e3e" }}
-                  >
-                    {analytics.declineRate}
-                  </div>
-                </div>
-                <div>
-                  <div className="tpq-muted">Throughput</div>
-                  <div
-                    style={{ fontSize: 22, fontWeight: 800, color: "#38a169" }}
-                  >
-                    {analytics.throughput}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="tpq-card">
-              <div style={{ fontWeight: 700 }}>Top Decline Reasons</div>
-              <ul className="tpq-muted">
-                <li>Missing citations</li>
-                <li>Insufficient evidence</li>
-                <li>Wrong rubric attached</li>
-              </ul>
-            </div>
-            <div className="tpq-card">
-              <div style={{ fontWeight: 700 }}>Project Statistics</div>
-              <div className="tpq-stats-grid">
-                <div className="tpq-stat-item">
-                  <div className="tpq-stat-value">
-                    {analytics.totalProjects}
-                  </div>
-                  <div className="tpq-stat-label">Total Projects</div>
-                </div>
-                <div className="tpq-stat-item">
-                  <div className="tpq-stat-value" style={{ color: "#38a169" }}>
-                    {analytics.approvedProjects}
-                  </div>
-                  <div className="tpq-stat-label">Approved</div>
-                </div>
-                <div className="tpq-stat-item">
-                  <div className="tpq-stat-value" style={{ color: "#d69e2e" }}>
-                    {analytics.pendingProjects}
-                  </div>
-                  <div className="tpq-stat-label">Pending</div>
-                </div>
-                <div className="tpq-stat-item">
-                  <div className="tpq-stat-value" style={{ color: "#e53e3e" }}>
-                    {analytics.rejectedProjects}
-                  </div>
-                  <div className="tpq-stat-label">Rejected</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {activeTab === "analytics" && <AnalyticsTab analytics={analytics} />}
 
       {/* Enhanced Project Details Modal */}
       {showDetails && selectedProject && (
@@ -1831,9 +1669,16 @@ export default function TeacherProjectQueue() {
                     <h4>Description</h4>
                     <textarea
                       value={editableProjectData.description || ""}
-                      onChange={(e) =>
-                        updateEditableData("description", e.target.value)
-                      }
+                      onChange={(e) => {
+                        setEditableProjectData((prev) => {
+                          const newData = deepClone(prev);
+                          newData.description = e.target.value;
+                          return newData;
+                        });
+                        setHasUnsavedChanges(true);
+                        setSuccessMessage("");
+                        setErrorMessage("");
+                      }}
                       className={`w-full px-4 py-3 border rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y min-h-[100px] ${
                         editableProjectData.deletion_requested &&
                         editableProjectData.deletion_request_status ===
@@ -2236,154 +2081,14 @@ export default function TeacherProjectQueue() {
       )}
 
       {/* Deletion Requests Details Modal */}
-      {showDeletionRequestsModal && (
-        <div className="tpq-modal-overlay" style={{ zIndex: 2000 }}>
-          <div
-            className="tpq-modal"
-            style={{ maxWidth: "600px" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="tpq-modal-header">
-              <h2>Deletion Requests</h2>
-              <button
-                className="tpq-modal-close"
-                onClick={() => {
-                  setShowDeletionRequestsModal(false);
-                  setSelectedProjectDeletionRequests([]);
-                }}
-              >
-                ×
-              </button>
-            </div>
-            <div
-              className="tpq-modal-content"
-              style={{ maxHeight: "60vh", overflowY: "auto" }}
-            >
-              {selectedProjectDeletionRequests.length === 0 ? (
-                <p>No deletion requests found.</p>
-              ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "12px",
-                  }}
-                >
-                  {selectedProjectDeletionRequests.map((request, index) => (
-                    <div
-                      key={request.request_id || index}
-                      style={{
-                        border: "1px solid #fecaca",
-                        backgroundColor: "#fef2f2",
-                        borderRadius: "8px",
-                        padding: "16px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: "12px",
-                        }}
-                      >
-                        <Trash2
-                          size={20}
-                          style={{
-                            color: "#dc2626",
-                            marginTop: "2px",
-                            flexShrink: 0,
-                          }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div
-                            style={{
-                              fontWeight: 600,
-                              color: "#991b1b",
-                              marginBottom: "4px",
-                            }}
-                          >
-                            {request.entity_type === "project"
-                              ? "Project"
-                              : request.entity_type === "stage"
-                              ? "Stage"
-                              : "Task"}{" "}
-                            Deletion Request
-                          </div>
-                          {request.entity_type === "project" && (
-                            <div style={{ fontSize: "14px", color: "#b91c1c" }}>
-                              <strong>Project:</strong>{" "}
-                              {request.project_title || "Untitled Project"}
-                            </div>
-                          )}
-                          {request.entity_type === "stage" && (
-                            <div style={{ fontSize: "14px", color: "#b91c1c" }}>
-                              <strong>Stage:</strong>{" "}
-                              {request.stage_title || "Untitled Stage"}
-                            </div>
-                          )}
-                          {request.entity_type === "task" && (
-                            <div
-                              style={{
-                                fontSize: "14px",
-                                color: "#b91c1c",
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "4px",
-                              }}
-                            >
-                              <div>
-                                <strong>Stage:</strong>{" "}
-                                {request.stage_title || "Untitled Stage"}
-                              </div>
-                              <div>
-                                <strong>Task:</strong>{" "}
-                                {request.task_title || "Untitled Task"}
-                              </div>
-                            </div>
-                          )}
-                          {request.reason && (
-                            <div
-                              style={{
-                                fontSize: "14px",
-                                color: "#dc2626",
-                                marginTop: "8px",
-                              }}
-                            >
-                              <strong>Reason:</strong> {request.reason}
-                            </div>
-                          )}
-                          {request.requested_by && (
-                            <div
-                              style={{
-                                fontSize: "12px",
-                                color: "#dc2626",
-                                marginTop: "8px",
-                              }}
-                            >
-                              Requested by: {request.requested_by}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="tpq-modal-actions">
-              <button
-                className="tpq-btn tpq-btn--secondary"
-                onClick={() => {
-                  setShowDeletionRequestsModal(false);
-                  setSelectedProjectDeletionRequests([]);
-                }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeletionRequestsModal
+        isOpen={showDeletionRequestsModal}
+        onClose={() => {
+          setShowDeletionRequestsModal(false);
+          setSelectedProjectDeletionRequests([]);
+        }}
+        deletionRequests={selectedProjectDeletionRequests}
+      />
     </div>
   );
 }

@@ -79,7 +79,11 @@ function getTeacherProjectDetails(projectId, userId) {
   return { statusCode: out.statusCode || 200, body: { project } };
 }
 
-function getTeacherProjectsAll() {
+function getTeacherProjectsAll(subjectDomain) {
+  if (!subjectDomain || !subjectDomain.trim()) {
+    throw new Error("Subject domain is required");
+  }
+
   const url =
     "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
   const body = {
@@ -87,9 +91,13 @@ function getTeacherProjectsAll() {
     payload: {
       request: "teacher_view_all",
       email_id: "teacher1@gmail.com",
-      subject_domain: "Science",
+      subject_domain: subjectDomain.trim(),
     },
   };
+
+  Logger.log("=== getTeacherProjectsAll ===");
+  Logger.log("Subject Domain: " + subjectDomain);
+  Logger.log("Payload: " + JSON.stringify(body, null, 2));
 
   const res = UrlFetchApp.fetch(url, {
     method: "post",
@@ -112,6 +120,10 @@ function getTeacherProjectsAll() {
   let bodyLike =
     out && typeof out.body === "string" ? JSON.parse(out.body) : out.body;
   if (!bodyLike) bodyLike = out.action_response || out;
+
+  Logger.log("=== getTeacherProjectsAll Response ===");
+  Logger.log("Status: " + (out.statusCode || out.status || 200));
+  Logger.log("Projects count: " + (bodyLike?.projects?.length || 0));
 
   return { statusCode: out.statusCode || out.status || 200, body: bodyLike };
 }
