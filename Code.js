@@ -211,3 +211,91 @@ function sendDeleteToBackend(payload) {
   }
 }
 
+
+// Report a bug or issue code:
+function reportGuideMeBug(bugInput) {
+  try {
+    // Normalize incoming data from React
+    if (!bugInput || typeof bugInput !== 'object') {
+      throw new Error('Invalid bug payload from client');
+    }
+
+    var userProperties = PropertiesService.getUserProperties();
+
+    // Try to get USER_ID from cache
+    var userId = userProperties.getProperty('USER_ID');
+
+    // If missing, try to validate and populate
+    if (!userId) {
+      try {
+        validateUser();
+        userId = userProperties.getProperty('USER_ID');
+      } catch (e) {
+        // If validateUser fails, we still proceed without userId
+        console.error('validateUser failed in reportGuideMeBug:', e);
+      }
+    }
+
+    // Email used in payload.email_id
+    // (backend sample uses email_id at this level)
+    var email = userProperties.getProperty('USER_EMAIL') || currentUser();
+
+    // Fallbacks / defaults
+    var title = bugInput.title || 'Guide Me Bug Report';
+    var description = bugInput.description || '';
+    var priority = bugInput.priority || 'medium';
+    var topic = bugInput.topic || 'bug';
+    var notifyEmail = (bugInput.notify_email === false || bugInput.notify_email === 'false')
+      ? 'false'
+      : 'true'; // default true
+
+    // Build payload exactly in the shape backend expects,
+    // plus an "actor" object so postToBackend can add the MindSpark email.
+    var payload = {
+      action: 'guideme',
+      payload: {
+        request: 'report',
+        email_id: email,
+        report_request: {
+          user_id: userId || '',
+          topic: topic,
+          title: title,
+          description: description,
+          priority: priority,
+          status: 'open',
+          notify_email: notifyEmail
+        },
+        // actor is used only by postToBackend to attach the mapped email
+        actor: {
+          user_id: userId || ''
+        }
+      }
+    };
+
+    // Log a sanitized view
+    console.log('📨 reportGuideMeBug payload:', JSON.stringify({
+      action: payload.action,
+      email_id: payload.payload.email_id,
+      report_request: payload.payload.report_request
+    }, null, 2));
+
+    // Reuse your existing backend helper
+    var backendResponseText = postToBackend(payload);
+
+    var parsed;
+    try {
+      parsed = JSON.parse(backendResponseText);
+    } catch (e) {
+      parsed = { raw: backendResponseText };
+    }
+
+    return parsed || { status: 'ok' };
+  } catch (e) {
+    console.error('❌ reportGuideMeBug error:', e);
+    return {
+      status: 'error',
+      message: e.toString()
+    };
+  }
+}
+

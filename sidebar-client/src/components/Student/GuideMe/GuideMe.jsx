@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Toaster, toast } from 'react-hot-toast';
+
 import {
     Clock,
     Download,
@@ -128,6 +130,17 @@ export default function ExpandableGuideMe({
     const [bugReportText, setBugReportText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [hasMessage, setHasMessage] = useState(false);
+
+
+
+// Report a Bug states
+    const [bugTitle, setBugTitle] = useState('');
+    const [bugPriority, setBugPriority] = useState('medium');
+    const [bugNotifyEmail, setBugNotifyEmail] = useState(true);
+    const [isSubmittingBug, setIsSubmittingBug] = useState(false);
+    const [bugStatusMessage, setBugStatusMessage] = useState('');
+
+   
 
     // Timer effect
     useEffect(() => {
@@ -455,18 +468,71 @@ export default function ExpandableGuideMe({
 
     const handleReportBug = () => {
         setShowBugReport((show) => !show); // toggles form visibility
+        setBugStatusMessage("");
     };
 
-    const handleSubmitBugReport = () => {
-        if (bugReportText.trim()) {
-            setBugReportText('');
-            setShowBugReport(false);
-            alert('Thank you for your bug report!');
+        const handleSubmitBugReport = () => {
+        if (!bugReportText.trim()) return;
+
+        setIsSubmittingBug(true);
+        setBugStatusMessage('');
+
+        // Build payload to send to Apps Script
+        const bugPayload = {
+            title: bugTitle || 'Guide Me Bug Report',
+            description: bugReportText.trim(),
+            priority: bugPriority || 'medium',
+            notify_email: bugNotifyEmail,
+            topic: 'bug'
+        };
+
+        try {
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler((res) => {
+                        setIsSubmittingBug(false);
+                        setBugReportText('');
+                        setBugTitle('');
+                        setShowBugReport(false);
+                        setBugStatusMessage('Thanks! Your bug report was sent.');
+
+                        // Optional: you can inspect res if needed
+                        console.log('Bug report success:', res);
+                        // alert('Thank you for your bug report!');
+                        toast.success('Thank you for your bug report!');
+                    })
+                    .withFailureHandler((err) => {
+                        console.error('Bug report failed:', err);
+                        setIsSubmittingBug(false);
+                        setBugStatusMessage('Failed to send bug report. Please try again.');
+                        // alert('Failed to send bug report. Please try again.');
+
+                        // added toast
+                        toast.error('Failed to send bug report. Please try again.');
+
+ 
+                    })
+                    .reportGuideMeBug(bugPayload);
+            } else {
+                // Fallback if not running in Apps Script environment (dev)
+                console.warn('google.script.run not available; logging bugPayload only.', bugPayload);
+                setIsSubmittingBug(false);
+                setBugStatusMessage('Dev mode: bug payload logged in console.');
+                toast('Dev mode: bug payload logged in console.');
+
+            }
+        } catch (error) {
+            console.error('Bug report unexpected error:', error);
+            setIsSubmittingBug(false);
+            setBugStatusMessage('Unexpected error. Please try again.');
+             toast.error('Unexpected error. Please try again.');
+
         }
     };
 
+
     return (
-        <div className={`w-full max-w-full bg-white border border-gray-200 rounded-lg overflow-hidden ${className}`}>
+        <div className={`relative w-full max-w-full bg-white border border-gray-200 rounded-lg overflow-hidden ${className}`}>
             {/* Header - Always Visible - Optimized for narrow sidebar */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -701,8 +767,9 @@ export default function ExpandableGuideMe({
                         </div>
                     </div>
                     <div className="sticky bottom-0 bg-white border-t border-gray-200">
+
                         {/* Report a Bug section */}
-                        <div className="px-3 py-2 border-b border-gray-100">
+                                               <div className="px-3 py-2 border-b border-gray-100">
                             <button
                                 onClick={handleReportBug}
                                 className="flex items-center gap-2 text-xs text-red-600 font-medium hover:underline focus:outline-none"
@@ -712,6 +779,30 @@ export default function ExpandableGuideMe({
                             </button>
                             {showBugReport && (
                                 <div className="mt-2 flex flex-col gap-2">
+                                    {/* Title */}
+                                    <input
+                                        type="text"
+                                        value={bugTitle}
+                                        onChange={(e) => setBugTitle(e.target.value)}
+                                        placeholder="Short title for this bug..."
+                                        className="w-full border border-gray-300 rounded p-2 text-xs"
+                                    />
+
+                                    {/* Priority */}
+                                    <div className="flex items-center justify-between gap-2">
+                                        <label className="text-[11px] text-gray-700">Priority</label>
+                                        <select
+                                            value={bugPriority}
+                                            onChange={(e) => setBugPriority(e.target.value)}
+                                            className="border border-gray-300 rounded px-2 py-1 text-[11px]"
+                                        >
+                                            <option value="low">Low</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="high">High</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Description */}
                                     <textarea
                                         value={bugReportText}
                                         onChange={(e) => setBugReportText(e.target.value)}
@@ -719,16 +810,36 @@ export default function ExpandableGuideMe({
                                         rows={3}
                                         className="w-full border border-gray-300 rounded p-2 text-xs resize-none"
                                     />
+
+                                    {/* Notify via email */}
+                                    <label className="flex items-center gap-2 text-[11px] text-gray-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={bugNotifyEmail}
+                                            onChange={(e) => setBugNotifyEmail(e.target.checked)}
+                                        />
+                                        Email me when there are updates
+                                    </label>
+
+                                    {/* Status message */}
+                                    {bugStatusMessage && (
+                                        <p className="text-[11px] text-gray-600">
+                                            {bugStatusMessage}
+                                        </p>
+                                    )}
+
+                                    {/* Submit */}
                                     <button
                                         onClick={handleSubmitBugReport}
-                                        disabled={!bugReportText.trim()}
+                                        disabled={!bugReportText.trim() || isSubmittingBug}
                                         className="self-end bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 disabled:opacity-50"
                                     >
-                                        Submit
+                                        {isSubmittingBug ? 'Submitting...' : 'Submit'}
                                     </button>
                                 </div>
                             )}
                         </div>
+
 
                         {/* Export Session button */}
                         <button
@@ -742,7 +853,34 @@ export default function ExpandableGuideMe({
                 </div>
 
             </div>
+
+            <Toaster
+                position="bottom-center"
+                toastOptions={{
+                    duration: 2800,
+                    style: {
+                        borderRadius: '14px',
+                        padding: '10px 12px',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.12)',
+                    },
+                    className:
+                        'text-sm font-medium bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 ring-1 ring-gray-200/80 dark:ring-white/10',
+                    success: {
+                        iconTheme: { primary: '#16a34a', secondary: '#ffffff' }, // green
+                    },
+                    error: {
+                        iconTheme: { primary: '#dc2626', secondary: '#ffffff' }, // red
+                    },
+                }}
+                containerClassName="!z-[9999]"  // keeps it above Sheets/Docs sidebars
+                gutter={10}
+            />
+
+            
         </div>
+
+
+
 
 
 
