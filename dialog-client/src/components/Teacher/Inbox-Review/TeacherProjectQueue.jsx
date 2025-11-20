@@ -28,12 +28,14 @@ export default function TeacherProjectQueue() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false); // Don't load on mount
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("all"); // all, pending
+  const [filter, setFilter] = useState("all"); // all, pending, revision, approve
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(""); // Track selected subject
   const [hasSubjectFilter, setHasSubjectFilter] = useState(false); // Track if subject filter has been applied
+  const [startDate, setStartDate] = useState(""); // Start date for date range filter
+  const [endDate, setEndDate] = useState(""); // End date for date range filter
 
   // Deletion requests hook
   const {
@@ -71,6 +73,8 @@ export default function TeacherProjectQueue() {
 
   // Ref for scrollable stage content container
   const stageContentRef = React.useRef(null);
+  // Ref for description textarea to auto-resize
+  const descriptionTextareaRef = React.useRef(null);
 
   const [analytics, setAnalytics] = useState({
     totalProjects: 0,
@@ -142,12 +146,25 @@ export default function TeacherProjectQueue() {
     }
   }, [currentStageIndex]);
 
+  // Auto-resize description textarea when content changes
+  useEffect(() => {
+    if (descriptionTextareaRef.current && editableProjectData?.description !== undefined) {
+      descriptionTextareaRef.current.style.height = 'auto';
+      const scrollHeight = descriptionTextareaRef.current.scrollHeight;
+      // Set height based on content, with minimum of 40px and maximum reasonable height
+      const minHeight = 40; // Minimum height for one line
+      const maxHeight = 300; // Max height to prevent it from getting too large
+      const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+      descriptionTextareaRef.current.style.height = newHeight + 'px';
+    }
+  }, [editableProjectData?.description]);
+
   const loadProjects = async (subject) => {
     try {
       if (!subject || !subject.trim()) {
         setError("Please select a subject before fetching projects");
         return;
-      }
+              }
 
       setLoading(true);
       setError("");
@@ -258,11 +275,11 @@ export default function TeacherProjectQueue() {
                 loadDeletionRequests(subjectDomains)
                   .then((deletionRequestsList) => {
                     // Flag tasks with deletion requests and update projects
-                    const flaggedProjects = flagTasksWithDeletionRequests(
-                      mappedProjects,
-                      deletionRequestsList
-                    );
-                    setProjects(flaggedProjects);
+              const flaggedProjects = flagTasksWithDeletionRequests(
+                mappedProjects,
+                deletionRequestsList
+              );
+              setProjects(flaggedProjects);
                     console.log("Projects updated with deletion request flags");
                   })
                   .catch((err) => {
@@ -292,19 +309,59 @@ export default function TeacherProjectQueue() {
     }
   };
 
-  // Filter projects based on status and search term
+  // Filter projects based on status, search term, and date range
   const filteredProjects = projects.filter((project) => {
-    const matchesFilter =
-      filter === "all" ||
-      project.status.toLowerCase().includes(filter.toLowerCase());
+    // Status filter
+    let matchesFilter = true;
+    if (filter !== "all") {
+      const statusLower = project.status.toLowerCase();
+      if (filter === "pending") {
+        matchesFilter = statusLower.includes("pending");
+      } else if (filter === "revision") {
+        matchesFilter = statusLower.includes("revision");
+      } else if (filter === "approve") {
+        matchesFilter = statusLower.includes("approve") || statusLower.includes("approved");
+      } else {
+        matchesFilter = statusLower.includes(filter.toLowerCase());
+      }
+    }
 
+    // Search filter
     const matchesSearch =
       !searchTerm ||
       project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.subject_domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.owner_name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesFilter && matchesSearch;
+    // Date range filter
+    let matchesDateRange = true;
+    if (startDate || endDate) {
+      if (project.created_at) {
+        const projectDate = new Date(project.created_at);
+        projectDate.setHours(0, 0, 0, 0); // Reset time to start of day
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (projectDate < start) {
+            matchesDateRange = false;
+          }
+        }
+        
+        if (endDate && matchesDateRange) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999); // Set to end of day
+          if (projectDate > end) {
+            matchesDateRange = false;
+          }
+        }
+      } else {
+        // If project has no created_at, exclude it when date filter is active
+        matchesDateRange = false;
+      }
+    }
+
+    return matchesFilter && matchesSearch && matchesDateRange;
   });
 
   // Action handlers
@@ -488,7 +545,7 @@ export default function TeacherProjectQueue() {
       setSuccessMessage(""); // Clear any previous message
       setErrorMessage(""); // Clear any previous error
 
-      // Call backend API to save project with Pending Revision status
+      // Call backend API to save project with Revision status
       google.script.run
         .withSuccessHandler((response) => {
           setIsSaving(false); // Clear loading state
@@ -497,7 +554,7 @@ export default function TeacherProjectQueue() {
             setProjects((prev) =>
               prev.map((p) =>
                 p.project_id === project.project_id
-                  ? { ...p, status: "Pending Revision" }
+                  ? { ...p, status: "Revision" }
                   : p
               )
             );
@@ -506,7 +563,7 @@ export default function TeacherProjectQueue() {
             if (projectDetails) {
               setProjectDetails((prev) => ({
                 ...prev,
-                status: "Pending Revision",
+                status: "Revision",
               }));
             }
 
@@ -530,7 +587,7 @@ export default function TeacherProjectQueue() {
           );
           setSuccessMessage(""); // Clear success message
         })
-        .saveTeacherProjectUpdate(projectDataToSave, "Pending Revision");
+        .saveTeacherProjectUpdate(projectDataToSave, "Revision");
     } catch (err) {
       setIsSaving(false); // Clear loading state on error
       console.error("Error requesting revision:", err);
@@ -591,8 +648,8 @@ export default function TeacherProjectQueue() {
         .withSuccessHandler((response) => {
           if (response.success) {
             // Backend already deleted the stage, remove immediately from UI
-            setEditableProjectData((prev) => {
-              const newData = deepClone(prev);
+    setEditableProjectData((prev) => {
+      const newData = deepClone(prev);
 
               // Find and remove stage by stage_id (more reliable than index)
               const filteredStages = newData.stages.filter(
@@ -803,7 +860,7 @@ export default function TeacherProjectQueue() {
             // 2. Backend might not have processed the rejection yet
             // 3. Reloading could reintroduce the rejected request if backend is slow
             // 4. Next refresh will get the correct state from backend
-          } else {
+      } else {
             setErrorMessage(
               response.message || "Failed to reject deletion request"
             );
@@ -875,10 +932,10 @@ export default function TeacherProjectQueue() {
                 stageToUpdate.tasks = stageToUpdate.tasks.filter(
                   (t) => t.task_id !== taskId
                 );
-              }
+      }
 
-              return newData;
-            });
+      return newData;
+    });
 
             // Also update projectDetails if it exists
             if (projectDetails) {
@@ -1342,8 +1399,8 @@ export default function TeacherProjectQueue() {
               onClick={() => loadProjects(selectedSubject)}
               className="tpq-btn tpq-btn--primary"
             >
-              Retry
-            </button>
+            Retry
+          </button>
           )}
         </div>
       </div>
@@ -1360,15 +1417,31 @@ export default function TeacherProjectQueue() {
 
   return (
     <div className="tpq-container">
-      {/* Header */}
-      <div className="tpq-header">
-        <div style={{ flex: 1 }}>
-          <h1>Teacher Project Queue</h1>
-          <p>Review and manage student project submissions</p>
+      {/* Header with Back, Refresh, and Section */}
+      <div className="tpq-header" style={{ marginBottom: "16px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center", flex: 1 }}>
+      {/* Section Switcher */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <label htmlFor="sectionSelect" style={{ margin: 0, fontWeight: 600, color: "#2d3748" }}>Section</label>
+        <select
+          id="sectionSelect"
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value)}
+          className="tpq-section-select"
+              style={{ width: "auto", minWidth: "200px", padding: "8px 12px", margin: 0 }}
+        >
+          {tabs.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
+              {t.sub ? ` — ${t.sub}` : ""}
+            </option>
+          ))}
+        </select>
+      </div>
         </div>
         {hasSubjectFilter && (
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <button
+              <button
               onClick={() => {
                 setHasSubjectFilter(false);
                 setSelectedSubject("");
@@ -1376,6 +1449,8 @@ export default function TeacherProjectQueue() {
                 setError("");
                 setSearchTerm("");
                 setFilter("all");
+                setStartDate("");
+                setEndDate("");
               }}
               className="tpq-btn tpq-btn--secondary"
               style={{
@@ -1405,28 +1480,10 @@ export default function TeacherProjectQueue() {
             >
               <RefreshCw size={16} className={loading ? "spin" : ""} />
               Refresh
-            </button>
-          </div>
+              </button>
+            </div>
         )}
-      </div>
-
-      {/* Section Switcher */}
-      <div className="tpq-section-switch">
-        <label htmlFor="sectionSelect">Section</label>
-        <select
-          id="sectionSelect"
-          value={activeTab}
-          onChange={(e) => setActiveTab(e.target.value)}
-          className="tpq-section-select"
-        >
-          {tabs.map((t) => (
-            <option key={t.key} value={t.key}>
-              {t.label}
-              {t.sub ? ` — ${t.sub}` : ""}
-            </option>
-          ))}
-        </select>
-      </div>
+          </div>
 
       {/* INBOX TAB */}
       {activeTab === "inbox" && (
@@ -1437,9 +1494,13 @@ export default function TeacherProjectQueue() {
           setFilter={setFilter}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          onReview={handleReview}
-          onApprove={handleApprove}
-          onReject={handleReject}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+                  onReview={handleReview}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
           onViewDeletionRequests={(project) => {
             // Simply show the deletion request details that are already available
             // Backend will send titles in the future
@@ -1490,18 +1551,18 @@ export default function TeacherProjectQueue() {
             className="tpq-modal tpq-modal--large"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="tpq-modal-header">
+            <div className="tpq-modal-header" style={{ padding: '12px 24px' }}>
               <div style={{ flex: 1 }}>
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: "12px",
-                    marginBottom: "8px",
+                    marginBottom: 0,
                     flexWrap: "wrap",
                   }}
                 >
-                  <h2 style={{ margin: 0 }}>
+                  <h2 style={{ margin: 0, fontSize: '18px', lineHeight: '1.3' }}>
                     {editableProjectData?.title ||
                       editableProjectData?.project_title ||
                       selectedProject.title}
@@ -1545,9 +1606,9 @@ export default function TeacherProjectQueue() {
                               padding: "6px 12px",
                               fontSize: "12px",
                               fontWeight: "500",
-                              color: "white",
-                              backgroundColor: "#16a34a",
-                              border: "none",
+                              color: "#065f46",
+                              backgroundColor: "#d1fae5",
+                              border: "1px solid #a7f3d0",
                               borderRadius: "6px",
                               cursor: isSaving ? "not-allowed" : "pointer",
                               opacity: isSaving ? 0.6 : 1,
@@ -1573,9 +1634,9 @@ export default function TeacherProjectQueue() {
                               padding: "6px 12px",
                               fontSize: "12px",
                               fontWeight: "500",
-                              color: "#374151",
-                              backgroundColor: "#e5e7eb",
-                              border: "none",
+                              color: "#92400e",
+                              backgroundColor: "#fef3c7",
+                              border: "1px solid #fde68a",
                               borderRadius: "6px",
                               cursor: isSaving ? "not-allowed" : "pointer",
                               opacity: isSaving ? 0.6 : 1,
@@ -1634,14 +1695,19 @@ export default function TeacherProjectQueue() {
               >
                 <button
                   className="tpq-modal-close"
-                  onClick={handleCloseDetails}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // X button should always close immediately, even with unsaved changes
+                    closeDialog();
+                  }}
+                  style={{ zIndex: 10001 }}
                 >
                   ×
                 </button>
               </div>
             </div>
 
-            <div className="tpq-modal-content">
+            <div className="tpq-modal-content" style={{ paddingTop: '4px', paddingBottom: '0px', paddingLeft: '24px', paddingRight: '24px' }}>
               {detailsLoading ? (
                 <div className="tpq-loading">
                   <Loader2 className="spin" size={24} />
@@ -1665,9 +1731,10 @@ export default function TeacherProjectQueue() {
               {!detailsLoading && editableProjectData && (
                 <>
                   {/* Project Description */}
-                  <div className="tpq-modal-section">
+                  <div className="tpq-modal-section" style={{ marginTop: 0, marginBottom: '6px' }}>
                     <h4>Description</h4>
                     <textarea
+                      ref={descriptionTextareaRef}
                       value={editableProjectData.description || ""}
                       onChange={(e) => {
                         setEditableProjectData((prev) => {
@@ -1678,8 +1745,17 @@ export default function TeacherProjectQueue() {
                         setHasUnsavedChanges(true);
                         setSuccessMessage("");
                         setErrorMessage("");
+                        // Auto-resize textarea
+                        if (descriptionTextareaRef.current) {
+                          descriptionTextareaRef.current.style.height = 'auto';
+                          const scrollHeight = descriptionTextareaRef.current.scrollHeight;
+                          const minHeight = 40; // Minimum height for one line
+                          const maxHeight = 300;
+                          const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+                          descriptionTextareaRef.current.style.height = newHeight + 'px';
+                        }
                       }}
-                      className={`w-full px-4 py-3 border rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y min-h-[100px] ${
+                      className={`w-full px-3 py-2 border rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none overflow-hidden ${
                         editableProjectData.deletion_requested &&
                         editableProjectData.deletion_request_status ===
                           "pending"
@@ -1687,18 +1763,33 @@ export default function TeacherProjectQueue() {
                           : "border-gray-300"
                       }`}
                       placeholder="Project description"
+                      rows={1}
+                      style={{
+                        minHeight: '40px',
+                        height: 'auto',
+                        lineHeight: '1.5',
+                        paddingTop: '8px',
+                        paddingBottom: '8px'
+                      }}
                     />
                   </div>
 
                   {/* Stages Section - Replicated from CreateProject */}
-                  <div className="tpq-modal-section">
-                    <h4>Project Stages</h4>
+                  <div className="tpq-modal-section" style={{ marginTop: 0, paddingTop: 0 }}>
+                    <h4 style={{ marginBottom: '8px' }}>Project Stages</h4>
                     {editableProjectData?.stages &&
                     Array.isArray(editableProjectData.stages) &&
                     editableProjectData.stages.length > 0 ? (
-                      <>
-                        {/* Stage Tabs Navigation */}
-                        <div className="border-b border-gray-200 bg-gray-50">
+                        <div 
+                          className="border-b border-gray-200 bg-gray-50"
+                          style={{ 
+                            position: 'sticky', 
+                            top: 0, 
+                            zIndex: 10, 
+                            backgroundColor: '#f9fafb',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                          }}
+                        >
                           <div className="flex gap-1">
                             {editableProjectData.stages
                               .slice()
@@ -1725,11 +1816,16 @@ export default function TeacherProjectQueue() {
                               ))}
                           </div>
                         </div>
+                      ) : null}
 
+                    {editableProjectData?.stages &&
+                    Array.isArray(editableProjectData.stages) &&
+                    editableProjectData.stages.length > 0 ? (
+                      <>
                         {/* Stage Content */}
                         <div
                           ref={stageContentRef}
-                          className="mt-4 max-h-[50vh] overflow-y-auto"
+                          className="mt-4"
                         >
                           {(() => {
                             // Filter out gate-only objects and sort (keep only items with stage_id)
@@ -1753,33 +1849,33 @@ export default function TeacherProjectQueue() {
                                     STAGE TITLE
                                   </label>
                                   <div className="relative">
-                                    <input
-                                      type="text"
-                                      value={currentStage.title || ""}
-                                      onChange={(e) => {
-                                        const sortedStages = [
-                                          ...editableProjectData.stages,
-                                        ].sort(
-                                          (a, b) =>
-                                            (a?.stage_order || 0) -
-                                            (b?.stage_order || 0)
-                                        );
-                                        const stageIndex =
-                                          editableProjectData.stages.findIndex(
-                                            (s) =>
+                                  <input
+                                    type="text"
+                                    value={currentStage.title || ""}
+                                    onChange={(e) => {
+                                      const sortedStages = [
+                                        ...editableProjectData.stages,
+                                      ].sort(
+                                        (a, b) =>
+                                          (a?.stage_order || 0) -
+                                          (b?.stage_order || 0)
+                                      );
+                                      const stageIndex =
+                                        editableProjectData.stages.findIndex(
+                                          (s) =>
                                               s.stage_id ===
                                               currentStage.stage_id
-                                          );
-                                        setEditableProjectData((prev) => {
-                                          const newData = deepClone(prev);
-                                          newData.stages[stageIndex].title =
-                                            e.target.value;
-                                          return newData;
-                                        });
-                                        setHasUnsavedChanges(true);
-                                        setSuccessMessage(""); // Clear success message when making edits
-                                        setErrorMessage(""); // Clear error message when making edits
-                                      }}
+                                        );
+                                      setEditableProjectData((prev) => {
+                                        const newData = deepClone(prev);
+                                        newData.stages[stageIndex].title =
+                                          e.target.value;
+                                        return newData;
+                                      });
+                                      setHasUnsavedChanges(true);
+                                      setSuccessMessage(""); // Clear success message when making edits
+                                      setErrorMessage(""); // Clear error message when making edits
+                                    }}
                                       className={`w-full px-4 py-3 border rounded-lg bg-white font-semibold text-lg text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none ${
                                         currentStage.deletion_requested &&
                                         currentStage.deletion_request_status ===
@@ -1787,8 +1883,8 @@ export default function TeacherProjectQueue() {
                                           ? "border-red-500 border-2 bg-red-50"
                                           : "border-gray-300"
                                       }`}
-                                      placeholder="Untitled Stage"
-                                    />
+                                    placeholder="Untitled Stage"
+                                  />
                                     {/* Deletion Request UI */}
                                     {currentStage.deletion_requested &&
                                       currentStage.deletion_request_status ===
@@ -1819,7 +1915,12 @@ export default function TeacherProjectQueue() {
                                                 }
                                               }}
                                               disabled={isSaving}
-                                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                              style={{
+                                                backgroundColor: '#d1fae5',
+                                                color: '#065f46',
+                                                border: '1px solid #a7f3d0',
+                                              }}
+                                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                               title="Approve deletion"
                                             >
                                               <CheckCircle size={12} />
@@ -1845,7 +1946,12 @@ export default function TeacherProjectQueue() {
                                                 }
                                               }}
                                               disabled={isSaving}
-                                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                              style={{
+                                                backgroundColor: '#fef3c7',
+                                                color: '#92400e',
+                                                border: '1px solid #fde68a',
+                                              }}
+                                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                               title="Reject deletion"
                                             >
                                               <XCircle size={12} />
@@ -1998,10 +2104,10 @@ export default function TeacherProjectQueue() {
                   </div>
                 </>
               )}
-            </div>
 
-            {/* Final Actions - These save to backend with full project data and stage statuses */}
-            <div className="tpq-modal-actions">
+              {/* Final Actions - These save to backend with full project data and stage statuses - Only show after loading */}
+              {!detailsLoading && editableProjectData && (
+                <div className="tpq-modal-actions" style={{ marginTop: '24px', marginBottom: 0, paddingBottom: '8px' }}>
               <button
                 className="tpq-btn tpq-btn--approve"
                 onClick={() => {
@@ -2011,6 +2117,9 @@ export default function TeacherProjectQueue() {
                 }}
                 disabled={isSaving}
                 style={{
+                      backgroundColor: '#d1fae5',
+                      color: '#065f46',
+                      border: '1px solid #a7f3d0',
                   opacity: isSaving ? 0.6 : 1,
                   cursor: isSaving ? "not-allowed" : "pointer",
                 }}
@@ -2027,6 +2136,9 @@ export default function TeacherProjectQueue() {
                 }}
                 disabled={isSaving}
                 style={{
+                      backgroundColor: '#fef3c7',
+                      color: '#92400e',
+                      border: '1px solid #fde68a',
                   opacity: isSaving ? 0.6 : 1,
                   cursor: isSaving ? "not-allowed" : "pointer",
                 }}
@@ -2043,6 +2155,8 @@ export default function TeacherProjectQueue() {
               >
                 Close
               </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2050,10 +2164,10 @@ export default function TeacherProjectQueue() {
 
       {/* Confirmation Dialog for Unsaved Changes */}
       {showCloseConfirm && (
-        <div className="tpq-modal-overlay" style={{ zIndex: 2000 }}>
+        <div className="tpq-modal-overlay" style={{ zIndex: 20000, position: 'fixed' }}>
           <div
             className="tpq-modal"
-            style={{ maxWidth: "400px" }}
+            style={{ maxWidth: "400px", zIndex: 20001 }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="tpq-modal-header">

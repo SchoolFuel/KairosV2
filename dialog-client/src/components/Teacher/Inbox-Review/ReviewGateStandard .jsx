@@ -258,6 +258,10 @@ const ReviewGateStandard = ({
   const removeLearningStandard = (checklistIndex, lsIndex) => {
     if (isDisabled) return;
 
+    const currentItem = checklistItems[checklistIndex];
+    const learningStandard = currentItem?.learningStandards?.[lsIndex];
+
+    // Remove from UI state immediately for instant feedback
     const updated = [...checklistItems];
     updated[checklistIndex].learningStandards = updated[
       checklistIndex
@@ -265,9 +269,38 @@ const ReviewGateStandard = ({
 
     setChecklistItems(updated);
 
-    // Notify parent component
+    // Notify parent component immediately
     if (onUpdate) {
       onUpdate("checklist", null, updated);
+    }
+
+    // Call backend API to delete the gate standard in the background (non-blocking)
+    // Use gate_standard field if available, otherwise fall back to standard_id
+    const gateStandardId =
+      learningStandard?.gate_standard || learningStandard?.standard_id;
+    if (gateStandardId && invokerEmail) {
+      // Call API asynchronously without blocking UI
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (!response.success) {
+            console.error(
+              "Failed to delete gate standard from backend:",
+              response.message
+            );
+            setSaveErrorMessage(
+              response.message ||
+                "Failed to delete gate standard from backend. Please refresh and try again."
+            );
+          }
+        })
+        .withFailureHandler((error) => {
+          console.error("Error deleting gate standard:", error);
+          setSaveErrorMessage(
+            error.message ||
+              "Failed to delete gate standard from backend. Please refresh and try again."
+          );
+        })
+        .deleteGateStandard(gateStandardId, invokerEmail);
     }
   };
 
@@ -544,22 +577,22 @@ const ReviewGateStandard = ({
 
                 {/* Learning Standards Section */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="mb-2">
                     <label className="block text-xs font-semibold text-gray-700">
                       Learning Standards
                     </label>
-                    <button
-                      onClick={() => addLearningStandard(activeTabIndex)}
-                      className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors"
-                      disabled={isDisabled}
-                    >
-                      <Plus size={12} />
-                      Add
-                    </button>
                   </div>
 
                   {/* Learning Standards List */}
                   <div className="space-y-3">
+                    {(!currentItem.learningStandards ||
+                      currentItem.learningStandards.length === 0) && (
+                      <div className="text-center py-4 text-sm text-gray-500">
+                        No learning standards added yet. Click "Add Standard"
+                        below to add one.
+                      </div>
+                    )}
+
                     {(currentItem.learningStandards || []).map(
                       (ls, lsIndex) => (
                         <div
@@ -601,7 +634,6 @@ const ReviewGateStandard = ({
                                 }
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
                                 disabled={isDisabled}
-                                placeholder="e.g., LS-1, CCSS.ELA-LITERACY.RL.4.1"
                               />
                             </div>
 
@@ -635,51 +667,19 @@ const ReviewGateStandard = ({
                               </div>
                             </div>
                           </div>
-
-                          {/* LS Description */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
-                              LS Description
-                            </label>
-                            <textarea
-                              value={ls.lsDescription || ""}
-                              onChange={(e) =>
-                                updateLearningStandard(
-                                  activeTabIndex,
-                                  lsIndex,
-                                  "lsDescription",
-                                  e.target.value
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 min-h-[2.5rem] focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y"
-                              disabled={isDisabled}
-                              placeholder="Enter learning standard description"
-                            />
-                          </div>
-
-                          {/* Standard ID */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
-                              Standard ID
-                            </label>
-                            <input
-                              type="text"
-                              value={ls.standard_id || ""}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600"
-                              disabled={true}
-                              placeholder="Standard ID (auto-populated)"
-                            />
-                          </div>
                         </div>
                       )
                     )}
 
-                    {(!currentItem.learningStandards ||
-                      currentItem.learningStandards.length === 0) && (
-                      <div className="text-center py-4 text-sm text-gray-500">
-                        No learning standards added yet. Click "Add" to add one.
-                      </div>
-                    )}
+                    {/* Add Standard Button - Below the latest standard */}
+                    <button
+                      onClick={() => addLearningStandard(activeTabIndex)}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors border border-blue-300"
+                      disabled={isDisabled}
+                    >
+                      <Plus size={14} />
+                      Add Standard
+                    </button>
                   </div>
                 </div>
 
@@ -779,13 +779,7 @@ const ReviewGateStandard = ({
                 <div className="mt-6 pt-4 border-t border-gray-200">
                   <button
                     onClick={handleSaveGateStandards}
-                    disabled={
-                      isDisabled ||
-                      savingGateStandards ||
-                      !projectId ||
-                      !stageId ||
-                      !studentId
-                    }
+                    disabled={true}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                   >
                     {savingGateStandards ? (

@@ -10,6 +10,10 @@ const InboxTab = ({
   setFilter,
   searchTerm,
   setSearchTerm,
+  startDate,
+  setStartDate,
+  endDate,
+  setEndDate,
   onReview,
   onApprove,
   onReject,
@@ -61,13 +65,83 @@ const InboxTab = ({
 
       {/* Filters and Search */}
       <div className="tpq-controls">
-        <div className="tpq-filters">
-          <button
-            className={`tpq-filter-btn ${filter === "all" ? "active" : ""}`}
-            onClick={() => setFilter("all")}
-          >
-            All ({projects.length})
-          </button>
+        <div style={{ display: "flex", gap: "24px", alignItems: "center", flexWrap: "wrap" }}>
+          {/* Status Filter Dropdown */}
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <label htmlFor="statusFilter" style={{ fontSize: "14px", fontWeight: 500, color: "#4a5568", margin: 0 }}>
+              Status:
+            </label>
+            <select
+              id="statusFilter"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              style={{
+                padding: "6px 12px",
+                border: "1px solid #cbd5e0",
+                borderRadius: "6px",
+                fontSize: "14px",
+                minWidth: "150px",
+                backgroundColor: "white",
+                cursor: "pointer"
+              }}
+            >
+              <option value="all">All ({projects.length})</option>
+              <option value="pending">Pending ({projects.filter(p => p.status.toLowerCase().includes("pending")).length})</option>
+              <option value="revision">Revision ({projects.filter(p => p.status.toLowerCase().includes("revision")).length})</option>
+              <option value="approve">Approve ({projects.filter(p => p.status.toLowerCase().includes("approve") || p.status.toLowerCase().includes("approved")).length})</option>
+            </select>
+          </div>
+
+          {/* Date Range Filter */}
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+            <label style={{ fontSize: "14px", fontWeight: 500, color: "#4a5568" }}>Submission Date:</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              placeholder="Start Date"
+              style={{
+                padding: "6px 12px",
+                border: "1px solid #cbd5e0",
+                borderRadius: "6px",
+                fontSize: "14px",
+                minWidth: "140px"
+              }}
+            />
+            <span style={{ color: "#718096" }}>to</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              placeholder="End Date"
+              style={{
+                padding: "6px 12px",
+                border: "1px solid #cbd5e0",
+                borderRadius: "6px",
+                fontSize: "14px",
+                minWidth: "140px"
+              }}
+            />
+            {(startDate || endDate) && (
+              <button
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                }}
+                style={{
+                  padding: "6px 12px",
+                  backgroundColor: "#e2e8f0",
+                  border: "1px solid #cbd5e0",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  color: "#4a5568"
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="tpq-search">
