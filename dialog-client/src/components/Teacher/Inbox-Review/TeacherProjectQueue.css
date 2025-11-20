@@ -1,6 +1,6 @@
 /* Teacher Project Queue Styles */
 .tpq-container {
-  padding: 20px;
+  padding: 16px;
   max-width: 1200px;
   margin: 0 auto;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -406,14 +406,16 @@
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  z-index: 1000;
-  padding: 20px;
+  z-index: 10000;
+  padding: 1vh 1vw 0 1vw;
+  overflow-y: auto;
 }
 
 .tpq-modal {
   background: white;
+  border: 1px solid #f1f5f9;
   border-radius: 12px;
   max-width: 600px;
   width: 100%;
@@ -423,8 +425,15 @@
 }
 
 .tpq-modal--large {
-  max-width: 900px;
-  max-height: 90vh;
+  max-width: 98vw;
+  max-height: 98vh;
+  width: 98vw;
+  height: auto;
+  min-height: 98vh;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
 }
 
 .tpq-modal-header {
@@ -459,6 +468,15 @@
 .tpq-modal-content {
   padding: 24px;
   max-height: 400px;
+  overflow-y: auto;
+}
+
+.tpq-modal--large .tpq-modal-content {
+  max-height: calc(98vh - 80px);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
   overflow-y: auto;
 }
 
@@ -888,8 +906,6 @@
 .tpq-modal-actions {
   display: flex;
   gap: 12px;
-  padding: 20px 24px;
-  border-top: 1px solid #e2e8f0;
   justify-content: flex-end;
 }
 
