@@ -1677,7 +1677,7 @@ export default function TeacherProjectQueue() {
                         setSuccessMessage("");
                         setErrorMessage("");
                       }}
-                      className={`w-full px-4 py-3 border rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y ${
+                      className={`w-full px-4 py-3 border rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y min-h-[100px] ${
                         editableProjectData.deletion_requested &&
                         editableProjectData.deletion_request_status ===
                           "pending"

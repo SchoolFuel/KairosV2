@@ -18,6 +18,7 @@ export default function StudentPrototype() {
   const [showProjectDeleteDialog, setShowProjectDeleteDialog] = useState(false);
   const [deleteProjectReason, setDeleteProjectReason] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [loadingProjectId, setLoadingProjectId] = useState(null);
 
 
 
@@ -78,25 +79,43 @@ export default function StudentPrototype() {
                 });
             });
 
-            // ✅ Merge by comparing full project_id (no slicing!)
+            // ✅ Merge projects and intelligently determine their status
             const mergedProjects = mappedProjects.map((p) => {
-              // 🔹 Always prioritize deletion over any other state
-              if (
-                deleteRequests.some(
-                  (r) =>
-                    r.entity_type === "project" &&
-                    r.status === "pending" &&
-                    r.project_id === p.project_id
-                )
-              ) {
-                console.log("🟡 Marking as pending deletion:", p.project_id);
+              const deleteReq = deleteRequests.find(
+                (r) =>
+                  r.entity_type === "project" &&
+                  r.status === "pending" &&
+                  r.project_id === p.project_id
+              );
+
+              // Track deletion state for disabling buttons
+              if (deleteReq) {
                 deletingRef.current[p.project_id] = "pending";
                 setDeleting((prev) => ({ ...prev, [p.project_id]: "pending" }));
-                return { ...p, status: "Pending Deletion" };
               }
-              // Otherwise, keep backend-provided status
-              return p;
+
+              // Determine final status
+              let finalStatus = p.status;
+
+              if (deleteReq) {
+                // 🔸 project delete request pending
+                finalStatus = "Pending";
+              } else if (
+                (p.status === "Approved" || p.status === "Completed") &&
+                p.stages?.some(stage =>
+                  stage.tasks?.some(t => t.status === "Revision")
+                )
+              ) {
+                // 🔸 approved project, but one or more tasks under revision
+                finalStatus = "Revision";
+              } else if (p.status === "Pending") {
+                // 🔸 project not yet approved
+                finalStatus = "Pending";
+              }
+
+              return { ...p, status: finalStatus };
             });
+
 
             // ✅ Apply intelligent project status logic before final set
             const enhancedProjects = await Promise.all(
@@ -191,8 +210,17 @@ export default function StudentPrototype() {
 
   // Open dialog
   const handleProjectClick = (projectId) => {
-    google.script.run.openPrototypeDialog(projectId);
+    setLoadingProjectId(projectId); // show loader under the project
+    google.script.run
+      .withSuccessHandler(() => {
+        setLoadingProjectId(null); // hide loader when dialog opens
+      })
+      .withFailureHandler(() => {
+        setLoadingProjectId(null); // hide even if failed
+      })
+      .openPrototypeDialog(projectId);
   };
+
 
   const handleConfirmProjectDelete = () => {
     if (!selectedProjectId) return;
@@ -266,16 +294,16 @@ export default function StudentPrototype() {
 
   const getStatusColor = (status) => {
     const colors = {
-      'Pending': 'bg-yellow-100 text-yellow-800',
-      'In Progress': 'bg-blue-100 text-blue-800',
+      'Approved': 'bg-green-100 text-green-800',     // ✅ green
+      'Revision': 'bg-yellow-100 text-yellow-800',   // ✅ yellow
+      'Pending': 'bg-red-100 text-red-800',          // ✅ red
       'Completed': 'bg-green-100 text-green-800',
-      'Pending Deletion': 'bg-yellow-100 text-yellow-800', 
-      'On Hold': 'bg-gray-100 text-gray-800',
-      'default': 'bg-gray-100 text-gray-800'
+      'default': 'bg-gray-100 text-gray-800',
     };
 
     return colors[status] || colors.default;
   };
+
 
   // Dynamic header color
   const headerColor = isLoading || projects.length === 0
@@ -326,7 +354,7 @@ export default function StudentPrototype() {
 
             {/* Title + Subtitle */}
             <div>
-                <div className="font-medium text-gray-900">Prototype Projects</div>
+                <div className="font-medium text-gray-900">My Projects</div>
                 <div className="text-sm text-gray-500">
                 {isLoading
                     ? 'Loading projects...'
@@ -406,7 +434,7 @@ export default function StudentPrototype() {
             {!isLoading && !error && filteredProjects.length > 0 && (
               <div className="space-y-2">
                 {filteredProjects.map((project) => (
-                  <div key={project.project_id} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div key={project.project_id} className="relative border border-gray-200 rounded-lg overflow-hidden">
                     <div
                       className="p-3 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
                       onClick={() => handleProjectClick(project.project_id)}
@@ -434,19 +462,78 @@ export default function StudentPrototype() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+
+                              // Allow delete only when approved and not pending deletion
+                              if (project.status !== "Approved" || deleting[project.project_id] === "pending") return;
+
                               setSelectedProjectId(project.project_id);
                               setShowProjectDeleteDialog(true);
                             }}
-                            disabled={deleting[project.project_id] === 'pending'}
-                            className={`text-xs px-2.5 py-1.5 rounded-md inline-flex items-center justify-center gap-1 transition-all ${
-                              deleting[project.project_id] === 'pending'
-                                ? 'bg-gray-300 text-gray-700 border border-gray-300 cursor-not-allowed'
-                                : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
-                            }`}
+                            disabled={
+                              deleting[project.project_id] === "pending" ||
+                              project.status !== "Approved"
+                            }
+                            title={
+                              deleting[project.project_id] === "pending"
+                                ? "" // ❗ No tooltip when pending deletion
+                                : project.status !== "Approved"
+                                ? "You can only delete approved projects." // Only show this in non-approved state
+                                : ""
+                            }
+                            className={`text-xs px-3 py-1.5 rounded-md inline-flex flex-col items-center justify-center w-[90px] text-center leading-tight border transition
+                              ${
+                                deleting[project.project_id] === "pending"
+                                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                                  : project.status !== "Approved"
+                                  ? "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed"
+                                  : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 cursor-pointer"
+                              }
+                            `}
                           >
-                            <Trash2 size={12} />
-                             Delete
+                            {deleting[project.project_id] === "pending" ? (
+                              <>
+                                <div className="flex items-center justify-center gap-1">
+                                  <Trash2 size={12} />
+                                  <span>Pending</span>
+                                </div>
+                                <span>Deletion</span>
+                              </>
+                            ) : (
+                              <div className="flex items-center justify-center gap-1">
+                                <Trash2 size={12} />
+                                <span>Delete</span>
+                              </div>
+                            )}
                           </button>
+
+
+                            {loadingProjectId === project.project_id && (
+                              <div className="absolute bottom-2 right-3 flex items-center gap-1 text-gray-500 text-[11px] animate-pulse bg-white/80 px-2 py-0.5 rounded-md shadow-sm border border-gray-200">
+                                <svg
+                                  className="w-3.5 h-3.5 animate-spin text-gray-400"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  ></circle>
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                  ></path>
+                                </svg>
+                                <span className="font-medium text-gray-600">Loading…</span>
+                              </div>
+                            )}
+
+
 
                         </div>
                       </div>
