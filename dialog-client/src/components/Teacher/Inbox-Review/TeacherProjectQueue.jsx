@@ -28,12 +28,14 @@ export default function TeacherProjectQueue() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false); // Don't load on mount
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("all"); // all, pending
+  const [filter, setFilter] = useState("all"); // all, pending, revision, approve
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(""); // Track selected subject
   const [hasSubjectFilter, setHasSubjectFilter] = useState(false); // Track if subject filter has been applied
+  const [startDate, setStartDate] = useState(""); // Start date for date range filter
+  const [endDate, setEndDate] = useState(""); // End date for date range filter
 
   // Deletion requests hook
   const {
@@ -71,6 +73,8 @@ export default function TeacherProjectQueue() {
 
   // Ref for scrollable stage content container
   const stageContentRef = React.useRef(null);
+  // Ref for description textarea to auto-resize
+  const descriptionTextareaRef = React.useRef(null);
 
   const [analytics, setAnalytics] = useState({
     totalProjects: 0,
@@ -141,6 +145,19 @@ export default function TeacherProjectQueue() {
       stageContentRef.current.scrollTop = 0;
     }
   }, [currentStageIndex]);
+
+  // Auto-resize description textarea when content changes
+  useEffect(() => {
+    if (descriptionTextareaRef.current && editableProjectData?.description !== undefined) {
+      descriptionTextareaRef.current.style.height = 'auto';
+      const scrollHeight = descriptionTextareaRef.current.scrollHeight;
+      // Set height based on content, with minimum of 40px and maximum reasonable height
+      const minHeight = 40; // Minimum height for one line
+      const maxHeight = 300; // Max height to prevent it from getting too large
+      const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+      descriptionTextareaRef.current.style.height = newHeight + 'px';
+    }
+  }, [editableProjectData?.description]);
 
   const loadProjects = async (subject) => {
     try {
@@ -292,19 +309,59 @@ export default function TeacherProjectQueue() {
     }
   };
 
-  // Filter projects based on status and search term
+  // Filter projects based on status, search term, and date range
   const filteredProjects = projects.filter((project) => {
-    const matchesFilter =
-      filter === "all" ||
-      project.status.toLowerCase().includes(filter.toLowerCase());
+    // Status filter
+    let matchesFilter = true;
+    if (filter !== "all") {
+      const statusLower = project.status.toLowerCase();
+      if (filter === "pending") {
+        matchesFilter = statusLower.includes("pending");
+      } else if (filter === "revision") {
+        matchesFilter = statusLower.includes("revision");
+      } else if (filter === "approve") {
+        matchesFilter = statusLower.includes("approve") || statusLower.includes("approved");
+      } else {
+        matchesFilter = statusLower.includes(filter.toLowerCase());
+      }
+    }
 
+    // Search filter
     const matchesSearch =
       !searchTerm ||
       project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.subject_domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.owner_name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesFilter && matchesSearch;
+    // Date range filter
+    let matchesDateRange = true;
+    if (startDate || endDate) {
+      if (project.created_at) {
+        const projectDate = new Date(project.created_at);
+        projectDate.setHours(0, 0, 0, 0); // Reset time to start of day
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (projectDate < start) {
+            matchesDateRange = false;
+          }
+        }
+        
+        if (endDate && matchesDateRange) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999); // Set to end of day
+          if (projectDate > end) {
+            matchesDateRange = false;
+          }
+        }
+      } else {
+        // If project has no created_at, exclude it when date filter is active
+        matchesDateRange = false;
+      }
+    }
+
+    return matchesFilter && matchesSearch && matchesDateRange;
   });
 
   // Action handlers
@@ -1392,6 +1449,8 @@ export default function TeacherProjectQueue() {
                 setError("");
                 setSearchTerm("");
                 setFilter("all");
+                setStartDate("");
+                setEndDate("");
               }}
               className="tpq-btn tpq-btn--secondary"
               style={{
@@ -1435,6 +1494,10 @@ export default function TeacherProjectQueue() {
           setFilter={setFilter}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
                   onReview={handleReview}
                   onApprove={handleApprove}
                   onReject={handleReject}
@@ -1632,7 +1695,12 @@ export default function TeacherProjectQueue() {
               >
                 <button
                   className="tpq-modal-close"
-                  onClick={handleCloseDetails}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // X button should always close immediately, even with unsaved changes
+                    closeDialog();
+                  }}
+                  style={{ zIndex: 10001 }}
                 >
                   ×
                 </button>
@@ -1663,9 +1731,10 @@ export default function TeacherProjectQueue() {
               {!detailsLoading && editableProjectData && (
                 <>
                   {/* Project Description */}
-                  <div className="tpq-modal-section" style={{ marginTop: 0, marginBottom: '8px' }}>
+                  <div className="tpq-modal-section" style={{ marginTop: 0, marginBottom: '6px' }}>
                     <h4>Description</h4>
                     <textarea
+                      ref={descriptionTextareaRef}
                       value={editableProjectData.description || ""}
                       onChange={(e) => {
                         setEditableProjectData((prev) => {
@@ -1676,8 +1745,17 @@ export default function TeacherProjectQueue() {
                         setHasUnsavedChanges(true);
                         setSuccessMessage("");
                         setErrorMessage("");
+                        // Auto-resize textarea
+                        if (descriptionTextareaRef.current) {
+                          descriptionTextareaRef.current.style.height = 'auto';
+                          const scrollHeight = descriptionTextareaRef.current.scrollHeight;
+                          const minHeight = 40; // Minimum height for one line
+                          const maxHeight = 300;
+                          const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+                          descriptionTextareaRef.current.style.height = newHeight + 'px';
+                        }
                       }}
-                      className={`w-full px-4 py-3 border rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y min-h-[100px] ${
+                      className={`w-full px-3 py-2 border rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none overflow-hidden ${
                         editableProjectData.deletion_requested &&
                         editableProjectData.deletion_request_status ===
                           "pending"
@@ -1685,9 +1763,14 @@ export default function TeacherProjectQueue() {
                           : "border-gray-300"
                       }`}
                       placeholder="Project description"
-                      rows={editableProjectData.description && editableProjectData.description.length > 0 
-                        ? Math.max(2, Math.min(10, Math.ceil(editableProjectData.description.length / 60)))
-                        : 2}
+                      rows={1}
+                      style={{
+                        minHeight: '40px',
+                        height: 'auto',
+                        lineHeight: '1.5',
+                        paddingTop: '8px',
+                        paddingBottom: '8px'
+                      }}
                     />
                   </div>
 
@@ -2081,10 +2164,10 @@ export default function TeacherProjectQueue() {
 
       {/* Confirmation Dialog for Unsaved Changes */}
       {showCloseConfirm && (
-        <div className="tpq-modal-overlay" style={{ zIndex: 2000 }}>
+        <div className="tpq-modal-overlay" style={{ zIndex: 20000, position: 'fixed' }}>
           <div
             className="tpq-modal"
-            style={{ maxWidth: "400px" }}
+            style={{ maxWidth: "400px", zIndex: 20001 }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="tpq-modal-header">

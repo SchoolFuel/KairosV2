@@ -128,7 +128,6 @@ function getTeacherProjectsAll(subjectDomain) {
   return { statusCode: out.statusCode || out.status || 200, body: bodyLike };
 }
 
-
 function getTeacherProjects(subject) {
   try {
     const url =
@@ -138,7 +137,7 @@ function getTeacherProjects(subject) {
       action: "myprojects",
       payload: {
         request: "teacher_view_all",
-        subject_domain:subject
+        subject_domain: subject,
       },
     };
 
@@ -691,5 +690,78 @@ function saveTeacherProjectUpdate(projectData, status) {
           "An unexpected error occurred. Please contact support if the problem persists.",
       };
     }
+  }
+}
+
+/**
+ * Delete a gate standard (teacher action)
+ * @param {String} gateStandardId - The gate standard ID to delete
+ * @param {String} invokerEmail - The email of the teacher
+ * @returns {Object} Response with success status
+ */
+function deleteGateStandard(gateStandardId, invokerEmail) {
+  if (!gateStandardId) throw new Error("Missing gateStandardId");
+  if (!invokerEmail) throw new Error("Missing invokerEmail");
+
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/dev/invoke";
+
+  const payload = {
+    action: "deleterequest",
+    payload: {
+      request: "teacher_delete_gate_standard",
+      actor: {
+        role: "teacher",
+        email_id: "teacher1@gmail.com",
+      },
+      gate_standard: gateStandardId,
+    },
+  };
+
+  try {
+    Logger.log("=== deleteGateStandard START ===");
+    Logger.log("Gate Standard ID: " + gateStandardId);
+    Logger.log("Invoker Email: " + invokerEmail);
+    Logger.log("Payload: " + JSON.stringify(payload, null, 2));
+
+    const options = {
+      method: "POST",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    Logger.log("Response Code: " + responseCode);
+    Logger.log("Response Text: " + responseText);
+
+    if (responseCode < 200 || responseCode >= 300) {
+      throw new Error("API " + responseCode + ": " + responseText);
+    }
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error("Bad JSON response: " + responseText);
+    }
+
+    Logger.log("=== deleteGateStandard SUCCESS ===");
+    return {
+      success: true,
+      statusCode: responseCode,
+      message: "Gate standard deleted successfully",
+      data: responseData,
+    };
+  } catch (error) {
+    Logger.log("=== deleteGateStandard ERROR ===");
+    Logger.log("Error: " + error.toString());
+    return {
+      success: false,
+      message: error.message || "Failed to delete gate standard",
+    };
   }
 }

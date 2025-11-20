@@ -258,6 +258,10 @@ const ReviewGateStandard = ({
   const removeLearningStandard = (checklistIndex, lsIndex) => {
     if (isDisabled) return;
 
+    const currentItem = checklistItems[checklistIndex];
+    const learningStandard = currentItem?.learningStandards?.[lsIndex];
+
+    // Remove from UI state immediately for instant feedback
     const updated = [...checklistItems];
     updated[checklistIndex].learningStandards = updated[
       checklistIndex
@@ -265,9 +269,38 @@ const ReviewGateStandard = ({
 
     setChecklistItems(updated);
 
-    // Notify parent component
+    // Notify parent component immediately
     if (onUpdate) {
       onUpdate("checklist", null, updated);
+    }
+
+    // Call backend API to delete the gate standard in the background (non-blocking)
+    // Use gate_standard field if available, otherwise fall back to standard_id
+    const gateStandardId =
+      learningStandard?.gate_standard || learningStandard?.standard_id;
+    if (gateStandardId && invokerEmail) {
+      // Call API asynchronously without blocking UI
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (!response.success) {
+            console.error(
+              "Failed to delete gate standard from backend:",
+              response.message
+            );
+            setSaveErrorMessage(
+              response.message ||
+                "Failed to delete gate standard from backend. Please refresh and try again."
+            );
+          }
+        })
+        .withFailureHandler((error) => {
+          console.error("Error deleting gate standard:", error);
+          setSaveErrorMessage(
+            error.message ||
+              "Failed to delete gate standard from backend. Please refresh and try again."
+          );
+        })
+        .deleteGateStandard(gateStandardId, invokerEmail);
     }
   };
 
@@ -746,13 +779,7 @@ const ReviewGateStandard = ({
                 <div className="mt-6 pt-4 border-t border-gray-200">
                   <button
                     onClick={handleSaveGateStandards}
-                    disabled={
-                      isDisabled ||
-                      savingGateStandards ||
-                      !projectId ||
-                      !stageId ||
-                      !studentId
-                    }
+                    disabled={true}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                   >
                     {savingGateStandards ? (
