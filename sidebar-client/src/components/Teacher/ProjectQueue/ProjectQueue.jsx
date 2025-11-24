@@ -4,14 +4,17 @@ import { ClipboardList, ChevronDown } from "lucide-react";
 export default function ProjectQueueCard() {
   const [isProjectQueueExpanded, setIsProjectQueueExpanded] = useState(false);
 
-  // Function to open Teacher Project Queue dialog
+  // Function to open Teacher Hub dialog
   const openProjectQueueDialog = () => {
     google.script.run.openTeacherProjectQueue();
   };
 
   return (
-    <div className="w-full max-w-[300px] font-sans" style={{ marginTop: "24px" }}>
-      {/* Project Queue Card */}
+    <div
+      className="w-full max-w-[300px] font-sans"
+      style={{ marginTop: "24px" }}
+    >
+      {/* Teacher Hub Card */}
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm w-full overflow-hidden transition-all duration-200 mb-3">
         {/* Toggle Button */}
         <div
@@ -25,7 +28,7 @@ export default function ProjectQueueCard() {
                 <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500"></div>
               </div>
               <div>
-                <div className="font-medium text-gray-900">Project Queue</div>
+                <div className="font-medium text-gray-900">Teacher Hub</div>
                 <div className="text-sm text-gray-500">
                   Review student projects
                 </div>
@@ -49,7 +52,7 @@ export default function ProjectQueueCard() {
                   className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors hover:bg-blue-700"
                 >
                   <ClipboardList className="w-4 h-4" />
-                  <span>Open Project Queue</span>
+                  <span>Open Teacher Hub</span>
                 </button>
               </div>
 

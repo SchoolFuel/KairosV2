@@ -39,7 +39,7 @@ export function pillClass(status) {
   const s = (status || "").toLowerCase();
   if (s.includes("approve")) return "is-approve";
   if (s.includes("reject") || s.includes("revision")) return "is-reject";
-  if (s.includes("pending")) return "is-pending";
+  if (s.includes("pending") || s.includes("new project")) return "is-pending";
   return "is-neutral";
 }
 
@@ -52,6 +52,7 @@ export function getStatusIcon(status) {
     return <CheckCircle className="status-icon approved" />;
   if (s.includes("reject") || s.includes("revision"))
     return <XCircle className="status-icon rejected" />;
-  if (s.includes("pending")) return <Clock className="status-icon pending" />;
+  if (s.includes("pending") || s.includes("new project"))
+    return <Clock className="status-icon pending" />;
   return <Clock className="status-icon neutral" />;
 }
