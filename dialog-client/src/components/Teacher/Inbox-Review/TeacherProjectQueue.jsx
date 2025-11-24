@@ -265,6 +265,7 @@ export default function TeacherProjectQueue() {
       }
     }
 
+    // Search filter
     const matchesSearch =
       !searchTerm ||
       project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -681,6 +682,7 @@ export default function TeacherProjectQueue() {
       setIsSaving(true);
       setSuccessMessage("");
       setErrorMessage("");
+
       google.script.run
         .withSuccessHandler((response) => {
           setIsSaving(false);
@@ -704,7 +706,6 @@ export default function TeacherProjectQueue() {
             setSuccessMessage("Revision requested successfully!");
             setErrorMessage("");
           } else {
-            setIsSaving(false);
             setErrorMessage(response.message || "Failed to request revision");
             setSuccessMessage("");
           }
