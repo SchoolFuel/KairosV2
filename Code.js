@@ -18,7 +18,7 @@ function currentUser() {
 
 function validateUser() {
   var userProperties = PropertiesService.getUserProperties();
-  const user_email = 'teacher1@gmail.com';
+  const user_email = currentUser();
   const identity_url =
     "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/identity-fetch";
   const payload = {
