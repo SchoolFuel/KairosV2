@@ -87,9 +87,9 @@ function openPrototypeDialog(projectId) {
   DocumentApp.getUi().showModalDialog(modifiedHtml, "Project Prototype");
 }
 
-// Specific function to open Teacher Project Queue dialog
+// Specific function to open Teacher Hub dialog
 function openTeacherProjectQueue() {
-  openDialog("teacher-project-queue", "Teacher Project Queue");
+  openDialog("teacher-project-queue", "Teacher Hub");
 }
 
 // Specific function to open Teacher Gate Assessment dialog

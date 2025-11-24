@@ -65,10 +65,25 @@ const InboxTab = ({
 
       {/* Filters and Search */}
       <div className="tpq-controls">
-        <div style={{ display: "flex", gap: "24px", alignItems: "center", flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "24px",
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
           {/* Status Filter Dropdown */}
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <label htmlFor="statusFilter" style={{ fontSize: "14px", fontWeight: 500, color: "#4a5568", margin: 0 }}>
+            <label
+              htmlFor="statusFilter"
+              style={{
+                fontSize: "14px",
+                fontWeight: 500,
+                color: "#4a5568",
+                margin: 0,
+              }}
+            >
               Status:
             </label>
             <select
@@ -82,19 +97,58 @@ const InboxTab = ({
                 fontSize: "14px",
                 minWidth: "150px",
                 backgroundColor: "white",
-                cursor: "pointer"
+                cursor: "pointer",
               }}
             >
               <option value="all">All ({projects.length})</option>
-              <option value="pending">Pending ({projects.filter(p => p.status.toLowerCase().includes("pending")).length})</option>
-              <option value="revision">Revision ({projects.filter(p => p.status.toLowerCase().includes("revision")).length})</option>
-              <option value="approve">Approve ({projects.filter(p => p.status.toLowerCase().includes("approve") || p.status.toLowerCase().includes("approved")).length})</option>
+              <option value="pending">
+                New Project (
+                {
+                  projects.filter(
+                    (p) =>
+                      p.status.toLowerCase().includes("pending") ||
+                      p.status.toLowerCase().includes("new project")
+                  ).length
+                }
+                )
+              </option>
+              <option value="revision">
+                Revision (
+                {
+                  projects.filter((p) =>
+                    p.status.toLowerCase().includes("revision")
+                  ).length
+                }
+                )
+              </option>
+              <option value="approve">
+                Approve (
+                {
+                  projects.filter(
+                    (p) =>
+                      p.status.toLowerCase().includes("approve") ||
+                      p.status.toLowerCase().includes("approved")
+                  ).length
+                }
+                )
+              </option>
             </select>
           </div>
 
           {/* Date Range Filter */}
-          <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-            <label style={{ fontSize: "14px", fontWeight: 500, color: "#4a5568" }}>Submission Date:</label>
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <label
+              style={{ fontSize: "14px", fontWeight: 500, color: "#4a5568" }}
+            >
+              Submission Date:
+            </label>
             <input
               type="date"
               value={startDate}
@@ -105,7 +159,7 @@ const InboxTab = ({
                 border: "1px solid #cbd5e0",
                 borderRadius: "6px",
                 fontSize: "14px",
-                minWidth: "140px"
+                minWidth: "140px",
               }}
             />
             <span style={{ color: "#718096" }}>to</span>
@@ -119,7 +173,7 @@ const InboxTab = ({
                 border: "1px solid #cbd5e0",
                 borderRadius: "6px",
                 fontSize: "14px",
-                minWidth: "140px"
+                minWidth: "140px",
               }}
             />
             {(startDate || endDate) && (
@@ -135,7 +189,7 @@ const InboxTab = ({
                   borderRadius: "6px",
                   fontSize: "14px",
                   cursor: "pointer",
-                  color: "#4a5568"
+                  color: "#4a5568",
                 }}
               >
                 Clear
