@@ -854,27 +854,7 @@ export default function ExpandableGuideMe({
 
             </div>
 
-            <Toaster
-                position="bottom-center"
-                toastOptions={{
-                    duration: 2800,
-                    style: {
-                        borderRadius: '14px',
-                        padding: '10px 12px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.12)',
-                    },
-                    className:
-                        'text-sm font-medium bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 ring-1 ring-gray-200/80 dark:ring-white/10',
-                    success: {
-                        iconTheme: { primary: '#16a34a', secondary: '#ffffff' }, // green
-                    },
-                    error: {
-                        iconTheme: { primary: '#dc2626', secondary: '#ffffff' }, // red
-                    },
-                }}
-                containerClassName="!z-[9999]"  // keeps it above Sheets/Docs sidebars
-                gutter={10}
-            />
+            
 
             
         </div>
