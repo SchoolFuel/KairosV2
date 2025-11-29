@@ -128,6 +128,58 @@ function getTeacherProjectsAll(subjectDomain) {
   return { statusCode: out.statusCode || out.status || 200, body: bodyLike };
 }
 
+function getTeacherProjects(subject) {
+  try {
+    const url =
+      "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+
+    const payload = {
+      action: "myprojects",
+      payload: {
+        request: "teacher_view_all",
+        subject_domain: subject,
+      },
+    };
+
+    const options = {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+
+    // Check if the HTTP request itself failed
+    if (response.getResponseCode() !== 200) {
+      throw new Error(
+        `HTTP Error: ${response.getResponseCode()} - ${response.getContentText()}`
+      );
+    }
+
+    const result = JSON.parse(response.getContentText());
+
+    // Check if the API returned an error in the response body
+    if (!result || result.status !== "success") {
+      throw new Error(
+        `API Error: ${result?.status || "Unknown"} - ${
+          result?.message || "Unknown error"
+        }`
+      );
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Error in getStudentProjects:", error);
+    // Return an error object that your React component can handle
+    return {
+      statusCode: 500,
+      error: error.toString(),
+      body: null,
+    };
+  }
+}
+
 /**
  * Get deletion requests for a teacher
  * @param {String} subjectDomain - The subject domain (e.g., "Science", "Geography")
@@ -638,5 +690,78 @@ function saveTeacherProjectUpdate(projectData, status) {
           "An unexpected error occurred. Please contact support if the problem persists.",
       };
     }
+  }
+}
+
+/**
+ * Delete a gate standard (teacher action)
+ * @param {String} gateStandardId - The gate standard ID to delete
+ * @param {String} invokerEmail - The email of the teacher
+ * @returns {Object} Response with success status
+ */
+function deleteGateStandard(gateStandardId, invokerEmail) {
+  if (!gateStandardId) throw new Error("Missing gateStandardId");
+  if (!invokerEmail) throw new Error("Missing invokerEmail");
+
+  const url =
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/dev/invoke";
+
+  const payload = {
+    action: "deleterequest",
+    payload: {
+      request: "teacher_delete_gate_standard",
+      actor: {
+        role: "teacher",
+        email_id: "teacher1@gmail.com",
+      },
+      gate_standard: gateStandardId,
+    },
+  };
+
+  try {
+    Logger.log("=== deleteGateStandard START ===");
+    Logger.log("Gate Standard ID: " + gateStandardId);
+    Logger.log("Invoker Email: " + invokerEmail);
+    Logger.log("Payload: " + JSON.stringify(payload, null, 2));
+
+    const options = {
+      method: "POST",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    Logger.log("Response Code: " + responseCode);
+    Logger.log("Response Text: " + responseText);
+
+    if (responseCode < 200 || responseCode >= 300) {
+      throw new Error("API " + responseCode + ": " + responseText);
+    }
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error("Bad JSON response: " + responseText);
+    }
+
+    Logger.log("=== deleteGateStandard SUCCESS ===");
+    return {
+      success: true,
+      statusCode: responseCode,
+      message: "Gate standard deleted successfully",
+      data: responseData,
+    };
+  } catch (error) {
+    Logger.log("=== deleteGateStandard ERROR ===");
+    Logger.log("Error: " + error.toString());
+    return {
+      success: false,
+      message: error.message || "Failed to delete gate standard",
+    };
   }
 }

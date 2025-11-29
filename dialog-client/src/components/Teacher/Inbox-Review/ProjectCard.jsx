@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle, XCircle, User, BookOpen, Trash2 } from "lucide-react";
+import { User, BookOpen, Trash2 } from "lucide-react";
 import Badge from "../../Shared/LearningStandards/Badge";
 import { pillClass, getStatusIcon } from "./utils.jsx";
 
@@ -12,7 +12,14 @@ function ProjectCard({
 }) {
   const title = project.title || project.project_title || "Untitled";
   const subject = project.subject_domain || "—";
-  const status = (project.status || "—").trim();
+  let status = (project.status || "—").trim();
+  // Display "New Project" instead of "Pending"
+  if (
+    status.toLowerCase().includes("pending") &&
+    !status.toLowerCase().includes("new project")
+  ) {
+    status = "New Project";
+  }
   const owner = project.owner_name || project.owner_email || "";
   const description = project.description || "";
   const createdAt = project.created_at || project.createdAt || "";
@@ -114,30 +121,6 @@ function ProjectCard({
         >
           <BookOpen size={14} />
           Review
-        </button>
-        <button
-          className="tpq-btn tpq-btn--approve"
-          onClick={(e) => {
-            e.stopPropagation();
-            onApprove(project);
-          }}
-          disabled={!project.project_id}
-          title="Approve this project"
-        >
-          <CheckCircle size={14} />
-          Approve
-        </button>
-        <button
-          className="tpq-btn tpq-btn--reject"
-          onClick={(e) => {
-            e.stopPropagation();
-            onReject(project);
-          }}
-          disabled={!project.project_id}
-          title="Request revision"
-        >
-          <XCircle size={14} />
-          Request Revision
         </button>
       </div>
     </div>

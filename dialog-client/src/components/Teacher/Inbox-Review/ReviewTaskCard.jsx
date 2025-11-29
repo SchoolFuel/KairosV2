@@ -40,7 +40,12 @@ const ReviewTaskCard = ({
                 onApproveDeletion && onApproveDeletion(stageIndex, taskIndex)
               }
               disabled={!onApproveDeletion}
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: "#d1fae5",
+                color: "#065f46",
+                border: "1px solid #a7f3d0",
+              }}
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Approve deletion"
             >
               <CheckCircle size={12} />
@@ -51,7 +56,12 @@ const ReviewTaskCard = ({
                 onRejectDeletion && onRejectDeletion(stageIndex, taskIndex)
               }
               disabled={!onRejectDeletion}
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: "#fef3c7",
+                color: "#92400e",
+                border: "1px solid #fde68a",
+              }}
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Reject deletion"
             >
               <XCircle size={12} />
@@ -104,18 +114,16 @@ const ReviewTaskCard = ({
         {isEditable && !isFrozen ? (
           <input
             type="text"
-            value={task.academic_standard || ""}
-            onChange={(e) =>
-              onUpdate && onUpdate("academic_standard", e.target.value)
-            }
+            value={task.standards || ""}
+            onChange={(e) => onUpdate && onUpdate("standards", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
             disabled={isDisabled}
             placeholder="Enter academic standard"
           />
         ) : (
-          task.academic_standard && (
+          task.standards && (
             <div className="text-xs text-gray-600 mb-2">
-              <strong>Standard:</strong> {task.academic_standard}
+              <strong>Standard:</strong> {task.standards}
             </div>
           )
         )}
