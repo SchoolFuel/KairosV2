@@ -51,7 +51,6 @@ export default function TeacherProjectQueue() {
   const [stageStatuses, setStageStatuses] = useState({});
   const [initialStageStatuses, setInitialStageStatuses] = useState({});
   const [stageFeedbacks, setStageFeedbacks] = useState({});
-  const [initialStageFeedbacks, setInitialStageFeedbacks] = useState({});
   const [overallComment, setOverallComment] = useState("");
   const [editableProjectData, setEditableProjectData] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -179,7 +178,10 @@ export default function TeacherProjectQueue() {
                   projects = body.action_response.projects;
                 } else if (body.projects && Array.isArray(body.projects)) {
                   projects = body.projects;
-                } else if (body.action_response?.json?.projects && Array.isArray(body.action_response.json.projects)) {
+                } else if (
+                  body.action_response?.json?.projects &&
+                  Array.isArray(body.action_response.json.projects)
+                ) {
                   projects = body.action_response.json.projects;
                 }
               } else if (
@@ -312,7 +314,9 @@ export default function TeacherProjectQueue() {
     const matchesStudentName =
       !studentNameFilter ||
       (project.owner_name &&
-        project.owner_name.toLowerCase().includes(studentNameFilter.toLowerCase()));
+        project.owner_name
+          .toLowerCase()
+          .includes(studentNameFilter.toLowerCase()));
 
     // Subject filter
     const matchesSubject =
@@ -344,29 +348,18 @@ export default function TeacherProjectQueue() {
     if (project.stages && Array.isArray(project.stages)) {
       const initialStatuses = {};
       const currentStatuses = {};
-      const initialFeedbacks = {};
-      const currentFeedbacks = {};
       project.stages.forEach((stage) => {
-        if (stage.stage_id) {
-          if (stage.status) {
-            initialStatuses[stage.stage_id] = stage.status;
-            currentStatuses[stage.stage_id] = stage.status;
-          }
-          if (stage.gate?.feedback) {
-            const feedback = stage.gate.feedback || "";
-            initialFeedbacks[stage.stage_id] = feedback;
-            currentFeedbacks[stage.stage_id] = feedback;
-          }
+        if (stage.stage_id && stage.status) {
+          initialStatuses[stage.stage_id] = stage.status;
+          currentStatuses[stage.stage_id] = stage.status;
         }
       });
       setInitialStageStatuses(initialStatuses);
       setStageStatuses(currentStatuses);
-      setInitialStageFeedbacks(initialFeedbacks);
-      setStageFeedbacks(currentFeedbacks);
+      setStageFeedbacks({});
     } else {
       setInitialStageStatuses({});
       setStageStatuses({});
-      setInitialStageFeedbacks({});
       setStageFeedbacks({});
     }
 
@@ -430,29 +423,18 @@ export default function TeacherProjectQueue() {
           if (editableCopy.stages && Array.isArray(editableCopy.stages)) {
             const initialStatuses = {};
             const currentStatuses = {};
-            const initialFeedbacks = {};
-            const currentFeedbacks = {};
             editableCopy.stages.forEach((stage) => {
-              if (stage.stage_id) {
-                if (stage.status) {
-                  initialStatuses[stage.stage_id] = stage.status;
-                  currentStatuses[stage.stage_id] = stage.status;
-                }
-                if (stage.gate?.feedback) {
-                  const feedback = stage.gate.feedback || "";
-                  initialFeedbacks[stage.stage_id] = feedback;
-                  currentFeedbacks[stage.stage_id] = feedback;
-                }
+              if (stage.stage_id && stage.status) {
+                initialStatuses[stage.stage_id] = stage.status;
+                currentStatuses[stage.stage_id] = stage.status;
               }
             });
             setInitialStageStatuses(initialStatuses);
             setStageStatuses(currentStatuses);
-            setInitialStageFeedbacks(initialFeedbacks);
-            setStageFeedbacks(currentFeedbacks);
+            setStageFeedbacks({});
           } else {
             setInitialStageStatuses({});
             setStageStatuses({});
-            setInitialStageFeedbacks({});
             setStageFeedbacks({});
           }
 
@@ -626,7 +608,6 @@ export default function TeacherProjectQueue() {
         setErrorMessage("Error: Missing project data. Cannot submit.");
         return;
       }
-
       if (!editableProjectData.project_id || !editableProjectData.user_id) {
         setErrorMessage("Error: Missing project ID or user ID. Cannot submit.");
         return;
@@ -690,7 +671,6 @@ export default function TeacherProjectQueue() {
 
             setHasUnsavedChanges(false);
             setInitialStageStatuses(stageStatuses);
-            setInitialStageFeedbacks(stageFeedbacks);
             setSuccessMessage("All stage decisions submitted successfully!");
             setErrorMessage("");
 
@@ -802,12 +782,12 @@ export default function TeacherProjectQueue() {
       );
 
     const hasChangedFeedbacks =
-      Object.keys(stageFeedbacks).some(
-        (stageId) => stageFeedbacks[stageId] !== (initialStageFeedbacks[stageId] || "")
-      ) ||
-      Object.keys(initialStageFeedbacks).some(
-        (stageId) => (stageFeedbacks[stageId] || "") !== initialStageFeedbacks[stageId]
-      );
+      editableProjectData?.stages?.some((stage) => {
+        if (!stage.stage_id) return false;
+        const currentFeedback = stageFeedbacks[stage.stage_id] || "";
+        const originalFeedback = stage.gate?.feedback || "";
+        return currentFeedback !== originalFeedback;
+      }) || false;
 
     if (hasUnsavedChanges || hasChangedStatuses || hasChangedFeedbacks) {
       setShowCloseConfirm(true);
@@ -824,7 +804,6 @@ export default function TeacherProjectQueue() {
     setStageStatuses({});
     setInitialStageStatuses({});
     setStageFeedbacks({});
-    setInitialStageFeedbacks({});
     setSuccessMessage("");
     setErrorMessage("");
     setShowCloseConfirm(false);
@@ -2304,49 +2283,55 @@ export default function TeacherProjectQueue() {
                                     STAGE FEEDBACK
                                   </label>
                                   {/* Display existing feedback if available and different from current */}
-                                  {initialStageFeedbacks[currentStage.stage_id] && 
-                                   (!stageFeedbacks[currentStage.stage_id] || stageFeedbacks[currentStage.stage_id] !== initialStageFeedbacks[currentStage.stage_id]) && (
-                                    <div
-                                      style={{
-                                        marginBottom: "12px",
-                                        padding: "12px 16px",
-                                        backgroundColor: "#f0f9ff",
-                                        border: "1px solid #bfdbfe",
-                                        borderRadius: "6px",
-                                      }}
-                                    >
+                                  {currentStage.gate?.feedback &&
+                                    (!stageFeedbacks[currentStage.stage_id] ||
+                                      stageFeedbacks[currentStage.stage_id] !==
+                                        currentStage.gate.feedback) && (
                                       <div
                                         style={{
-                                          fontSize: "12px",
-                                          fontWeight: 600,
-                                          color: "#1e40af",
-                                          marginBottom: "6px",
-                                          display: "flex",
-                                          alignItems: "center",
-                                          gap: "6px",
+                                          marginBottom: "12px",
+                                          padding: "12px 16px",
+                                          backgroundColor: "#f0f9ff",
+                                          border: "1px solid #bfdbfe",
+                                          borderRadius: "6px",
                                         }}
                                       >
-                                        <BookOpen size={14} />
-                                        Previous Feedback
+                                        <div
+                                          style={{
+                                            fontSize: "12px",
+                                            fontWeight: 600,
+                                            color: "#1e40af",
+                                            marginBottom: "6px",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "6px",
+                                          }}
+                                        >
+                                          <BookOpen size={14} />
+                                          Previous Feedback
+                                        </div>
+                                        <div
+                                          style={{
+                                            padding: "8px 12px",
+                                            backgroundColor: "white",
+                                            border: "1px solid #cbd5e0",
+                                            borderRadius: "4px",
+                                            fontSize: "14px",
+                                            color: "#4a5568",
+                                            lineHeight: "1.6",
+                                            whiteSpace: "pre-wrap",
+                                          }}
+                                        >
+                                          {currentStage.gate.feedback}
+                                        </div>
                                       </div>
-                                      <div
-                                        style={{
-                                          padding: "8px 12px",
-                                          backgroundColor: "white",
-                                          border: "1px solid #cbd5e0",
-                                          borderRadius: "4px",
-                                          fontSize: "14px",
-                                          color: "#4a5568",
-                                          lineHeight: "1.6",
-                                          whiteSpace: "pre-wrap",
-                                        }}
-                                      >
-                                        {initialStageFeedbacks[currentStage.stage_id]}
-                                      </div>
-                                    </div>
-                                  )}
+                                    )}
                                   <textarea
-                                    value={stageFeedbacks[currentStage.stage_id] || initialStageFeedbacks[currentStage.stage_id] || currentStage.gate?.feedback || ""}
+                                    value={
+                                      stageFeedbacks[currentStage.stage_id] ||
+                                      currentStage.gate?.feedback ||
+                                      ""
+                                    }
                                     onChange={(e) => {
                                       setStageFeedbacks((prev) => ({
                                         ...prev,
@@ -2363,7 +2348,8 @@ export default function TeacherProjectQueue() {
                                       lineHeight: "1.5",
                                     }}
                                   />
-                                  {(stageFeedbacks[currentStage.stage_id] || initialStageFeedbacks[currentStage.stage_id]) && (
+                                  {(stageFeedbacks[currentStage.stage_id] ||
+                                    currentStage.gate?.feedback) && (
                                     <div
                                       style={{
                                         marginTop: "8px",
@@ -2372,9 +2358,8 @@ export default function TeacherProjectQueue() {
                                         fontStyle: "italic",
                                       }}
                                     >
-                                      {stageFeedbacks[currentStage.stage_id] || initialStageFeedbacks[currentStage.stage_id]
-                                        ? "Feedback will be saved when you submit all decisions"
-                                        : ""}
+                                      Feedback will be saved when you submit all
+                                      decisions
                                     </div>
                                   )}
                                 </div>
