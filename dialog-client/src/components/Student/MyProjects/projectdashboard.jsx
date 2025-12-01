@@ -68,6 +68,19 @@ export default function ProjectDashboard() {
   const [reflectionItemIdx, setReflectionItemIdx] = useState(null);
   const [showResourcesDialog, setShowResourcesDialog] = useState(false);
   const [resourcesTaskId, setResourcesTaskId] = useState(null);
+  const [resourceFormError, setResourceFormError] = useState('');
+  const [showAddResourceDialog, setShowAddResourceDialog] = useState(false);
+
+  // Resource form state (student side)
+  const [newResourceTitle, setNewResourceTitle] = useState('');
+  const [newResourceDescription, setNewResourceDescription] = useState('');
+  const [newResourceType, setNewResourceType] = useState('Lesson Plan');
+  const [newResourceFormat, setNewResourceFormat] = useState('pdf');
+  const [newResourceSubject, setNewResourceSubject] = useState('');
+  const [newResourceLink, setNewResourceLink] = useState('');
+  const [newResourceSource, setNewResourceSource] = useState('student_created');
+  const [newResourceTagsInput, setNewResourceTagsInput] = useState('');
+  const [lastUploadedFile, setLastUploadedFile] = useState(null);
 
   // Gate UI state
   const DEFAULT_GATE_STEPS = ['Prep','Schedule','Notify','Complete','Review/Evaluate','Final Report','Feedback/Reflection'];
@@ -128,6 +141,15 @@ export default function ProjectDashboard() {
 
           // Merge stages and tasks with deleteRequests
           const mergedStages = (p.stages || []).map((stage) => {
+
+
+            stage.tasks = (stage.tasks || []).map((t) => {
+              if (!t.status || t.status.trim() === "") {
+                t.status = ""; // keep empty, not null
+              }
+              return t;
+            });
+            
             // Find any delete request linked to this stage
             const stageDeleteReq = deleteRequests.find(
               (r) =>
@@ -170,7 +192,7 @@ export default function ProjectDashboard() {
           // Ensure stages are always sorted correctly
           p.stages = mergedStages;
 
-          // // 🔥 Fix duplicate stages caused by deleteRequest merging
+          // // Fix duplicate stages caused by deleteRequest merging
           // p.stages = Object.values(
           //   p.stages.reduce((acc, stage) => {
           //     acc[stage.stage_id] = stage; // keep only latest version
@@ -178,7 +200,7 @@ export default function ProjectDashboard() {
           //   }, {})
           // );
 
-          // 🔥 Always sort stages correctly
+          //  Always sort stages correctly
           p.stages = p.stages.sort(
             (a, b) => (a.stage_order || 0) - (b.stage_order || 0)
           );
@@ -241,7 +263,19 @@ export default function ProjectDashboard() {
     return s?.tasks?.find((t) => t.task_id === resourcesTaskId) || null;
   }, [stages, activeStageIdx, resourcesTaskId]);
 
-  const canSubmit = (taskStats.completed >= 1) && ((project?.resources?.length || 0) >= 1);
+  const canSubmit = useMemo(() => {
+    if (!project) return false;
+    const resources = project.resources || [];
+    if (taskStats.completed < 1) return false;
+    if (resources.length < 1) return false;
+
+    // Require that every resource has a non-empty description before submit
+    const allHaveDescription = resources.every((r) =>
+      typeof r.description === 'string' && r.description.trim().length > 0
+    );
+
+    return allHaveDescription;
+  }, [project, taskStats.completed]);
 
   // Normalized steps for current stage gate
   const currentGateSteps = (() => {
@@ -264,9 +298,9 @@ export default function ProjectDashboard() {
   // Helpers
   const getStatusColor = (status) => {
     const colors = {
-      'Approved': 'bg-green-100 text-green-800',     // ✅ green
-      'Revision': 'bg-yellow-100 text-yellow-800',   // ✅ yellow
-      'Pending': 'bg-red-100 text-red-800',          // ✅ red
+      'Approved': 'bg-green-100 text-green-800',     // âœ… green
+      'Revision': 'bg-yellow-100 text-yellow-800',   // âœ… yellow
+      'Pending': 'bg-red-100 text-red-800',          // âœ… red
       'Completed': 'bg-green-100 text-green-800',
       'default': 'bg-gray-100 text-gray-800',
     };
@@ -294,7 +328,7 @@ export default function ProjectDashboard() {
     }
 
     // You can replace this with a backend call to save the task
-    console.log("🆕 New Task Added:", {
+    console.log("New Task Added:", {
       title: newTaskTitle,
       description: newTaskDescription,
       due_date: newTaskDueDate,
@@ -316,17 +350,40 @@ export default function ProjectDashboard() {
     setShowEditDialog(true);
   };
   const handleMarkTaskDone = (taskId) => {
-    let titleRef = '';
-    mutateProject((p) => {
-      const stage = p.stages?.[activeStageIdx];
-      const t = stage?.tasks?.find(t=>t.task_id===taskId);
-      if (t) {
-        t.status = 'Completed';
-        titleRef = t.title || '';
-      }
-    });
-    addActivity('Task Completed', titleRef || taskId);
+    // Make a deep copy
+    const copy = JSON.parse(JSON.stringify(project));
+
+    const stage = copy.stages?.[activeStageIdx];
+    const t = stage?.tasks?.find(t => t.task_id === taskId);
+
+    if (t) {
+      t.status = "Completed";
+      addActivity("Task Completed", t.title || taskId);
+    }
+
+    // Update UI first
+    setProject(copy);
+
+    // NOW save the updated copy
+    postSaveProject(copy);
   };
+
+  const handleUndoTask = (taskId) => {
+    const copy = JSON.parse(JSON.stringify(project));
+
+    const stage = copy.stages?.[activeStageIdx];
+    const t = stage?.tasks?.find(t => t.task_id === taskId);
+
+    if (t) {
+      t.status = ""; // back to normal state
+      addActivity("Task Marked Incomplete", t.title || taskId);
+    }
+
+    setProject(copy);
+    postSaveProject(copy);
+  };
+
+
   const handleEditTask = (taskId) => {
     const s = project?.stages?.[activeStageIdx];
     const t = s?.tasks?.find(t => t.task_id === taskId);
@@ -367,7 +424,7 @@ export default function ProjectDashboard() {
           entity_type: "task",
           project_id: project.project_id,
           stage_id: stage.stage_id,
-          task_id: taskId,                 // ← this is the one that must arrive
+          task_id: taskId,                 // this is the one that must arrive
         },
         subject_domain: project.subject_domain || "General",
         reason: deleteReason || "No reason provided",
@@ -389,19 +446,19 @@ export default function ProjectDashboard() {
       return;
     }
 
-    console.log("🟡 Final delete payload before send:", payload);
+    console.log("Final delete payload before send:", payload);
 
     google.script.run
       .withSuccessHandler((res) => {
-        console.log("✅ Delete initiation sent:", res);
+        console.log("Delete initiation sent:", res);
         setDeleteReason("");
         setSelectedTaskId(null);
       })
       .withFailureHandler((err) => {
-        console.error("❌ Failed to send delete initiation", err);
+        console.error("Failed to send delete initiation", err);
         alert("Failed to send delete request. Please try again later.");
       })
-      .postToBackend(payload);            // ← pass OBJECT, not JSON string
+      .postToBackend(payload);            // pass OBJECT, not JSON string
   };
 
   const fetchDeleteRequests = () => {
@@ -425,7 +482,7 @@ export default function ProjectDashboard() {
           }
         })
         .withFailureHandler(reject)
-        .postToBackend(payload);          // ← object, not JSON string
+        .postToBackend(payload);          // object, not JSON string
     });
   };
 
@@ -468,18 +525,18 @@ export default function ProjectDashboard() {
     try {
       google.script.run
         .withSuccessHandler((res) => {
-          console.log("✅ Stage delete initiation sent:", res);
+          console.log("Stage delete initiation sent:", res);
           alert("Stage delete request sent successfully.");
           setDeleteStageReason('');
           setSelectedStageId(null);
         })
         .withFailureHandler((err) => {
-          console.error("❌ Failed to send stage delete initiation", err);
+          console.error("Failed to send stage delete initiation", err);
           alert("Failed to send delete request. Please try again later.");
         })
         .postToBackend(JSON.stringify(payload));
     } catch (err) {
-      console.error("❌ Exception in handleConfirmStageDelete:", err);
+      console.error("Exception in handleConfirmStageDelete:", err);
     }
   };
 
@@ -525,7 +582,7 @@ export default function ProjectDashboard() {
   const handleSubmitRevision = async () => {
     if (!editTaskId) return;
 
-    // 1️⃣ Build updated project synchronously
+    // Build updated project synchronously
     const copy = JSON.parse(JSON.stringify(project));
     const s = copy.stages?.[activeStageIdx];
     if (s?.tasks) {
@@ -537,12 +594,12 @@ export default function ProjectDashboard() {
       }
     }
 
-    // 2️⃣ Update UI optimistically
+    // Update UI optimistically
     setProject(copy);
     setShowEditDialog(false);
     setEditTaskId(null);
 
-    // 3️⃣ Send to backend
+    // Send to backend
     try {
       await postSaveProject(copy);
     } catch (e) {
@@ -639,10 +696,10 @@ export default function ProjectDashboard() {
 
     google.script.run
       .withSuccessHandler((res) => {
-        console.log('✅ Reflection sent:', res);
+        console.log('Reflection sent:', res);
       })
       .withFailureHandler((err) => {
-        console.error('❌ Failed to send reflection', err);
+        console.error('Failed to send reflection', err);
       })
       .postToBackend(payload);
   };
@@ -676,32 +733,195 @@ export default function ProjectDashboard() {
     setReflectionText('');
   };
 
-  // Resource actions (mock attach/remove)
+  // Resource actions (student-side structured resources)
   const handleAttachResource = () => {
+    const title = newResourceTitle.trim();
+    const description = newResourceDescription.trim();
+
+    if (!title || !description) {
+      setResourceFormError('Please enter both a title and a description before uploading a file.');
+      return;
+    }
+
+    setResourceFormError('');
     if (fileInputRef.current) fileInputRef.current.click();
   };
+
   const handleRemoveResource = (id) => {
     mutateProject((p) => {
-      p.resources = (p.resources || []).filter(r=>r.id!==id);
+      p.resources = (p.resources || []).filter((r) => (r.resource_id || r.id) !== id);
     });
     addActivity('Resource Removed', id);
+  };
+
+  const buildStudentResourceFromFile = (file, url, overrides = {}) => {
+    const now = new Date().toISOString();
+    const resourceId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `RES-${Math.floor(Math.random() * 9000 + 1000)}`;
+
+    const tags = Array.isArray(overrides.tags) ? overrides.tags : [];
+
+    return {
+      resource_id: resourceId,
+      title: overrides.title || file.name,
+      description: overrides.description || '',
+      resource_type: overrides.resource_type || 'File',
+      resource_format: overrides.resource_format || file.type || 'file',
+      subject_domain: overrides.subject_domain || project?.subject_domain || 'general',
+      external_link_location: url,
+      source: overrides.source || 'student_created',
+      is_deprecated: false,
+      intended_user: 'S',
+      tags,
+      metadata: {
+        filename: file.name,
+        size: file.size,
+        project_id: project?.project_id,
+        stage_id: stages[activeStageIdx]?.stage_id,
+        resourcesTaskId,
+      },
+      created_at: now,
+      updated_at: now,
+    };
   };
 
   const handleFileSelected = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     setUploading(true);
+
     try {
+      // Temporary browser URL (not saved to backend)
       const url = URL.createObjectURL(file);
-      mutateProject((p) => {
-        p.resources = p.resources || [];
-        p.resources.push({ id: `RES-${Math.floor(Math.random()*9000+1000)}`, title: file.name, kind: file.type || 'File', url, size: file.size });
+
+      // Build a proper student resource mapped to this task
+      const newRes = buildStudentResourceFromFile(file, url, {
+        resource_type: "File",
+        resource_format: file.type || "file",
+        title: file.name,
+        description: newResourceDescription || "",
+        tags: [],
       });
-      addActivity('Resource Uploaded', file.name);
+
+      const copy = JSON.parse(JSON.stringify(project));
+      copy.resources = copy.resources || [];
+
+      // ⭐ Save as standalone student resource (correct workflow)
+      copy.resources.push(newRes);
+
+      // UI preview of uploaded file
+      setLastUploadedFile({
+        name: file.name,
+        size: file.size,
+        url,
+        type: file.type || "file",
+      });
+
+      // Update UI
+      setProject(copy);
+      // ❌ Do not auto-save to backend here
+      // postSaveProject(copy);
+
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+
+      // Reset input so same file can be reuploaded later
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
+  };
+
+
+  const handleAddResourceFromForm = () => {
+    const title = newResourceTitle.trim();
+    const description = newResourceDescription.trim();
+    const externalLink = newResourceLink.trim();
+
+    if (!resourcesTaskId) {
+      setResourceFormError("Task reference missing. Close and reopen Resources.");
+      return;
+    }
+
+
+    if (title.length < 5 || title.length > 120) {
+      setResourceFormError('Title should be between 5 and 120 characters.');
+      return;
+    }
+
+    if (externalLink && !/^https?:\/\//i.test(externalLink)) {
+      setResourceFormError('Please enter a valid URL starting with http:// or https://');
+      return;
+    }
+
+    setResourceFormError('');
+
+    const rawTags = newResourceTagsInput.split(',').map((t) => t.trim()).filter(Boolean);
+    const tags = rawTags.slice(0, 10).map((t) =>
+      t.toLowerCase().replace(/\s+/g, '_')
+    );
+
+    const now = new Date().toISOString();
+    const resourceId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `RES-${Math.floor(Math.random() * 9000 + 1000)}`;
+
+    const resource = {
+      resource_id: resourceId,
+      title,
+      description,
+      resource_type: newResourceType,
+      resource_format: newResourceFormat,
+      subject_domain: newResourceSubject || project?.subject_domain || 'general',
+      external_link_location: externalLink || '',
+      source: newResourceSource,
+      is_deprecated: false,
+      intended_user: 'S',
+      tags,
+      metadata: {
+        project_id: project?.project_id,
+        stage_id: stages[activeStageIdx]?.stage_id,
+        resourcesTaskId,
+      },
+      created_at: now,
+      updated_at: now,
+    };
+
+    const copy = JSON.parse(JSON.stringify(project));
+
+    const stage = copy.stages[activeStageIdx];
+    const task = stage.tasks.find(t => t.task_id === resourcesTaskId);
+
+    if (!task) {
+      setResourceFormError("Task not found. Please try again.");
+      return;
+    }
+
+    copy.resources = copy.resources || [];
+    copy.resources.push(resource);
+
+    // Save entire updated project
+    setProject(copy);
+    postSaveProject(copy);
+
+    // Reset
+    setShowAddResourceDialog(false);
+    setLastUploadedFile(null);
+
+
+    // Reset form fields
+    setNewResourceTitle('');
+    setNewResourceDescription('');
+    setNewResourceType('Lesson Plan');
+    setNewResourceFormat('pdf');
+    setNewResourceSubject('');
+    setNewResourceLink('');
+    setNewResourceSource('student_created');
+    setNewResourceTagsInput('');
+    setShowAddResourceDialog(false);
+    setLastUploadedFile(null);
   };
 
   // UI actions
@@ -757,10 +977,10 @@ export default function ProjectDashboard() {
           </div>
         </div>
 
-        {/* 🔒 Project Locked Banner */}
+        {/* Project Locked Banner */}
         {isProjectLocked && (
           <div className="mb-6 p-3 bg-red-50 border border-red-300 text-red-700 text-sm rounded-md font-medium">
-            Your project is awaiting review! You’ll be able to make changes once it’s approved.
+            Your project is awaiting review! You will be able to make changes once it's approved.
           </div>
         )}
       </div>
@@ -964,26 +1184,33 @@ export default function ProjectDashboard() {
                       <div className="flex flex-col gap-2 flex-shrink-0">
                         {/* Complete Button */}
                         <button
-                          onClick={() => handleMarkTaskDone(task.task_id)}
-                          disabled={
-                            isProjectLocked ||
-                            task.status === "Completed" ||
-                            task.status === "Pending Deletion" ||
-                            task.status === "Revision" ||
-                            stages[activeStageIdx]?.status === "Pending Deletion"
-                          }
+                          onClick={() => {
+                            if (task.status === "Completed") {
+                              handleUndoTask(task.task_id);
+                            } else {
+                              handleMarkTaskDone(task.task_id);
+                            }
+                          }}
                           className={`text-xs px-3 py-1.5 rounded-md w-[90px] ${
                             isProjectLocked ||
-                            task.status === "Completed" ||
                             task.status === "Pending Deletion" ||
                             task.status === "Revision" ||
                             stages[activeStageIdx]?.status === "Pending Deletion"
                               ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                              : task.status === "Completed"
+                              ? "bg-gray-500 text-white hover:bg-gray-600" // Undo style
                               : "bg-green-600 text-white hover:bg-green-700"
                           }`}
+                          disabled={
+                            isProjectLocked ||
+                            task.status === "Pending Deletion" ||
+                            task.status === "Revision" ||
+                            stages[activeStageIdx]?.status === "Pending Deletion"
+                          }
                         >
-                          {task.status === "Completed" ? "Completed" : "Complete"}
+                          {task.status === "Completed" ? "Undo" : "Complete"}
                         </button>
+
 
 
                         {/* Edit Button */}
@@ -1010,19 +1237,15 @@ export default function ProjectDashboard() {
                         {/* Resources Button */}
                         <button
                           onClick={() => {
-                            if (isProjectLocked || project?.status === "Pending") return;
                             openResourcesForTask(task.task_id);
                           }}
                           disabled={
-                            isProjectLocked ||
-                            project?.status === "Pending" ||
                             task.status === "Completed" ||
                             task.status === "Pending Deletion" ||
                             stages[activeStageIdx]?.status === "Pending Deletion"
                           }
                           className={`text-xs px-3 py-1.5 rounded-md w-[90px] ${
-                            isProjectLocked ||
-                            project?.status === "Pending" ||
+                      
                             task.status === "Completed" ||
                             task.status === "Pending Deletion" ||
                             stages[activeStageIdx]?.status === "Pending Deletion"
@@ -1291,19 +1514,49 @@ export default function ProjectDashboard() {
               {(project?.resources || []).length === 0 && (
                 <div className="text-xs text-gray-500">No resources yet.</div>
               )}
-              {(project?.resources || []).map(r => (
-                <div key={r.id} className="flex items-center justify-between text-xs border border-gray-200 rounded p-2">
-                  <div className="flex items-center gap-2">
-                    <FolderOpen size={14} className="text-gray-500" />
-                    <div>
-                      <div className="font-medium text-gray-900">{r.title}</div>
-                      <div className="text-gray-500">{r.kind}{r.size ? ` • ${(r.size/1024).toFixed(1)} KB` : ''}</div>
-                      {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline inline-flex items-center gap-1 mt-1">Open <ExternalLink size={10} /></a>}
+              {(project?.resources || []).map(r => {
+                const id = r.resource_id || r.id;
+                const format = r.resource_format || r.kind;
+                const size = r.size;
+                const url = r?.metadata?.file_url || r.external_link_location || r.url;
+                return (
+                  <div key={id} className="flex items-center justify-between text-xs border border-gray-200 rounded p-2">
+                    <div className="flex items-center gap-2">
+                      <FolderOpen size={14} className="text-gray-500" />
+                      <div>
+                        <div className="font-medium text-gray-900">{r.title}</div>
+                        {r.description && (
+                          <div className="text-[11px] text-gray-600 mt-0.5">{r.description}</div>
+                        )}
+                        <div className="text-gray-500">
+                          {r.resource_type || 'Resource'}
+                          {format ? ` • ${format}` : ''}
+                          {size ? ` • ${(size/1024).toFixed(1)} KB` : ''}
+                        </div>
+                        {url && (
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 underline inline-flex items-center gap-1 mt-1"
+                          >
+                            Open <ExternalLink size={10} />
+                          </a>
+                        )}
+                      </div>
                     </div>
+                    {res.intended_user?.toUpperCase() === "S" && (
+                      <button
+                        onClick={() => handleRemoveResource(res.resource_id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
+                    )}
+
                   </div>
-                  <button onClick={()=>handleRemoveResource(r.id)} className="text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 inline-flex items-center gap-1"><Trash2 size={12}/>Remove</button>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="pt-3 border-t border-gray-200">
               <h3 className="text-sm font-semibold text-gray-900 mb-2">Activity</h3>
@@ -1311,15 +1564,63 @@ export default function ProjectDashboard() {
                 <div className="text-xs text-gray-500">No activity yet.</div>
               )}
               <div className="space-y-2">
-                {(project?.activity || []).map(a => (
-                  <div key={a.id} className="flex items-center justify-between text-xs border border-gray-200 rounded p-2">
-                    <div>
-                      <div className="font-medium text-gray-900">{a.action}</div>
-                      <div className="text-gray-600">{a.details}</div>
+                {(project?.activity || []).map(a => {
+                  // Check if this is a resource-related activity
+                  const isResourceActivity = a.action?.toLowerCase().includes('resource') || a.details?.toLowerCase().includes('upload');
+                  const resourceInfo = isResourceActivity ? (project?.resources || []).find(r => 
+                    a.details?.includes(r.resource_id) || a.details?.includes(r.title)
+                  ) : null;
+                  
+                  return (
+                    <div key={a.id} className="border border-gray-200 rounded p-3">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 text-sm">
+                            {resourceInfo ? resourceInfo.title : a.action}
+                          </div>
+                          {resourceInfo && (
+                            <div className="text-xs text-gray-600 mt-1">
+                              {resourceInfo.metadata?.filename || resourceInfo.title}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(a.at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      
+                      {resourceInfo && (
+                        <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                          <span>{(resourceInfo.metadata?.size ? (resourceInfo.metadata.size/1024).toFixed(1) : '0')} KB</span>
+                          <span>Uploaded {new Date(a.at).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                      
+                      <div className="text-xs text-gray-600">
+                        {resourceInfo?.description || a.details}
+                      </div>
+                      
+                      {resourceInfo?.tags && resourceInfo.tags.length > 0 && (
+                        <div className="mt-2">
+                          {resourceInfo.tags.map((tag, idx) => (
+                            <span key={idx} className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded mr-1">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2 mt-3">
+                        <button className="text-xs px-2 py-1 rounded bg-purple-600 text-white hover:bg-purple-700 inline-flex items-center gap-1">
+                          Open
+                        </button>
+                        <button className="text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 inline-flex items-center gap-1">
+                          Remove
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-gray-500">{new Date(a.at).toLocaleString()}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1347,7 +1648,7 @@ export default function ProjectDashboard() {
               <button
                 onClick={() => {
                   setShowDeleteDialog(false);
-                  setDeleteReason('');     // ← reset on close
+                  setDeleteReason('');     // â† reset on close
                 }}
                 className="text-sm px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition"
               >
@@ -1501,7 +1802,7 @@ export default function ProjectDashboard() {
 
       {showResourcesDialog && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
-          <div className="w-[640px] rounded-2xl bg-white p-6 shadow-lg">
+          <div className="w-[720px] rounded-2xl bg-white p-6 shadow-lg">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-gray-900">Resources</h2>
               <button
@@ -1512,8 +1813,188 @@ export default function ProjectDashboard() {
               </button>
             </div>
 
+            <div className="max-h-[260px] overflow-y-auto space-y-2 text-xs">
+              {(() => {
+                const allResources = project?.resources || [];
+                const task = selectedResourceTask;
+
+                let taskResources = [];
+
+                // ➊ Teacher-provided link
+                if (task?.evidence_link) {
+                  taskResources.push({
+                    title: "Task Resource",
+                    url: task.evidence_link,
+                  });
+                }
+
+                // ➋ Student resources belonging to this task
+                const studentResources = (project?.resources || []).filter(
+                  r => r?.metadata?.resourcesTaskId === resourcesTaskId
+                );
+
+                taskResources.push(...studentResources);
+
+
+                taskResources.map((r, idx) => (
+                  <div key={idx} className="flex items-start ...">
+                    <div className="font-medium">{r.title}</div>
+
+                    <a href={r.url} target="_blank" className="text-blue-600 underline">
+                      Open
+                    </a>
+
+                    {r.description && <p>{r.description}</p>}
+                  </div>
+                ))
+
+
+
+                if (taskResources.length === 0) {
+                  return (
+                    <div className="text-sm text-gray-600 italic">
+                      No resources yet for this task. Use the Add Resource button below to add one.
+                    </div>
+                  );
+                }
+
+                return taskResources.map((r) => {
+                  const id = r.resource_id || r.id;
+                  const format = r.resource_format || r.kind;
+                  const size = r.size;
+                  const createdAt = r.created_at;
+                  const updatedAt = r.updated_at;
+                  const url = r?.metadata?.file_url || r.external_link_location || r.url;
+                  return (
+                    <div key={id} className="flex items-start justify-between border border-gray-200 rounded p-2">
+                      <div className="flex items-start gap-2">
+                        <FolderOpen size={14} className="mt-0.5 text-gray-500" />
+                        <div>
+                          <div className="font-medium text-gray-900">{r.title}</div>
+                          {r.description && (
+                            <div className="text-xs text-gray-600 mt-0.5">{r.description}</div>
+                          )}
+                          <div className="text-gray-500">
+                            {r.resource_type || 'Resource'}
+                            {format ? ` • ${format}` : ''}
+                            {size ? `  • ${(size / 1024).toFixed(1)} KB` : ''}
+                          </div>
+                          {url && (
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 underline inline-flex items-center gap-1 mt-1"
+                            >
+                              {r.metadata?.filename ? (
+                                <>
+                                  View file ({r.metadata.filename}) <ExternalLink size={10} />
+                                </>
+                              ) : (
+                                <>
+                                  Open <ExternalLink size={10} />
+                                </>
+                              )}
+                            </a>
+                          )}
+                          {(createdAt || updatedAt) && (
+                            <div className="mt-1 text-[11px] text-gray-500">
+                              {createdAt && (
+                                <span>Created: {new Date(createdAt).toLocaleString()}</span>
+                              )}
+                              {createdAt && updatedAt && <span> • </span>}
+                              {updatedAt && (
+                                <span>Updated: {new Date(updatedAt).toLocaleString()}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveResource(id)}
+                        className="mt-1 text-xs px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setResourceFormError('');
+                  setLastUploadedFile(null);   
+                  setNewResourceTitle('');
+                  setNewResourceDescription('');
+                  setNewResourceLink('');
+                  setNewResourceTagsInput('');
+                  setShowAddResourceDialog(true);
+                }}
+
+                className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+              >
+                <Plus size={14} /> Add Resource
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddResourceDialog && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40">
+          <div className="w-[720px] rounded-2xl bg-white p-6 shadow-lg">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-900">Add Resource</h2>
+              <button
+                onClick={() => {
+                  setShowAddResourceDialog(false);
+                  setLastUploadedFile(null); 
+                  setNewResourceTitle('');
+                  setNewResourceDescription('');
+                  setNewResourceLink('');
+                  setNewResourceTagsInput('');
+                }}
+
+                className="rounded-md bg-gray-200 px-3 py-1.5 text-xs text-gray-800 hover:bg-gray-300"
+              >
+                Close
+              </button>
+            </div>
+
+            {lastUploadedFile && (
+              <div className="mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 flex items-center justify-between">
+                <div>
+                  <div className="font-semibold">File uploaded</div>
+                  <div className="text-[11px]">
+                    {lastUploadedFile.name}
+                    {lastUploadedFile.size
+                      ? ` (${(lastUploadedFile.size / 1024).toFixed(1)} KB)`
+                      : ''}
+                  </div>
+                </div>
+                <a
+                  href={lastUploadedFile.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-700 underline inline-flex items-center gap-1 text-[11px]"
+                >
+                  Preview file <ExternalLink size={10} />
+                </a>
+              </div>
+            )}
+
+            {resourceFormError && (
+              <div className="mb-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {resourceFormError}
+              </div>
+            )}
+
             {/* Task's existing resource link (View Resource) */}
-            {selectedResourceTask?.evidence_link && (
+            {/* {selectedResourceTask?.evidence_link && (
               <div className="mb-4 border border-gray-200 bg-gray-50 rounded p-3 text-sm">
                 <div className="font-medium text-gray-800 mb-1">Task Resource</div>
                 <a
@@ -1525,55 +2006,131 @@ export default function ProjectDashboard() {
                   <BookOpen size={14} /> View Resource <ExternalLink size={10} />
                 </a>
               </div>
-            )}
+            )} */}
 
-            <div className="mb-4 flex justify-end">
-              <button
-                onClick={handleAttachResource}
-                className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
-              >
-                <Upload size={14} /> Add Resource
-              </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                onChange={handleFileSelected}
-              />
-            </div>
+            {/* Student resource details form */}
+            <div className="grid grid-cols-2 gap-4 mb-4 text-xs">
+              <div className="space-y-2">
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">Title</label>
+                  <input
+                    value={newResourceTitle}
+                    onChange={(e) => setNewResourceTitle(e.target.value)}
+                    placeholder="e.g. 8th Grade Linear Equations Intro Video"
+                    className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
 
-            <div className="max-h-[320px] overflow-y-auto space-y-2">
-              {(project?.resources && project.resources.length > 0) ? (
-                project.resources.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between border border-gray-200 rounded p-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <FolderOpen size={14} className="text-gray-500" />
-                      <div>
-                        <div className="font-medium text-gray-900">{r.title}</div>
-                        <div className="text-gray-500">{r.kind}{r.size ? ` • ${(r.size/1024).toFixed(1)} KB` : ''}</div>
-                        {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline inline-flex items-center gap-1 mt-1">Open <ExternalLink size={10} /></a>}
-                      </div>
-                      <BookOpen size={14} className="text-purple-600" />
-                      <a
-                        href={r.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 underline"
-                      >
-                        {r.title || 'Resource'}
-                      </a>
-                    </div>
-                    <button
-                      onClick={() => handleRemoveResource(r.id)}
-                      className="text-xs px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <div className="text-sm text-gray-600 italic">No resources yet. Use \"Add Resource\" to upload one.</div>
-              )}
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={newResourceDescription}
+                    onChange={(e) => setNewResourceDescription(e.target.value)}
+                    rows={3}
+                    placeholder="Briefly describe topic, grade, and purpose."
+                    className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">External Link (optional)</label>
+                  <input
+                    value={newResourceLink}
+                    onChange={(e) => setNewResourceLink(e.target.value)}
+                    placeholder="https://... (Google Doc, YouTube, etc.)"
+                    className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">Resource Type</label>
+                  <select
+                    value={newResourceType}
+                    onChange={(e) => setNewResourceType(e.target.value)}
+                    className="w-full rounded-md border border-gray-300 p-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="Lesson Plan">Lesson Plan</option>
+                    <option value="Quiz">Quiz</option>
+                    <option value="Video">Video</option>
+                    <option value="Worksheet">Worksheet</option>
+                    <option value="Reference">Reference</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">Format</label>
+                  <select
+                    value={newResourceFormat}
+                    onChange={(e) => setNewResourceFormat(e.target.value)}
+                    className="w-full rounded-md border border-gray-300 p-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="pdf">PDF</option>
+                    <option value="video_stream">Video stream</option>
+                    <option value="link">Link</option>
+                    <option value="interactive_web_app">Interactive web app</option>
+                    <option value="doc">Document</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">Subject</label>
+                  <input
+                    value={newResourceSubject || project?.subject_domain || ''}
+                    onChange={(e) => setNewResourceSubject(e.target.value)}
+                    placeholder="e.g. math, science, ela"
+                    className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">Source</label>
+                  <select
+                    value={newResourceSource}
+                    onChange={(e) => setNewResourceSource(e.target.value)}
+                    className="w-full rounded-md border border-gray-300 p-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="student_created">Student created</option>
+                    <option value="teacher_created">Teacher created</option>
+                    <option value="district_adopted">District adopted</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">Tags (comma-separated, max 10)</label>
+                  <input
+                    value={newResourceTagsInput}
+                    onChange={(e) => setNewResourceTagsInput(e.target.value)}
+                    placeholder="e.g. grade_8, linear_equations, algebra"
+                    className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={handleAttachResource}
+                    className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    <Upload size={14} /> Upload File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddResourceFromForm}
+                    className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                  >
+                    Save Resource
+                  </button>
+                </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileSelected}
+                />
+              </div>
             </div>
           </div>
         </div>

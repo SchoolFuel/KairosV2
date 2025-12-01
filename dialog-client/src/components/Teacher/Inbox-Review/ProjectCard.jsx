@@ -12,7 +12,14 @@ function ProjectCard({
 }) {
   const title = project.title || project.project_title || "Untitled";
   const subject = project.subject_domain || "—";
-  const status = (project.status || "—").trim();
+  let status = (project.status || "—").trim();
+  // Display "New Project" instead of "Pending"
+  if (
+    status.toLowerCase().includes("pending") &&
+    !status.toLowerCase().includes("new project")
+  ) {
+    status = "New Project";
+  }
   const owner = project.owner_name || project.owner_email || "";
   const description = project.description || "";
   const createdAt = project.created_at || project.createdAt || "";

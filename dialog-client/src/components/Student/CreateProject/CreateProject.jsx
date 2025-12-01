@@ -191,31 +191,6 @@ const CreateProject = () => {
       })
       .lockProject(projectData);
   }, [projectData, showToast]);
-  /*
-  const lockProject = useCallback(() => {
-    if (window.confirm('Are you sure you want to lock and submit this project? You won\'t be able to make further edits.')) {
-      // Uncomment for production
-      // google.script.run
-      //   .withSuccessHandler((result) => {
-      //     if (result.success) {
-      //       showToast(result.message || 'Project locked and submitted successfully!', 'success');
-      //       setTimeout(() => google.script.host.close(), 2000);
-      //     } else {
-      //       showToast('Error: ' + result.message, 'error');
-      //     }
-      //   })
-      //   .withFailureHandler((error) => {
-      //     showToast('Error locking project: ' + error, 'error');
-      //   })
-      //   .lockProject(projectData);
-      
-      // Demo version
-      showToast('Project locked and submitted successfully!', 'success');
-      setTimeout(() => {
-        console.log('Would close dialog here');
-      }, 2000);
-    }
-  }, [projectData, showToast]); */
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -301,15 +276,14 @@ const CreateProject = () => {
                     </h4>
                     <ul className="text-xs text-blue-800 space-y-1">
                       <li>
-                        • "Interactive website explaining Newton's Laws with
-                        animations"
+                        - "How can Arizona reduce agricultural water use by 25% by 2040 while protecting tribal rights and sustaining the Colorado River ecosystem?"
                       </li>
                       <li>
-                        • "Research project on climate change impact in local
+                        - "Research project on climate change impact in local
                         communities"
                       </li>
                       <li>
-                        • "Quiz game to test knowledge about U.S. presidents"
+                        - "How do TikTok, YouTube, and “fake news” shape political identity and trust in democracy among youth, and what solutions could strengthen media literacy?"
                       </li>
                     </ul>
                   </div>
