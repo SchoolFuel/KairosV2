@@ -22,7 +22,7 @@ const SubjectFilter = ({ onApplyFilter, loading }) => {
       <div className="tpq-filters-header">
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Filter size={20} style={{ color: "#667eea" }} />
+            <Filter size={20} style={{ color: "#1a202c" }} />
             <h3>Filter Projects by Subject</h3>
           </div>
           <p className="tpq-filters-subtitle">
