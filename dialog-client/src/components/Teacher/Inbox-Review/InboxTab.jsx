@@ -1,7 +1,6 @@
-import React from "react";
-import { BookOpen, Loader2 } from "lucide-react";
+import React, { useMemo } from "react";
+import { BookOpen, Loader2, User } from "lucide-react";
 import ProjectCard from "./ProjectCard";
-import SubjectFilter from "./SubjectFilter";
 
 const InboxTab = ({
   projects,
@@ -14,55 +13,29 @@ const InboxTab = ({
   setStartDate,
   endDate,
   setEndDate,
+  studentNameFilter,
+  setStudentNameFilter,
+  subjectFilter,
+  setSubjectFilter,
   onReview,
   onApprove,
   onReject,
   onViewDeletionRequests,
-  hasSubjectFilter,
   loading,
-  onApplySubjectFilter,
-  selectedSubject,
 }) => {
-  // Show subject filter if no subject has been selected yet
-  if (!hasSubjectFilter) {
-    return (
-      <>
-        <SubjectFilter onApplyFilter={onApplySubjectFilter} loading={loading} />
-        {loading && (
-          <div className="tpq-loading">
-            <div className="spin">
-              <Loader2 size={32} />
-            </div>
-            <p>Loading projects...</p>
-          </div>
-        )}
-      </>
-    );
-  }
+  // Get unique subjects from projects
+  const uniqueSubjects = useMemo(() => {
+    const subjects = new Set();
+    projects.forEach((project) => {
+      if (project.subject_domain) {
+        subjects.add(project.subject_domain);
+      }
+    });
+    return Array.from(subjects).sort();
+  }, [projects]);
 
   return (
     <>
-      {/* Show selected subject */}
-      {selectedSubject && (
-        <div
-          style={{
-            padding: "12px 16px",
-            backgroundColor: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            borderRadius: "6px",
-            marginBottom: "16px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          <BookOpen size={16} />
-          <span style={{ fontWeight: "500", color: "#1e40af" }}>
-            Showing projects for: <strong>{selectedSubject}</strong>
-          </span>
-        </div>
-      )}
-
       {/* Filters and Search */}
       <div className="tpq-controls">
         <div
@@ -73,68 +46,6 @@ const InboxTab = ({
             flexWrap: "wrap",
           }}
         >
-          {/* Status Filter Dropdown */}
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <label
-              htmlFor="statusFilter"
-              style={{
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "#4a5568",
-                margin: 0,
-              }}
-            >
-              Status:
-            </label>
-            <select
-              id="statusFilter"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              style={{
-                padding: "6px 12px",
-                border: "1px solid #cbd5e0",
-                borderRadius: "6px",
-                fontSize: "14px",
-                minWidth: "150px",
-                backgroundColor: "white",
-                cursor: "pointer",
-              }}
-            >
-              <option value="all">All ({projects.length})</option>
-              <option value="pending">
-                New Project (
-                {
-                  projects.filter(
-                    (p) =>
-                      p.status.toLowerCase().includes("pending") ||
-                      p.status.toLowerCase().includes("new project")
-                  ).length
-                }
-                )
-              </option>
-              <option value="revision">
-                Revision (
-                {
-                  projects.filter((p) =>
-                    p.status.toLowerCase().includes("revision")
-                  ).length
-                }
-                )
-              </option>
-              <option value="approve">
-                Approve (
-                {
-                  projects.filter(
-                    (p) =>
-                      p.status.toLowerCase().includes("approve") ||
-                      p.status.toLowerCase().includes("approved")
-                  ).length
-                }
-                )
-              </option>
-            </select>
-          </div>
-
           {/* Date Range Filter */}
           <div
             style={{
@@ -196,16 +107,173 @@ const InboxTab = ({
               </button>
             )}
           </div>
-        </div>
 
-        <div className="tpq-search">
-          <input
-            type="text"
-            placeholder="Search projects,students..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="tpq-search-input"
-          />
+          {/* Student Name Filter */}
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <label
+              htmlFor="studentNameFilter"
+              style={{
+                fontSize: "14px",
+                fontWeight: 500,
+                color: "#4a5568",
+                margin: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <User size={14} />
+              Student Name:
+            </label>
+            <input
+              id="studentNameFilter"
+              type="text"
+              value={studentNameFilter}
+              onChange={(e) => setStudentNameFilter(e.target.value)}
+              placeholder="Filter by student name..."
+              style={{
+                padding: "6px 12px",
+                border: "1px solid #cbd5e0",
+                borderRadius: "6px",
+                fontSize: "14px",
+                minWidth: "180px",
+              }}
+            />
+            {studentNameFilter && (
+              <button
+                onClick={() => setStudentNameFilter("")}
+                style={{
+                  padding: "6px 12px",
+                  backgroundColor: "#e2e8f0",
+                  border: "1px solid #cbd5e0",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  color: "#4a5568",
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Subject Filter */}
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <label
+              htmlFor="subjectFilter"
+              style={{
+                fontSize: "14px",
+                fontWeight: 500,
+                color: "#4a5568",
+                margin: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <BookOpen size={14} />
+              Subject:
+            </label>
+            <select
+              id="subjectFilter"
+              value={subjectFilter}
+              onChange={(e) => setSubjectFilter(e.target.value)}
+              style={{
+                padding: "6px 12px",
+                border: "1px solid #cbd5e0",
+                borderRadius: "6px",
+                fontSize: "14px",
+                minWidth: "150px",
+                backgroundColor: "white",
+                cursor: "pointer",
+              }}
+            >
+              <option value="">All Subjects</option>
+              {uniqueSubjects.map((subject) => (
+                <option key={subject} value={subject}>
+                  {subject}
+                </option>
+              ))}
+            </select>
+            {subjectFilter && (
+              <button
+                onClick={() => setSubjectFilter("")}
+                style={{
+                  padding: "6px 12px",
+                  backgroundColor: "#e2e8f0",
+                  border: "1px solid #cbd5e0",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  color: "#4a5568",
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Status Filter Dropdown */}
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <label
+              htmlFor="statusFilter"
+              style={{
+                fontSize: "14px",
+                fontWeight: 500,
+                color: "#4a5568",
+                margin: 0,
+              }}
+            >
+              Status:
+            </label>
+            <select
+              id="statusFilter"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              style={{
+                padding: "6px 12px",
+                border: "1px solid #cbd5e0",
+                borderRadius: "6px",
+                fontSize: "14px",
+                minWidth: "150px",
+                backgroundColor: "white",
+                cursor: "pointer",
+              }}
+            >
+              <option value="all">All ({projects.length})</option>
+              <option value="pending">
+                New Project (
+                {
+                  projects.filter(
+                    (p) =>
+                      p.status.toLowerCase().includes("pending") ||
+                      p.status.toLowerCase().includes("new project")
+                  ).length
+                }
+                )
+              </option>
+              <option value="revision">
+                Revision (
+                {
+                  projects.filter((p) =>
+                    p.status.toLowerCase().includes("revision")
+                  ).length
+                }
+                )
+              </option>
+              <option value="approve">
+                Approve (
+                {
+                  projects.filter(
+                    (p) =>
+                      p.status.toLowerCase().includes("approve") ||
+                      p.status.toLowerCase().includes("approved")
+                  ).length
+                }
+                )
+              </option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -224,10 +292,15 @@ const InboxTab = ({
               <BookOpen size={48} />
               <h3>No projects found</h3>
               <p>
-                {searchTerm || filter !== "all"
+                {searchTerm ||
+                filter !== "all" ||
+                startDate ||
+                endDate ||
+                studentNameFilter ||
+                subjectFilter
                   ? "Try adjusting your search or filter criteria"
                   : projects.length === 0
-                  ? `No projects found for ${selectedSubject}`
+                  ? "No projects found"
                   : `No projects match your filters. Showing ${
                       projects.length
                     } total project${projects.length !== 1 ? "s" : ""}.`}
