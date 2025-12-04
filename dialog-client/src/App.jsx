@@ -4,6 +4,7 @@ import LearningStandardsDialog from "./components/Shared/LearningStandards/Learn
 import CreateProject from "./components/Student/CreateProject/CreateProject";
 import TeacherProjectQueue from "./components/Teacher/TeacherProjectQueue";
 import ProjectDashboard from './components/Student/MyProjects/projectdashboard';
+import IgniteHelp from "./components/Shared/IgniteHelp";
 
 const DIALOGS = {
   "student-standards": LearningStandardsDialog,
@@ -12,6 +13,7 @@ const DIALOGS = {
   "teacher-project-queue": TeacherProjectQueue,
   //"teacher-gate-assessment": GateStandards,
   "add-standard": LearningStandardsDialog,
+  "ignite-help": IgniteHelp,
 };
 function App() {
   const [dialogType, setDialogType] = useState("dashboard");

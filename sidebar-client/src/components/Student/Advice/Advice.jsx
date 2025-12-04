@@ -43,7 +43,7 @@ export default function SidebarAdvice() {
         .withSuccessHandler((result) => {
           const isEmpty = !result || !result.action_response;
           const adviceData = isEmpty ? null : result.action_response.response;
-          
+
           setRecommendation(adviceData);
           setHasAdvice(!!adviceData);
           setIsLoading(false);
@@ -112,7 +112,7 @@ export default function SidebarAdvice() {
 
   const buildFullText = () => {
     if (!recommendation) return "";
-    
+
     return [
       `🧠 Advice: ${recommendation?.advice || ""}`,
       ``,
@@ -145,9 +145,9 @@ export default function SidebarAdvice() {
     <div className="w-full max-w-[300px] font-sans">
       {/* Main Card */}
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden transition-all duration-200">
-        
+
         {/* Toggle Header */}
-        <div 
+        <div
           onClick={toggleExpanded}
           className="w-full p-3 cursor-pointer transition-colors duration-200 hover:bg-gray-50"
         >
@@ -158,7 +158,7 @@ export default function SidebarAdvice() {
                 <MessageCircle className={`w-5 h-5 ${status.color}`} />
                 <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${status.dot} shadow-sm`}></div>
               </div>
-              
+
               {/* Title and Status */}
               <div>
                 <div className="font-medium text-gray-900">Get Advice</div>
@@ -167,12 +167,11 @@ export default function SidebarAdvice() {
                 </div>
               </div>
             </div>
-            
+
             {/* Chevron */}
-            <ChevronDown 
-              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
-                isExpanded ? "rotate-180" : ""
-              }`} 
+            <ChevronDown
+              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""
+                }`}
             />
           </div>
         </div>
@@ -181,7 +180,7 @@ export default function SidebarAdvice() {
         {isExpanded && (
           <div className="border-t border-gray-100">
             <div className="p-6 space-y-6">
-              
+
               {/* Input Section */}
               <div className="space-y-4">
                 {/* Question Input */}
@@ -238,7 +237,7 @@ export default function SidebarAdvice() {
                       </>
                     )}
                   </button>
-                  
+
                   {!isLoading && (userInput || recommendation || subject) && (
                     <button
                       onClick={handleClear}
@@ -261,7 +260,7 @@ export default function SidebarAdvice() {
               {/* Advice Display */}
               {hasAdvice && recommendation && (
                 <div className="bg-slate-50 border border-slate-200 rounded p-3 space-y-3">
-                  
+
                   {/* Header */}
                   <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
                     <Lightbulb className="w-3 h-3 text-indigo-600" />
@@ -272,7 +271,7 @@ export default function SidebarAdvice() {
 
                   {/* Advice Content */}
                   <div className="space-y-3">
-                    
+
                     {/* Main Advice */}
                     {recommendation.advice && (
                       <div>
@@ -367,7 +366,7 @@ export default function SidebarAdvice() {
                       <Copy className="w-3 h-3" />
                       Copy
                     </button>
-                    
+
                     <button
                       onClick={() => alert("✅ Added to your project!")}
                       className="flex items-center justify-center gap-1 px-2 py-1 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700"
@@ -375,7 +374,7 @@ export default function SidebarAdvice() {
                       <Plus className="w-3 h-3" />
                       Add to Project
                     </button>
-                    
+
                     <button
                       onClick={() => alert("📄 PDF download is not available yet")}
                       className="flex items-center justify-center gap-1 px-2 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700"

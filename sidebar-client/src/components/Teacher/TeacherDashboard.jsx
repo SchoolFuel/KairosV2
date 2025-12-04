@@ -1,9 +1,38 @@
 import React, { useState } from "react";
 import { ClipboardList, ChevronDown } from "lucide-react";
 import "./Teacher.css";
+import MySpark from "../Shared/MySpark";
+import { useMySparkGate } from "../Shared/MySparkGate";
 
-export default function TeacherDashboard() {
+export default function TeacherDashboard({ email }) {
   const [isProjectQueueExpanded, setIsProjectQueueExpanded] = useState(false);
+  const [phase, setPhase] = useState('verifying'); // 'verifying' | 'myspark' | 'home'
+  const { mySparkStats } = useMySparkGate(setPhase);
+
+  if (phase === 'verifying') {
+    return (
+      <div className="w-full flex items-center justify-center py-16">
+        <div className="flex items-center gap-3 text-gray-700">
+          <svg className="animate-spin h-5 w-5 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+          <span>Verifying your credentials…</span>
+        </div>
+      </div>
+    );
+  }
+
+  const handleHideMySpark = () => {
+    try {
+      // Store today's date in localStorage to hide My Spark for today
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem('mySparkHideDate', today);
+    } catch (e) {
+      // Ignore errors
+    }
+  };
+
+  if (phase === 'myspark') {
+    return <MySpark userName={email || 'Teacher'} stats={mySparkStats} onContinue={() => setPhase('home')} onHideToday={handleHideMySpark} />;
+  }
 
   // Function to open Teacher Project Queue dialog
   const openProjectQueueDialog = () => {
@@ -78,6 +107,29 @@ export default function TeacherDashboard() {
             </div>
           )}
         </div>
+      </div>
+      {/* IgniteHelp Button */}
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+        <button
+          className="td-queue-btn"
+          onClick={() => {
+            try {
+              google.script.run.openIgniteHelp();
+            } catch (e) {}
+          }}
+          title="Get sparked! Access help and resources"
+          style={{
+            background: "linear-gradient(to right, #f97316, #fb923c)",
+            color: "white",
+            border: "none",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px"
+          }}
+        >
+          <span style={{ fontSize: "18px" }}>⚡</span>
+          IgniteHelp
+        </button>
       </div>
     </div>
   );

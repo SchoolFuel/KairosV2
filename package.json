@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "description": "Welcome to **Kairos V2** – a collaborative Google Apps Script project now managed via **Git**. This guide helps you get started with setting up the project, contributing, and collaborating with the team.",
   "main": "Code.js",
-  "workspaces":["sidebar-client", "dialog-client"],
+  "workspaces": [
+    "sidebar-client",
+    "dialog-client"
+  ],
   "scripts": {
-    "build:sidebar":"npm run build --workspace sidebar-client",
-    "build:dialog":"npm run build --workspace dialog-client",
-    "build:all":"npm run build:sidebar && npm run build:dialog",
-    "deploy":"npm run build:all && npx clasp push"
+    "build:sidebar": "npm run build --workspace sidebar-client",
+    "build:dialog": "npm run build --workspace dialog-client",
+    "build:all": "npm run build:sidebar && npm run build:dialog",
+    "deploy": "npm run build:all && npx clasp push"
   },
   "repository": {
     "type": "git",
@@ -20,5 +23,8 @@
   "bugs": {
     "url": "https://github.com/SchoolFuel/KairosV2/issues"
   },
-  "homepage": "https://github.com/SchoolFuel/KairosV2#readme"
+  "homepage": "https://github.com/SchoolFuel/KairosV2#readme",
+  "dependencies": {
+    "@google/clasp": "^3.1.0"
+  }
 }
