@@ -55,7 +55,7 @@ export default function StudentDashboard({ email }) {
       <IntroductionContainer />
       <SidebarMorningPulse />
       <CreateProject />
-      <StudentProjects />
+      {/* <StudentProjects /> */}
       <StudentPrototype />
       <GuideMe />
       <SidebarWorkshop />

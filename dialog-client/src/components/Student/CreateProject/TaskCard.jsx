@@ -1,8 +1,8 @@
-import React from 'react';
+import React from "react";
 
 const TaskCard = ({ task, stageIndex, taskIndex, onUpdate }) => {
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 ">
       <div className="mb-3">
         <label className="block text-xs font-semibold text-gray-500 mb-1">
           TASK {taskIndex + 1} TITLE
@@ -10,7 +10,9 @@ const TaskCard = ({ task, stageIndex, taskIndex, onUpdate }) => {
         <input
           type="text"
           value={task.title}
-          onChange={(e) => onUpdate(stageIndex, taskIndex, 'title', e.target.value)}
+          onChange={(e) =>
+            onUpdate(stageIndex, taskIndex, "title", e.target.value)
+          }
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm font-medium"
         />
       </div>
@@ -21,7 +23,9 @@ const TaskCard = ({ task, stageIndex, taskIndex, onUpdate }) => {
         <textarea
           rows="2"
           value={task.description}
-          onChange={(e) => onUpdate(stageIndex, taskIndex, 'description', e.target.value)}
+          onChange={(e) =>
+            onUpdate(stageIndex, taskIndex, "description", e.target.value)
+          }
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm resize-none"
         />
       </div>

@@ -1,15 +1,15 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { Folder, Loader2, Lock, Save, RotateCcw } from 'lucide-react';
-import Toast from './Toast';
-import StageTab from './StageTab';
-import TaskCard from './TaskCard';
-import AssessmentGate from './AssessmentGate';
-import ConfirmModal from './ConfirmModal';
+import React, { useState, useCallback, useRef } from "react";
+import { Folder, Loader2, Lock, Save, RotateCcw } from "lucide-react";
+import Toast from "./Toast";
+import StageTab from "./StageTab";
+import TaskCard from "./TaskCard";
+import AssessmentGate from "./AssessmentGate";
+import ConfirmModal from "./ConfirmModal";
 
 const CreateProject = () => {
-  const [view, setView] = useState('input'); // 'input', 'loading', 'project'
-  const [projectInput, setProjectInput] = useState('');
-  const [subject, setSubject] = useState('');
+  const [view, setView] = useState("input"); // 'input', 'loading', 'project'
+  const [projectInput, setProjectInput] = useState("");
+  const [subject, setSubject] = useState("");
   const [projectData, setProjectData] = useState(null);
   const [originalData, setOriginalData] = useState(null);
   const [currentStage, setCurrentStage] = useState(0);
@@ -20,25 +20,25 @@ const CreateProject = () => {
   const wsRef = useRef(null);
 
   const subjects = {
-    mathematics: 'Mathematics',
-    science: 'Science',
-    english: 'English',
-    history: 'History',
-    art: 'Art',
-    technology: 'Technology',
-    other: 'Other'
+    mathematics: "Mathematics",
+    science: "Science",
+    english: "English",
+    history: "History",
+    art: "Art",
+    technology: "Technology",
+    other: "Other",
   };
 
   const loadingSteps = [
-    'Connecting to project service...',
-    'Analyzing your requirements...',
-    'Generating project structure...',
-    'Creating stages and tasks...',
-    'Adding assessment gates...',
-    'Finalizing project details...'
+    "Connecting to project service...",
+    "Analyzing your requirements...",
+    "Generating project structure...",
+    "Creating stages and tasks...",
+    "Adding assessment gates...",
+    "Finalizing project details...",
   ];
 
-  const showToast = useCallback((message, type = 'success') => {
+  const showToast = useCallback((message, type = "success") => {
     setToast({ message, type });
   }, []);
 
@@ -48,20 +48,20 @@ const CreateProject = () => {
 
   const generateProject = useCallback(() => {
     if (!projectInput.trim()) {
-      showToast('Please describe your project', 'error');
+      showToast("Please describe your project", "error");
       return;
     }
     if (!subject) {
-      showToast('Please select a subject', 'error');
+      showToast("Please select a subject", "error");
       return;
     }
 
-    setView('loading');
+    setView("loading");
     setLoadingStep(0);
-    
+
     // Animate loading steps
     const stepInterval = setInterval(() => {
-      setLoadingStep(prev => {
+      setLoadingStep((prev) => {
         if (prev >= 5) {
           clearInterval(stepInterval);
           return prev;
@@ -71,7 +71,9 @@ const CreateProject = () => {
     }, 10000);
 
     // Start WebSocket connection
-    const ws = new WebSocket('wss://s7pmpoc37f.execute-api.us-west-1.amazonaws.com/prod/');
+    const ws = new WebSocket(
+      "wss://s7pmpoc37f.execute-api.us-west-1.amazonaws.com/prod/"
+    );
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -80,8 +82,8 @@ const CreateProject = () => {
         action: "createproject",
         payload: {
           email_id: "mindspark.user1@schoolfuel.org",
-          message: message
-        }
+          message: message,
+        },
       };
       ws.send(JSON.stringify(payload));
     };
@@ -94,35 +96,38 @@ const CreateProject = () => {
       }
 
       const response = event.data.trim();
-      
+
       try {
         const parsedJson = JSON.parse(response);
-        if (parsedJson.statusCode === 200 && parsedJson?.body?.action_response?.response?.project) {
+        if (
+          parsedJson.statusCode === 200 &&
+          parsedJson?.body?.action_response?.response?.project
+        ) {
           const project = parsedJson.body.action_response.response.project;
           setProjectData(project);
           setOriginalData(JSON.parse(JSON.stringify(project)));
-          setView('project');
+          setView("project");
           clearInterval(stepInterval);
           ws.close();
         }
       } catch (err) {
-        console.error('Parse error:', err);
-        showToast('Error generating project. Please try again.', 'error');
-        setView('input');
+        console.error("Parse error:", err);
+        showToast("Error generating project. Please try again.", "error");
+        setView("input");
         clearInterval(stepInterval);
       }
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      showToast('Connection error. Please try again.', 'error');
-      setView('input');
+      console.error("WebSocket error:", error);
+      showToast("Connection error. Please try again.", "error");
+      setView("input");
       clearInterval(stepInterval);
     };
   }, [projectInput, subject, subjects, showToast]);
 
   const updateStageTitle = useCallback((stageIndex, value) => {
-    setProjectData(prev => {
+    setProjectData((prev) => {
       const updated = { ...prev };
       updated.stages[stageIndex].title = value;
       return updated;
@@ -131,7 +136,7 @@ const CreateProject = () => {
   }, []);
 
   const updateTask = useCallback((stageIndex, taskIndex, field, value) => {
-    setProjectData(prev => {
+    setProjectData((prev) => {
       const updated = { ...prev };
       updated.stages[stageIndex].tasks[taskIndex][field] = value;
       return updated;
@@ -140,7 +145,7 @@ const CreateProject = () => {
   }, []);
 
   const updateGate = useCallback((stageIndex, field, value) => {
-    setProjectData(prev => {
+    setProjectData((prev) => {
       const updated = { ...prev };
       updated.stages[stageIndex].gate[field] = value;
       return updated;
@@ -149,82 +154,62 @@ const CreateProject = () => {
   }, []);
 
   const resetProject = useCallback(() => {
-    if (window.confirm('Are you sure you want to reset all changes?')) {
+    if (window.confirm("Are you sure you want to reset all changes?")) {
       setProjectData(JSON.parse(JSON.stringify(originalData)));
       setIsEdited(false);
-      showToast('Changes reset successfully', 'info');
+      showToast("Changes reset successfully", "info");
     }
   }, [originalData, showToast]);
 
   const saveProject = useCallback(() => {
-    console.log('Saving project:', projectData);
-    showToast('Project saved successfully!', 'success');
+    console.log("Saving project:", projectData);
+    showToast("Project saved successfully!", "success");
     setIsEdited(false);
   }, [projectData, showToast]);
 
-    const lockProject = useCallback(() => {
-        setShowLockModal(true);
-    }, []);
+  const lockProject = useCallback(() => {
+    setShowLockModal(true);
+  }, []);
 
-    const confirmLockProject = useCallback(() => {
+  const confirmLockProject = useCallback(() => {
     setShowLockModal(false);
-    
+
     google.script.run
       .withSuccessHandler((result) => {
         if (result.success) {
-          showToast(result.message || 'Project locked and submitted successfully!', 'success');
+          showToast(
+            result.message || "Project locked and submitted successfully!",
+            "success"
+          );
           setTimeout(() => google.script.host.close(), 2000);
         } else {
-          showToast('Error: ' + result.message, 'error');
+          showToast("Error: " + result.message, "error");
         }
       })
       .withFailureHandler((error) => {
-        showToast('Error locking project: ' + error, 'error');
+        showToast("Error locking project: " + error, "error");
       })
       .lockProject(projectData);
   }, [projectData, showToast]);
-/*
-  const lockProject = useCallback(() => {
-    if (window.confirm('Are you sure you want to lock and submit this project? You won\'t be able to make further edits.')) {
-      // Uncomment for production
-      // google.script.run
-      //   .withSuccessHandler((result) => {
-      //     if (result.success) {
-      //       showToast(result.message || 'Project locked and submitted successfully!', 'success');
-      //       setTimeout(() => google.script.host.close(), 2000);
-      //     } else {
-      //       showToast('Error: ' + result.message, 'error');
-      //     }
-      //   })
-      //   .withFailureHandler((error) => {
-      //     showToast('Error locking project: ' + error, 'error');
-      //   })
-      //   .lockProject(projectData);
-      
-      // Demo version
-      showToast('Project locked and submitted successfully!', 'success');
-      setTimeout(() => {
-        console.log('Would close dialog here');
-      }, 2000);
-    }
-  }, [projectData, showToast]); */
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Toast Notifications */}
-      {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
-        {/* Lock Confirmation Modal */}
-        <ConfirmModal
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={closeToast} />
+      )}
+      {/* Lock Confirmation Modal */}
+      <ConfirmModal
         isOpen={showLockModal}
         onConfirm={confirmLockProject}
         onCancel={() => setShowLockModal(false)}
         title="Lock & Submit Project"
         message="Are you sure you want to lock and submit this project? You won't be able to make further edits after this action."
-        />
+      />
 
       <div className="w-full mx-auto">
         {/* Input Form View */}
-        {view === 'input' && (
+        {view === "input" && (
           <div className="bg-white rounded-xl shadow-2xl w-full mx-auto animate-slide-in">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center gap-3">
@@ -232,8 +217,12 @@ const CreateProject = () => {
                   <Folder className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Create New Project</h2>
-                  <p className="text-sm text-gray-500">Design your learning experience</p>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Create New Project
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    Design your learning experience
+                  </p>
                 </div>
               </div>
             </div>
@@ -242,7 +231,8 @@ const CreateProject = () => {
               {/* Project Description */}
               <div className="mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  What do you want to build? <span className="text-red-500">*</span>
+                  What do you want to build?{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={projectInput}
@@ -252,7 +242,8 @@ const CreateProject = () => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none text-sm"
                 />
                 <p className="mt-2 text-xs text-gray-500">
-                  💡 Be specific about your learning goals, target audience, and desired outcomes
+                  💡 Be specific about your learning goals, target audience, and
+                  desired outcomes
                 </p>
               </div>
 
@@ -268,7 +259,9 @@ const CreateProject = () => {
                 >
                   <option value="">Select Subject</option>
                   {Object.entries(subjects).map(([key, value]) => (
-                    <option key={key} value={key}>{value}</option>
+                    <option key={key} value={key}>
+                      {value}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -278,11 +271,20 @@ const CreateProject = () => {
                 <div className="flex gap-3">
                   <div className="text-2xl">💡</div>
                   <div>
-                    <h4 className="text-sm font-semibold text-blue-900 mb-1">Example Projects</h4>
+                    <h4 className="text-sm font-semibold text-blue-900 mb-1">
+                      Example Projects
+                    </h4>
                     <ul className="text-xs text-blue-800 space-y-1">
-                      <li>• "Interactive website explaining Newton's Laws with animations"</li>
-                      <li>• "Research project on climate change impact in local communities"</li>
-                      <li>• "Quiz game to test knowledge about U.S. presidents"</li>
+                      <li>
+                        - "How can Arizona reduce agricultural water use by 25% by 2040 while protecting tribal rights and sustaining the Colorado River ecosystem?"
+                      </li>
+                      <li>
+                        - "Research project on climate change impact in local
+                        communities"
+                      </li>
+                      <li>
+                        - "How do TikTok, YouTube, and “fake news” shape political identity and trust in democracy among youth, and what solutions could strengthen media literacy?"
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -300,7 +302,7 @@ const CreateProject = () => {
         )}
 
         {/* Loading View */}
-        {view === 'loading' && (
+        {view === "loading" && (
           <div className="bg-white rounded-xl shadow-2xl w-full mx-auto animate-slide-in">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center gap-3">
@@ -308,8 +310,12 @@ const CreateProject = () => {
                   <Loader2 className="w-6 h-6 text-white animate-spin" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Creating Your Project</h2>
-                  <p className="text-sm text-gray-500">This may take up to a minute...</p>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Creating Your Project
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    This may take up to a minute...
+                  </p>
                 </div>
               </div>
             </div>
@@ -320,14 +326,14 @@ const CreateProject = () => {
                   <div
                     key={index}
                     className={`flex items-center gap-3 transition-colors ${
-                      index <= loadingStep ? 'text-green-600' : 'text-gray-400'
+                      index <= loadingStep ? "text-green-600" : "text-gray-400"
                     }`}
                   >
                     <div
                       className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-semibold ${
                         index <= loadingStep
-                          ? 'border-green-500 bg-green-500 text-white'
-                          : 'border-gray-300'
+                          ? "border-green-500 bg-green-500 text-white"
+                          : "border-gray-300"
                       }`}
                     >
                       {index + 1}
@@ -340,7 +346,11 @@ const CreateProject = () => {
               <div className="mt-6 bg-gray-200 rounded-full h-2 overflow-hidden">
                 <div
                   className="bg-gradient-to-r from-purple-500 to-indigo-500 h-full rounded-full transition-all duration-1000"
-                  style={{ width: `${((loadingStep + 1) / loadingSteps.length) * 100}%` }}
+                  style={{
+                    width: `${
+                      ((loadingStep + 1) / loadingSteps.length) * 100
+                    }%`,
+                  }}
                 />
               </div>
             </div>
@@ -348,7 +358,7 @@ const CreateProject = () => {
         )}
 
         {/* Project View */}
-        {view === 'project' && projectData && (
+        {view === "project" && projectData && (
           <div className="bg-white rounded-xl shadow-2xl animate-slide-in">
             {/* Header */}
             <div className="p-6 border-b border-gray-200">
@@ -357,7 +367,9 @@ const CreateProject = () => {
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">
                     {projectData.project_title}
                   </h2>
-                  <p className="text-sm text-gray-600">{projectData.description}</p>
+                  <p className="text-sm text-gray-600">
+                    {projectData.description}
+                  </p>
                   <div className="mt-2 flex items-center gap-2">
                     <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
                       {projectData.subject_domain}
@@ -397,30 +409,38 @@ const CreateProject = () => {
                   <input
                     type="text"
                     value={projectData.stages[currentStage].title}
-                    onChange={(e) => updateStageTitle(currentStage, e.target.value)}
+                    onChange={(e) =>
+                      updateStageTitle(currentStage, e.target.value)
+                    }
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none font-semibold text-lg"
                   />
                 </div>
 
                 {/* Tasks */}
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Tasks</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    Tasks
+                  </h3>
                   <div className="space-y-4">
-                    {projectData.stages[currentStage].tasks.map((task, taskIndex) => (
-                      <TaskCard
-                        key={taskIndex}
-                        task={task}
-                        stageIndex={currentStage}
-                        taskIndex={taskIndex}
-                        onUpdate={updateTask}
-                      />
-                    ))}
+                    {projectData.stages[currentStage].tasks.map(
+                      (task, taskIndex) => (
+                        <TaskCard
+                          key={taskIndex}
+                          task={task}
+                          stageIndex={currentStage}
+                          taskIndex={taskIndex}
+                          onUpdate={updateTask}
+                        />
+                      )
+                    )}
                   </div>
                 </div>
 
                 {/* Assessment Gate */}
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Assessment Gate</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    Assessment Gate
+                  </h3>
                   <AssessmentGate
                     gate={projectData.stages[currentStage].gate}
                     stageIndex={currentStage}
