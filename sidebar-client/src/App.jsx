@@ -23,6 +23,10 @@ export default function App() {
           setIsAuthorized(false);
         }
       })
+      .withFailuerHandler((err)=>{
+        console.error("FAILURE:", err);
+        setIsAuthorized(false); // to avoid infinite loader
+      })
       .validateUser();
   }, []);
 
