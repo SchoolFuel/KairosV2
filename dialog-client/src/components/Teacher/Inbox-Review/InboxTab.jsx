@@ -244,19 +244,40 @@ const InboxTab = ({
               <option value="pending">
                 New Project (
                 {
-                  projects.filter(
-                    (p) =>
-                      p.status.toLowerCase().includes("pending") ||
-                      p.status.toLowerCase().includes("new project")
-                  ).length
+                  projects.filter((p) => {
+                    const hasDeletionRequests = 
+                      p.hasDeletionRequests ||
+                      (p.deletion_requested && p.deletion_request_status === "pending");
+                    return (
+                      (p.status.toLowerCase().includes("pending") ||
+                        p.status.toLowerCase().includes("new project")) &&
+                      !hasDeletionRequests
+                    );
+                  }).length
                 }
                 )
               </option>
               <option value="revision">
                 Revision (
                 {
+                  projects.filter((p) => {
+                    const hasDeletionRequests = 
+                      p.hasDeletionRequests ||
+                      (p.deletion_requested && p.deletion_request_status === "pending");
+                    return (
+                      p.status.toLowerCase().includes("revision") &&
+                      !hasDeletionRequests
+                    );
+                  }).length
+                }
+                )
+              </option>
+              <option value="project-change">
+                Project change (
+                {
                   projects.filter((p) =>
-                    p.status.toLowerCase().includes("revision")
+                    p.hasDeletionRequests ||
+                    (p.deletion_requested && p.deletion_request_status === "pending")
                   ).length
                 }
                 )
@@ -264,11 +285,16 @@ const InboxTab = ({
               <option value="approve">
                 Approve (
                 {
-                  projects.filter(
-                    (p) =>
-                      p.status.toLowerCase().includes("approve") ||
-                      p.status.toLowerCase().includes("approved")
-                  ).length
+                  projects.filter((p) => {
+                    const hasDeletionRequests = 
+                      p.hasDeletionRequests ||
+                      (p.deletion_requested && p.deletion_request_status === "pending");
+                    return (
+                      (p.status.toLowerCase().includes("approve") ||
+                        p.status.toLowerCase().includes("approved")) &&
+                      !hasDeletionRequests
+                    );
+                  }).length
                 }
                 )
               </option>
