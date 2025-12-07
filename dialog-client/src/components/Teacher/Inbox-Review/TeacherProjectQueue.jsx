@@ -2477,8 +2477,9 @@ export default function TeacherProjectQueue() {
                                               : "1px solid #fde68a",
                                         }}
                                       >
-                                        {currentStage.status ||
-                                          stageStatuses[currentStage.stage_id]}
+                                        {(currentStage.status ||
+                                          stageStatuses[currentStage.stage_id]) === "Pending" ? "Revision" : (currentStage.status ||
+                                            stageStatuses[currentStage.stage_id])}
                                       </div>
                                     ) : (
                                       <div
