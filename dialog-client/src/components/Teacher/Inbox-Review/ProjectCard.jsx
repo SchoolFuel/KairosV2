@@ -1,5 +1,5 @@
 import React from "react";
-import { User, BookOpen, Trash2 } from "lucide-react";
+import { User, BookOpen } from "lucide-react";
 import Badge from "../../Shared/LearningStandards/Badge";
 import { pillClass, getStatusIcon } from "./utils.jsx";
 
@@ -8,13 +8,21 @@ function ProjectCard({
   onReview,
   onApprove,
   onReject,
-  onViewDeletionRequests,
 }) {
   const title = project.title || project.project_title || "Untitled";
   const subject = project.subject_domain || "—";
   let status = (project.status || "—").trim();
-  // Display "New Project" instead of "Pending"
+  
+  // Display "Project change" if deletion request is present (check multiple possible flags)
   if (
+    (project.deletion_requested && project.deletion_request_status === "pending") ||
+    project.hasDeletionRequests ||
+    (project.status && project.status.toLowerCase().includes("project change"))
+  ) {
+    status = "Project change";
+  }
+  // Display "New Project" instead of "Pending"
+  else if (
     status.toLowerCase().includes("pending") &&
     !status.toLowerCase().includes("new project")
   ) {
@@ -43,44 +51,6 @@ function ProjectCard({
                   <User size={12} />
                   {owner}
                 </span>
-              </>
-            )}
-            {project.hasDeletionRequests && (
-              <>
-                <span className="tpq-separator">•</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onViewDeletionRequests) {
-                      onViewDeletionRequests(project);
-                    }
-                  }}
-                  style={{
-                    border: "none",
-                    background: "none",
-                    padding: 0,
-                    cursor: "pointer",
-                  }}
-                  title="Click to view deletion request details"
-                >
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      padding: "6px 12px",
-                      backgroundColor: "#fee2e2",
-                      color: "#dc2626",
-                      border: "1px solid #fecaca",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                    }}
-                  >
-                    <Trash2 size={12} />
-                    Delete Requested ({project.deletionRequestCount || 1})
-                  </span>
-                </button>
               </>
             )}
           </div>
