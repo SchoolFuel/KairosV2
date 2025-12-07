@@ -4,7 +4,6 @@ import "./Teacher.css";
 import MySpark from "../Shared/MySpark";
 import { useMySparkGate } from "../Shared/MySparkGate";
 import ProjectQueueCard from "./ProjectQueue/ProjectQueue";
-import ProjectReview from "./ProjectReview/ProjectReview";
 
 export default function TeacherDashboard({ email }) {
   const [isProjectQueueExpanded, setIsProjectQueueExpanded] = useState(false);
@@ -113,7 +112,6 @@ export default function TeacherDashboard({ email }) {
 
       {/* New components from incoming branch */}
       <ProjectQueueCard />
-      <ProjectReview />
       
       {/* IgniteHelp Button */}
       <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>

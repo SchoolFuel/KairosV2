@@ -103,13 +103,14 @@ function getMySparkStats() {
     }
   } catch (error) {
     Logger.log('Error fetching My Spark stats: ' + error.toString());
-    // Return default stats on error
+    // Return default stats on error - must match success case structure
     return {
       success: true,
       stats: {
-        projectsProgressed: 0,
+        projectsCompleted: 0,
+        totalProjects: 0,
         tasksCompleted: 0,
-        streak: 0
+        totalTasks: 0
       }
     };
   }

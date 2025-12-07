@@ -152,6 +152,12 @@ export default function IgniteHelp() {
                 })));
                 setShowInstantHelp(true);
                 setInstantHelpMessage(result.data.message || successMessage);
+                // Stay in 'create' view so user can see the solutions
+                // Don't switch to 'list' view - let user see the instant help panel
+              } else {
+                // No solutions returned - switch to list view and show alert
+                setView('list');
+                alert(successMessage);
               }
               
               // Refresh tickets list
@@ -161,13 +167,9 @@ export default function IgniteHelp() {
                 }
               }).getTickets();
               
-              // Reset form
-              setNewTicket({ topic: 'Submission Problem', priority: 'Normal', description: '', notifyMe: true });
-              setView('list');
-              
-              // Show alert if no solutions were returned
+              // Reset form (but only if we're switching views)
               if (!result.data || !result.data.possible_solutions || result.data.possible_solutions.length === 0) {
-                alert(successMessage);
+                setNewTicket({ topic: 'Submission Problem', priority: 'Normal', description: '', notifyMe: true });
               }
             } else {
               alert('Failed to create ticket: ' + (result.message || 'Unknown error'));
@@ -179,19 +181,19 @@ export default function IgniteHelp() {
           .createTicket(ticketData);
       } else {
         // Fallback: add locally if not in Apps Script
-        const ticket = {
-          id: tickets.length + 1,
+    const ticket = {
+      id: tickets.length + 1,
           title: newTicket.topic,
           category: 'Technical',
           priority: newTicket.priority,
           description: newTicket.description,
-          status: 'Pending',
-          created: new Date().toISOString().split('T')[0],
-          creator: userEmail
-        };
-        setTickets([ticket, ...tickets]);
+      status: 'Pending',
+      created: new Date().toISOString().split('T')[0],
+      creator: userEmail
+    };
+    setTickets([ticket, ...tickets]);
         setNewTicket({ topic: 'Submission Problem', priority: 'Normal', description: '', notifyMe: true });
-        setView('list');
+    setView('list');
       }
     } catch (error) {
       alert('Error creating ticket: ' + error);
@@ -349,6 +351,7 @@ export default function IgniteHelp() {
                   <option value="Other">Other</option>
                 </select>
               </div>
+              </div>
 
             <div className="form-row">
               <div className="form-group">
@@ -378,7 +381,6 @@ export default function IgniteHelp() {
                 </div>
               </div>
             </div>
-            </div>
 
             <div className="form-group">
               <label className="form-label">Description *</label>
@@ -400,14 +402,14 @@ export default function IgniteHelp() {
                 Get Instant Help
               </button>
 
-              <button
-                onClick={handleCreateTicket}
+            <button
+              onClick={handleCreateTicket}
                 disabled={!newTicket.topic || !newTicket.description}
-                className="btn-primary btn-create"
-              >
-                <Plus size={18} />
-                Create Ticket
-              </button>
+              className="btn-primary btn-create"
+            >
+              <Plus size={18} />
+              Create Ticket
+            </button>
             </div>
           </div>
 
@@ -457,8 +459,8 @@ export default function IgniteHelp() {
                           ))}
                           {s.status && <span className={`chip ${s.status === 'Resolved' ? 'chip-resolved' : s.status === 'Open' ? 'chip-open' : 'chip-tip'}`}>{s.status}</span>}
                           {s.ref && <span className="chip chip-ref">{s.ref}</span>}
-                        </div>
-                      </div>
+                </div>
+              </div>
                       {s.url && (
                         <div className="instant-card-details" style={{ marginTop: '8px' }}>
                           <a 
@@ -471,7 +473,7 @@ export default function IgniteHelp() {
                           >
                             View Solution →
                           </a>
-                        </div>
+                  </div>
                       )}
                       {s.details && (
                         <div className="instant-card-details">{s.details}</div>
