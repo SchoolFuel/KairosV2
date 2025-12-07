@@ -613,6 +613,27 @@ const ReviewGateStandard = ({
                               <X size={14} />
                             </button>
                           </div>
+                          
+                          {/* LS Description*/}
+                          <div className="mb-3">
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              LS Description
+                            </label>
+                            <input
+                              type="text"
+                              value={ls.lsDescription || ""}
+                              onChange={(e) =>
+                                updateLearningStandard(
+                                  activeTabIndex,
+                                  lsIndex,
+                                  "lsDescription",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                              disabled={isDisabled}
+                            />
+                          </div>
 
                           {/* LS Code and Percentage - Side by Side (4:1) */}
                           <div className="flex gap-3">
