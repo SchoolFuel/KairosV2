@@ -79,24 +79,18 @@ function getTeacherProjectDetails(projectId, userId) {
   return { statusCode: out.statusCode || 200, body: { project } };
 }
 
-function getTeacherProjectsAll(subjectDomain) {
-  if (!subjectDomain || !subjectDomain.trim()) {
-    throw new Error("Subject domain is required");
-  }
-
+function getTeacherProjectsAll() {
   const url =
-    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+    "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/dev/invoke";
   const body = {
     action: "myprojects",
     payload: {
       request: "teacher_view_all",
       email_id: "teacher1@gmail.com",
-      subject_domain: subjectDomain.trim(),
     },
   };
 
   Logger.log("=== getTeacherProjectsAll ===");
-  Logger.log("Subject Domain: " + subjectDomain);
   Logger.log("Payload: " + JSON.stringify(body, null, 2));
 
   const res = UrlFetchApp.fetch(url, {
@@ -126,58 +120,6 @@ function getTeacherProjectsAll(subjectDomain) {
   Logger.log("Projects count: " + (bodyLike?.projects?.length || 0));
 
   return { statusCode: out.statusCode || out.status || 200, body: bodyLike };
-}
-
-function getTeacherProjects(subject) {
-  try {
-    const url =
-      "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
-
-    const payload = {
-      action: "myprojects",
-      payload: {
-        request: "teacher_view_all",
-        subject_domain: subject,
-      },
-    };
-
-    const options = {
-      method: "post",
-      contentType: "application/json",
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true,
-    };
-
-    const response = UrlFetchApp.fetch(url, options);
-
-    // Check if the HTTP request itself failed
-    if (response.getResponseCode() !== 200) {
-      throw new Error(
-        `HTTP Error: ${response.getResponseCode()} - ${response.getContentText()}`
-      );
-    }
-
-    const result = JSON.parse(response.getContentText());
-
-    // Check if the API returned an error in the response body
-    if (!result || result.status !== "success") {
-      throw new Error(
-        `API Error: ${result?.status || "Unknown"} - ${
-          result?.message || "Unknown error"
-        }`
-      );
-    }
-
-    return result;
-  } catch (error) {
-    console.error("Error in getStudentProjects:", error);
-    // Return an error object that your React component can handle
-    return {
-      statusCode: 500,
-      error: error.toString(),
-      body: null,
-    };
-  }
 }
 
 /**

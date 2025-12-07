@@ -938,7 +938,7 @@
   margin: 0 0 4px 0;
   font-size: 20px;
   font-weight: 600;
-  color: #667eea;
+  color: #1a202c;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -947,7 +947,7 @@
 .tpq-filters-subtitle {
   margin: 4px 0 0 0;
   font-size: 14px;
-  color: #764ba2;
+  color: #4a5568;
 }
 
 .tpq-filters-form {
@@ -968,7 +968,7 @@
   gap: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: #667eea;
+  color: #1a202c;
 }
 
 .tpq-filter-input {
@@ -979,6 +979,7 @@
   font-size: 14px;
   transition: border-color 0.2s, box-shadow 0.2s;
   background-color: #ffffff;
+  color: #1a202c;
 }
 
 .tpq-filter-input:focus {
@@ -990,6 +991,11 @@
 .tpq-filter-input:disabled {
   background-color: #f7fafc;
   cursor: not-allowed;
+}
+
+.tpq-filter-input option {
+  background-color: #ffffff;
+  color: #1a202c;
 }
 
 .tpq-filters-actions {
