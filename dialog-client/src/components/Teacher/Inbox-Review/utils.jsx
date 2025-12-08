@@ -37,6 +37,7 @@ export const deepClone = (obj) =>
  */
 export function pillClass(status) {
   const s = (status || "").toLowerCase();
+  if (s.includes("project change")) return "is-project-change";
   if (s.includes("approve")) return "is-approve";
   if (s.includes("reject") || s.includes("revision")) return "is-reject";
   if (s.includes("pending") || s.includes("new project")) return "is-pending";
