@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { Folder, Loader2, Lock, Save, RotateCcw, Clock, AlertCircle, RefreshCw, User } from "lucide-react";
+import { Folder, Loader2, Lock, Save, RotateCcw, Clock, AlertCircle, RefreshCw, User, XCircle } from "lucide-react";
 import Toast from "./Toast";
 import StageTab from "./StageTab";
 import TaskCard from "./TaskCard";
@@ -22,6 +22,8 @@ const CreateProject = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
   const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
+  const [showTimeoutModal, setShowTimeoutModal] = useState(false);
+  const [isTimedOut, setIsTimedOut] = useState(false);
   
   const wsRef = useRef(null);
   const stepIntervalRef = useRef(null);
@@ -29,9 +31,10 @@ const CreateProject = () => {
   const timeoutTimerRef = useRef(null);
   const startTimeRef = useRef(null);
 
-  const TIMEOUT_THRESHOLD = 65;
-  const WARNING_THRESHOLD = 45;
-  const MAX_RETRIES = 2;
+  const TIMEOUT_THRESHOLD = 65; // 1 min 5 sec
+  const WARNING_THRESHOLD = 55; // 55 seconds
+  const MAX_AUTO_RETRIES = 2;
+  const STAGE_CONTENT_HEIGHT = 450;
 
   const subjects = {
     mathematics: "Mathematics",
@@ -66,7 +69,9 @@ const CreateProject = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const cleanup = useCallback(() => {
+  // Complete cleanup function
+  const cleanup = useCallback((closeWebSocket = true) => {
+    // Clear all intervals
     if (stepIntervalRef.current) {
       clearInterval(stepIntervalRef.current);
       stepIntervalRef.current = null;
@@ -79,72 +84,133 @@ const CreateProject = () => {
       clearTimeout(timeoutTimerRef.current);
       timeoutTimerRef.current = null;
     }
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.close();
+    
+    // Close WebSocket if requested
+    if (closeWebSocket && wsRef.current) {
+      if (wsRef.current.readyState === WebSocket.OPEN || 
+          wsRef.current.readyState === WebSocket.CONNECTING) {
+        wsRef.current.close();
+      }
       wsRef.current = null;
     }
+    
+    // Reset UI states
     setElapsedTime(0);
     setShowTimeoutWarning(false);
+    setLoadingStep(0);
   }, []);
 
+  // Start timer
   const startTimer = useCallback(() => {
     startTimeRef.current = Date.now();
     setElapsedTime(0);
     setShowTimeoutWarning(false);
+    setIsTimedOut(false);
     
     timerIntervalRef.current = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
       setElapsedTime(elapsed);
       
+      // Show warning at 55 seconds
       if (elapsed >= WARNING_THRESHOLD && elapsed < TIMEOUT_THRESHOLD) {
         setShowTimeoutWarning(true);
       }
     }, 1000);
   }, []);
 
+  // Handle timeout - stops everything and shows modal
   const handleTimeout = useCallback(() => {
-    cleanup();
+    console.log('Timeout reached at', Date.now());
     
-    if (retryCount < MAX_RETRIES) {
-      showToast(
-        `Request timeout. Retrying automatically... (${retryCount + 1}/${MAX_RETRIES})`,
-        "warning"
-      );
-      setRetryCount(prev => prev + 1);
-      setTimeout(() => generateProject(true), 2000);
-    } else {
-      showToast(
-        "Request is taking too long. Please try again or contact support.",
-        "error"
-      );
-      setView("input");
+    // Stop everything
+    cleanup(true);
+    setIsTimedOut(true);
+    
+    // Show timeout modal to user
+    setShowTimeoutModal(true);
+  }, [cleanup]);
+
+  // Manual retry from timeout modal
+  const handleManualRetry = useCallback(() => {
+    console.log('Manual retry triggered');
+    setShowTimeoutModal(false);
+    setIsTimedOut(false);
+    
+    // Reset everything and restart
+    cleanup(true);
+    
+    // Small delay before restarting
+    setTimeout(() => {
+      generateProject(false, true); // true = isManualRetry
+    }, 500);
+  }, [cleanup]);
+
+  // Cancel and go back to input
+  const handleCancelRetry = useCallback(() => {
+    setShowTimeoutModal(false);
+    setIsTimedOut(false);
+    cleanup(true);
+    setView("input");
+    setRetryCount(0);
+    showToast("Project creation cancelled", "info");
+  }, [cleanup, showToast]);
+
+  // Resize dialog helper
+  const resizeDialog = useCallback(() => {
+    try {
+      if (typeof google !== 'undefined' && google.script && google.script.host) {
+        google.script.host.setHeight(720);
+        google.script.host.setWidth(800);
+      }
+    } catch (error) {
+      console.log('Dialog resize not available:', error);
+    }
+  }, []);
+
+  // Handle stage change
+  const handleStageChange = useCallback((index) => {
+    setCurrentStage(index);
+    setTimeout(() => {
+      resizeDialog();
+    }, 50);
+  }, [resizeDialog]);
+
+  // Main project generation function
+  const generateProject = useCallback((isAutoRetry = false, isManualRetry = false) => {
+    console.log('generateProject called:', { isAutoRetry, isManualRetry, retryCount });
+    
+    // Validation only on first attempt
+    if (!isAutoRetry && !isManualRetry) {
+      if (!projectInput.trim()) {
+        showToast("Please describe your project", "error");
+        return;
+      }
+      if (!subject) {
+        showToast("Please select a subject", "error");
+        return;
+      }
+      if (!selectedTeacher) {
+        showToast("Please select a teacher to assign this project", "error");
+        return;
+      }
       setRetryCount(0);
     }
-  }, [retryCount]);
 
-  const generateProject = useCallback((isRetry = false) => {
-    if (!projectInput.trim()) {
-      showToast("Please describe your project", "error");
-      return;
-    }
-    if (!subject) {
-      showToast("Please select a subject", "error");
-      return;
-    }
-    if (!selectedTeacher) {
-      showToast("Please select a teacher to assign this project", "error");
-      return;
-    }
-
-    if (!isRetry) {
+    // If manual retry, reset retry count
+    if (isManualRetry) {
       setRetryCount(0);
     }
 
+    // Set view and reset states
     setView("loading");
     setLoadingStep(0);
+    setIsTimedOut(false);
+    setShowTimeoutWarning(false);
 
+    // Start fresh timer
     startTimer();
 
+    // Animate loading steps
     stepIntervalRef.current = setInterval(() => {
       setLoadingStep((prev) => {
         if (prev >= 5) {
@@ -154,16 +220,20 @@ const CreateProject = () => {
       });
     }, 10000);
 
+    // Set timeout timer (65 seconds)
     timeoutTimerRef.current = setTimeout(() => {
+      console.log('Timeout timer fired');
       handleTimeout();
     }, TIMEOUT_THRESHOLD * 1000);
 
+    // Create new WebSocket connection
     const ws = new WebSocket(
       "wss://s7pmpoc37f.execute-api.us-west-1.amazonaws.com/prod/"
     );
     wsRef.current = ws;
 
     ws.onopen = () => {
+      console.log('WebSocket opened');
       const message = `${projectInput}, Subject: ${subjects[subject]}`;
       const payload = {
         action: "createproject",
@@ -178,6 +248,8 @@ const CreateProject = () => {
 
     let firstMessage = true;
     ws.onmessage = (event) => {
+      console.log('WebSocket message received');
+      
       if (firstMessage) {
         firstMessage = false;
         return;
@@ -191,56 +263,77 @@ const CreateProject = () => {
           parsedJson.statusCode === 200 &&
           parsedJson?.body?.action_response?.response?.project
         ) {
+          console.log('Project received successfully');
           const project = parsedJson.body.action_response.response.project;
-          // Add teacher info to project data
           project.assigned_teacher = selectedTeacher;
           setProjectData(project);
           setOriginalData(JSON.parse(JSON.stringify(project)));
           setView("project");
-          cleanup();
+          cleanup(true);
           setRetryCount(0);
           showToast("Project created successfully!", "success");
         }
       } catch (err) {
         console.error("Parse error:", err);
-        showToast("Error generating project. Please try again.", "error");
-        setView("input");
-        cleanup();
+        
+        // Only show error if not timed out
+        if (!isTimedOut) {
+          showToast("Error parsing project data", "error");
+          cleanup(true);
+          setView("input");
+        }
       }
     };
 
     ws.onerror = (error) => {
       console.error("WebSocket error:", error);
-      cleanup();
       
-      if (retryCount < MAX_RETRIES) {
-        showToast(`Connection error. Retrying... (${retryCount + 1}/${MAX_RETRIES})`, "warning");
-        setRetryCount(prev => prev + 1);
-        setTimeout(() => generateProject(true), 2000);
-      } else {
-        showToast("Connection error. Please try again.", "error");
-        setView("input");
-        setRetryCount(0);
+      // Only handle if not already timed out
+      if (!isTimedOut) {
+        cleanup(true);
+        
+        if (retryCount < MAX_AUTO_RETRIES && !isManualRetry) {
+          const nextRetry = retryCount + 1;
+          setRetryCount(nextRetry);
+          showToast(`Connection error. Auto-retrying... (${nextRetry}/${MAX_AUTO_RETRIES})`, "warning");
+          setTimeout(() => generateProject(true, false), 2000);
+        } else {
+          showToast("Connection error. Please try again.", "error");
+          setView("input");
+          setRetryCount(0);
+        }
       }
     };
 
     ws.onclose = (event) => {
-      if (!event.wasClean && view === "loading") {
-        console.log("WebSocket closed unexpectedly");
+      console.log('WebSocket closed:', event.code, event.reason);
+      
+      // Only log unexpected closes during loading
+      if (!event.wasClean && view === "loading" && !isTimedOut) {
+        console.log("WebSocket closed unexpectedly during loading");
       }
     };
-  }, [projectInput, subject, selectedTeacher, subjects, showToast, startTimer, cleanup, handleTimeout, retryCount, view]);
+  }, [projectInput, subject, selectedTeacher, subjects, showToast, startTimer, cleanup, handleTimeout, retryCount, isTimedOut, view]);
 
-  const manualRetry = useCallback(() => {
-    setRetryCount(0);
-    generateProject(false);
-  }, [generateProject]);
-
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      cleanup();
+      cleanup(true);
     };
   }, [cleanup]);
+
+  // Resize on view changes
+  useEffect(() => {
+    resizeDialog();
+  }, [view, resizeDialog]);
+
+  useEffect(() => {
+    if (projectData && view === "project") {
+      setTimeout(() => {
+        resizeDialog();
+      }, 100);
+    }
+  }, [projectData, view, resizeDialog]);
 
   const updateStageTitle = useCallback((stageIndex, value) => {
     setProjectData((prev) => {
@@ -314,6 +407,7 @@ const CreateProject = () => {
         <Toast message={toast.message} type={toast.type} onClose={closeToast} />
       )}
       
+      {/* Lock Confirmation Modal */}
       <ConfirmModal
         isOpen={showLockModal}
         onConfirm={confirmLockProject}
@@ -321,6 +415,45 @@ const CreateProject = () => {
         title="Lock & Submit Project"
         message="Are you sure you want to lock and submit this project? You won't be able to make further edits after this action."
       />
+
+      {/* Timeout Modal */}
+      {showTimeoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 animate-slide-in">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <XCircle className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Request Timeout</h3>
+                  <p className="text-sm text-gray-500">Connection took too long</p>
+                </div>
+              </div>
+              
+              <p className="text-gray-700 mb-6">
+                The project generation is taking longer than expected. This could be due to high server load or network issues. Would you like to try again?
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelRetry}
+                  className="flex-1 px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleManualRetry}
+                  className="flex-1 px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-semibold flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="w-full mx-auto">
         {/* Input Form View */}
@@ -415,7 +548,7 @@ const CreateProject = () => {
 
               {/* Generate Button */}
               <button
-                onClick={() => generateProject(false)}
+                onClick={() => generateProject(false, false)}
                 className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!projectInput.trim() || !subject || !selectedTeacher}
               >
@@ -439,18 +572,18 @@ const CreateProject = () => {
                 </div>
                 {retryCount > 0 && (
                   <span className="text-sm bg-white/20 px-3 py-1 rounded-full">
-                    Retry {retryCount}/{MAX_RETRIES}
+                    Auto-Retry {retryCount}/{MAX_AUTO_RETRIES}
                   </span>
                 )}
               </div>
             </div>
 
-            {showTimeoutWarning && (
+            {showTimeoutWarning && !isTimedOut && (
               <div className="bg-yellow-50 border-b border-yellow-200 p-3 animate-fade-in">
                 <div className="flex items-center gap-2 text-yellow-800">
                   <AlertCircle className="w-5 h-5 flex-shrink-0" />
                   <p className="text-sm">
-                    Taking longer than usual... Please wait, we'll retry automatically if needed.
+                    Taking longer than usual... The request will timeout in {TIMEOUT_THRESHOLD - elapsedTime} seconds.
                   </p>
                 </div>
               </div>
@@ -505,18 +638,6 @@ const CreateProject = () => {
                   }}
                 />
               </div>
-
-              {showTimeoutWarning && (
-                <div className="mt-6 text-center">
-                  <button
-                    onClick={manualRetry}
-                    className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-semibold flex items-center gap-2 mx-auto"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Retry Now
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -524,6 +645,7 @@ const CreateProject = () => {
         {/* Project View */}
         {view === "project" && projectData && (
           <div className="bg-white rounded-xl shadow-2xl animate-slide-in">
+            {/* Header */}
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -553,21 +675,31 @@ const CreateProject = () => {
               </div>
             </div>
 
+            {/* Stages Navigation */}
             <div className="border-b border-gray-200 bg-gray-50 px-6">
-              <div className="flex gap-1">
+              <div className="flex gap-1 overflow-x-auto">
                 {projectData.stages.map((_, index) => (
                   <StageTab
                     key={index}
                     index={index}
                     isActive={currentStage === index}
-                    onClick={() => setCurrentStage(index)}
+                    onClick={() => handleStageChange(index)}
                   />
                 ))}
               </div>
             </div>
 
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
+            {/* Single Stage Content - Fixed Height */}
+            <div 
+              className="p-6 overflow-y-auto"
+              style={{ 
+                height: `${STAGE_CONTENT_HEIGHT}px`,
+                minHeight: `${STAGE_CONTENT_HEIGHT}px`,
+                maxHeight: `${STAGE_CONTENT_HEIGHT}px`
+              }}
+            >
               <div className="space-y-6">
+                {/* Stage Title */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-2">
                     STAGE TITLE
@@ -582,6 +714,7 @@ const CreateProject = () => {
                   />
                 </div>
 
+                {/* Tasks */}
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-4">
                     Tasks
@@ -601,6 +734,7 @@ const CreateProject = () => {
                   </div>
                 </div>
 
+                {/* Assessment Gate */}
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-4">
                     Assessment Gate
@@ -614,6 +748,7 @@ const CreateProject = () => {
               </div>
             </div>
 
+            {/* Footer Actions */}
             <div className="border-t border-gray-200 p-6 bg-gray-50 flex justify-between items-center">
               <button
                 onClick={resetProject}
@@ -663,6 +798,25 @@ const CreateProject = () => {
         }
         .animate-fade-in {
             animation: fade-in 0.2s ease-out;
+        }
+        
+        /* Scrollbar styling */
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 4px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: #555;
         }
       `}</style>
     </div>
