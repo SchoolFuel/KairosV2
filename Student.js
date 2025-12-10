@@ -37,6 +37,68 @@ function getAdvice(prompt) {
   }
 }
 
+function buildGateStandardsMessage(projectData) {
+  return {
+    project_id: projectData.project_id,
+    Student_Name: projectData.student_name,     // rename + casing fix
+    project_title: projectData.project_title,
+    description: projectData.description,
+    subject_domain: projectData.subject_domain,
+    status: "Pending",                         // at first the status is Pending
+
+    stages: projectData.stages.map(stage => ({
+      stage_id: stage.stage_id,
+      stage_order: stage.stage_order,
+      title: stage.title,
+      description: stage.description || null,
+
+      tasks: stage.tasks.map(task => ({
+        task_id: task.task_id,
+        title: task.title,
+        description: task.description
+      })),
+
+      gate: {
+        gate_id: stage.gate.gate_id,
+        title: stage.gate.title,
+        description: stage.gate.description,
+        checklist: stage.gate.checklist
+      }
+    }))
+  };
+}
+
+
+function createGateStandards(){
+  Logger.log("InsideTrigger")
+  const baseUrl =  "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
+  const raw = PropertiesService.getScriptProperties().getProperty("GATE_STANDARDS_DATA")
+  if (!raw)return;
+  const projectData = JSON.parse(raw)
+  PropertiesService.getScriptProperties().deleteProperty("GATE_STANDARDS_DATA");
+  const gateStandardsMessage = buildGateStandardsMessage(projectData);
+  try {
+    const payload = {
+      action: "creategatestandards",
+      payload:{
+        student_id:"23e228fa-4592-4bdc-852e-192973c388ce",
+        email_id:"mindspark.user1@schoolfuel.org",
+        message:gateStandardsMessage,
+      }
+    };
+    const options = {
+      method:"POST",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    };
+    UrlFetchApp.fetch(baseUrl, options)
+    
+  }catch (error){
+    console.error("Error creating Gate Standards:", error);
+  }
+}
+
 function lockProject(projectData) {
   const baseUrl =
     "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/prod/invoke";
@@ -67,7 +129,10 @@ function lockProject(projectData) {
     const response = UrlFetchApp.fetch(baseUrl, options);
 
     const responseData = JSON.parse(response.getContentText());
-
+    PropertiesService.getScriptProperties().setProperty(
+      "GATE_STANDARDS_DATA", JSON.stringify(projectData)
+    )
+    ScriptApp.newTrigger("createGateStandards").timeBased().after(1000).create(); //runs after a second
     // Handle different response codes
     return {
       success: true,
