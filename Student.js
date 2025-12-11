@@ -152,6 +152,9 @@ function getStudentProjects() {
   }
 }
 
+
+
+
 function getProjectDetails(projectId) {
   try {
     const url =
