@@ -9,6 +9,7 @@ import CreateProject from './CreateProject/CreateProject';
 import SidebarWorkshop from './Workshopbuilder/Workshopbuilder';
 import ExpertFinderComponent from './FindExperts/ExpertFinderComponent';
 import StudentPrototype from './MyProjectsPrototype/StudentProjectsProt';
+import Ignite from "../Shared/Ignite/Ignite";
 
 export default function StudentDashboard({ email }) {
   return (
@@ -24,6 +25,7 @@ export default function StudentDashboard({ email }) {
       <ExpertFinderComponent />
       <AboutMe />
       <SidebarBreakTimer />
+      <Ignite />
     </div>
   );
 }

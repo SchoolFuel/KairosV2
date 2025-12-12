@@ -1,7 +1,8 @@
 function onOpen() {
   DocumentApp.getUi()
     .createMenu("Kairos")
-    .addItem("Open Sidebar", "showSidebar")
+    .addItem("Get Started", "showSidebar")
+    .addItem("Need Help Getting Started", "showHelpGettingStarted")
     .addToUi();
 }
 
@@ -11,6 +12,29 @@ function showSidebar() {
     .setWidth(400);
   DocumentApp.getUi().showSidebar(html);
 }
+
+function showHelpGettingStarted() {
+  const html = HtmlService
+    .createHtmlOutputFromFile("Dialog")
+    .setTitle("Need Help Getting Started?")
+    .setWidth(420)
+    .setHeight(320);
+
+  // Tell React which dialog to load
+  html.append("<script>window.location.hash = 'need-help-starting';</script>");
+
+  DocumentApp.getUi().showModalDialog(html, "Need Help Getting Started?");
+}
+
+function submitHelpIssue(issueText) {
+  Logger.log("Need Help Issue Submitted: " + issueText);
+
+  return {
+    status: "ok",
+    message: "Issue received"
+  };
+}
+
 
 function currentUser() {
   return Session.getActiveUser().getEmail();
@@ -235,3 +259,53 @@ function sendDeleteToBackend(payload) {
     throw e.toString();
   }
 }
+
+function handleIgniteHelp(data) {
+  const url = "https://a3trgqmu4k.execute-api.us-west-1.amazonaws.com/dev/invoke";
+
+  const options = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(data),
+    muteHttpExceptions: true
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(url, options);
+    const rawText = response.getContentText();
+
+    Logger.log("🔵 Raw API Response:\n" + rawText);
+
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (err) {
+      Logger.log("🔴 JSON Parse Error: " + err);
+      return {
+        status: "error",
+        message: "Invalid JSON returned from Ignite API",
+        raw: rawText
+      };
+    }
+
+    // Log parsed response for debugging
+    Logger.log("🟢 Parsed API Response:\n" + JSON.stringify(parsed, null, 2));
+
+    // -----------------------------
+    // RETURN EXACTLY what React expects
+    // -----------------------------
+    return parsed;
+
+  } catch (error) {
+    Logger.log("🔴 Fetch Error: " + error);
+
+    return {
+      status: "error",
+      message: error.toString()
+    };
+  }
+}
+
+
+
+
