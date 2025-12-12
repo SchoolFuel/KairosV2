@@ -370,10 +370,56 @@ const CreateProject = () => {
     }
   }, [originalData, showToast]);
 
-  const saveProject = useCallback(() => {
-    console.log("Saving project:", projectData);
-    showToast("Project saved successfully!", "success");
-    setIsEdited(false);
+  const saveProject = useCallback(async () => {
+    try {
+      // Format project data for clipboard
+      let formattedText = `PROJECT: ${projectData.project_title}\n`;
+      formattedText += `${'='.repeat(60)}\n\n`;
+      formattedText += `Description: ${projectData.description}\n`;
+      formattedText += `Subject: ${projectData.subject_domain}\n`;
+      if (projectData.assigned_teacher) {
+        formattedText += `Assigned To: ${projectData.assigned_teacher.name} (${projectData.assigned_teacher.email})\n`;
+      }
+      formattedText += `\n${'='.repeat(60)}\n\n`;
+
+      // Format each stage
+      projectData.stages.forEach((stage, stageIndex) => {
+        formattedText += `STAGE ${stageIndex + 1}: ${stage.title}\n`;
+        formattedText += `${'-'.repeat(60)}\n\n`;
+
+        // Format tasks
+        formattedText += `TASKS:\n`;
+        stage.tasks.forEach((task, taskIndex) => {
+          formattedText += `\n  ${taskIndex + 1}. Task\n`;
+          formattedText += `     Description: ${task.description}\n`;
+          if (task.academic_standard) {
+            formattedText += `     Standards: ${task.academic_standard}\n`;
+          }
+          if (task.resource_id && task.resource_id.url) {
+            formattedText += `     Resource: ${task.resource_id.label}\n`;
+            formattedText += `     URL: ${task.resource_id.url}\n`;
+          }
+        });
+
+        // Format assessment gate
+        formattedText += `\n\nASSESSMENT GATE: ${stage.gate.title}\n`;
+        formattedText += `  Description: ${stage.gate.description}\n`;
+        formattedText += `  Checklist:\n`;
+        stage.gate.checklist.forEach((item, index) => {
+          formattedText += `    ☐ ${item}\n`;
+        });
+        formattedText += `\n${'='.repeat(60)}\n\n`;
+      });
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(formattedText);
+      
+      showToast("Project copied to clipboard! You can now paste it into your document.", "success");
+      setIsEdited(false);
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      showToast("Failed to copy project. Please try again.", "error");
+    }
   }, [projectData, showToast]);
 
   const lockProject = useCallback(() => {
