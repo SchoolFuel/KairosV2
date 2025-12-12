@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/SchoolFuel/KairosV2#readme",
   "dependencies": {
+    "@google/clasp": "^3.1.0",
     "react-hot-toast": "^2.6.0"
   }
 }
