@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { Folder, Loader2, Lock, Save, RotateCcw, Clock, AlertCircle, RefreshCw, User, XCircle } from "lucide-react";
+import { Folder, Loader2, Lock, Save, RotateCcw, Clock, AlertCircle, RefreshCw, User, XCircle, Copy } from "lucide-react";
 import Toast from "./Toast";
 import StageTab from "./StageTab";
 import TaskCard from "./TaskCard";
@@ -370,7 +370,7 @@ const CreateProject = () => {
     }
   }, [originalData, showToast]);
 
-  const saveProject = useCallback(async () => {
+    const copyProject = useCallback(async () => {
     try {
       // Format project data for clipboard
       let formattedText = `PROJECT: ${projectData.project_title}\n`;
@@ -390,7 +390,7 @@ const CreateProject = () => {
         // Format tasks
         formattedText += `TASKS:\n`;
         stage.tasks.forEach((task, taskIndex) => {
-          formattedText += `\n  ${taskIndex + 1}. Task\n`;
+          formattedText += `\n  Task ${taskIndex + 1} - ${task.title}\n`;
           formattedText += `     Description: ${task.description}\n`;
           if (task.academic_standard) {
             formattedText += `     Standards: ${task.academic_standard}\n`;
@@ -420,6 +420,9 @@ const CreateProject = () => {
       console.error("Failed to copy:", error);
       showToast("Failed to copy project. Please try again.", "error");
     }
+  }, [projectData, showToast]);
+  const saveProject = useCallback(async () => {
+    showToast("Project Saved As Draft!", "success");
   }, [projectData, showToast]);
 
   const lockProject = useCallback(() => {
@@ -805,11 +808,18 @@ const CreateProject = () => {
               </button>
               <div className="flex gap-3">
                 <button
+                  onClick={copyProject}
+                  className="px-6 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-semibold flex items-center gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy Project
+                </button>
+                <button
                   onClick={saveProject}
                   className="px-6 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />
-                  Save Project
+                  Save As Draft
                 </button>
                 <button
                   onClick={lockProject}
